@@ -18,7 +18,7 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
+`include"defines2.vh"
 
 module maindec(
 	input wire[5:0] op,
@@ -33,8 +33,8 @@ module maindec(
 	assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,aluop} = controls;
 	always @(*) begin
 		case (op)
-			6'b000000 :controls <= 11'b1100_000_1000;//R-TYRE
-			6'b100011 :controls <= 11'b1010_010_0100;//LW
+			`R_TYPE :controls <= 11'b1100_000_1000;//R-TYRE
+			`LW :controls <= 11'b1010_010_0100;//LW
 			6'b101011 :controls <= 11'b0010_100_0100;//SW
 			6'b000100 :controls <= 11'b0001_000_1011;//BEQ
 			
