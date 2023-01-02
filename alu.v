@@ -4,33 +4,37 @@
 
 module alu(
 	input wire[31:0] a,b,
-	input wire[2:0] op,
+	input wire[4:0] op,
 	output reg[31:0] y,
 	output reg overflow,
 	output wire zero
     );
-
-	wire[31:0] s,bout;
-	assign bout = op[2] ? ~b : b;
-	assign s = a + bout + op[2];
+    reg carry_bit;
+	
 	always @(*) begin
-		case (op[1:0])
-			2'b00: y <= a & bout;
-			2'b01: y <= a | bout;
-			2'b10: y <= s;
-			2'b11: y <= s[31];
+		case (op)
+		    //???
+			5'b00111: y <= a & b;
+			5'b00001: y <= a | b;
+			5'b00010: y <= a ^ b;
+			5'b00011: y <= ~( a | b );
+			5'b00100: y <= {b[15:0], 16'b0};
+			
+//			5'b10000: {carry_bit, y} <= {a[31], a} + {b[31], b};
+//			5'b10001: y <=  a+b;
+//            5'b10010: {carry_bit, y} <= {a[31], a} - {b[31], b};
+//            5'b10011: y <=  a-b;
+//            5'b10100: y <= $signed(a) < $signed(b);
+//            5'b10101: y <= a < b;
+            
+            
+        
 			default : y <= 32'b0;
 		endcase	
 	end
 	assign zero = (y == 32'b0);
 
 	always @(*) begin
-		case (op[2:1])
-			2'b01:overflow <= a[31] & b[31] & ~s[31] |
-							~a[31] & ~b[31] & s[31];
-			2'b11:overflow <= ~a[31] & b[31] & s[31] |
-							a[31] & ~b[31] & ~s[31];
-			default : overflow <= 1'b0;
-		endcase	
+		overflow = (op==5'b00101 || op==5'b00111) & (carry_bit ^ y[31]);
 	end
 endmodule
