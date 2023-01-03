@@ -30,7 +30,6 @@ module div(
 	output reg[63:0] result_o,
 	output reg ready_o
 );
-
 	wire[32:0] div_temp;
 	reg[5:0] cnt;
 	reg[64:0] dividend;

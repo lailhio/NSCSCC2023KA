@@ -97,13 +97,14 @@ module alu(
 		.clk(~clk),
 		.rst(rst),
         .flush(flushE),
-		.a(src_aE),  //divident
-		.b(src_bE),  //divisor
-		.valid(div_vaild),
-		.sign(div_sign),   //1 signed
+		.opdata1_i(src_aE),  //divident
+		.opdata2_i(src_bE),  //divisor
+		.start_i(div_vaild),
+        .annul_i(0),
+		.signed_div_i(div_sign),   //1 signed
 
 		// .ready(ready),
-		.div_stall(div_stallE),
+		.ready_o(~div_stallE),
 		.result(aluout_div)
 	);
 
