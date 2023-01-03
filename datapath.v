@@ -4,7 +4,6 @@
 
 module datapath(
 
-
 	input wire clk,rst,
 	
 	input wire[31:0] instrF,
@@ -12,7 +11,7 @@ module datapath(
 	
 	output wire flushE,
 	
-	output wire[31:0] aluoutM,writedataM,
+	output wire[31:0] aluoutM,writedataM
 	//debug interface
 //    output wire[31:0] debug_wb_pc,
 //    output wire[3:0] debug_wb_rf_wen,

@@ -41,52 +41,11 @@ module mips(
 	wire flushE,equalD,branchD,jumpD;
 	wire [2:0] fcM,fcW;
 
-	controller c(
-		clk,rst,
-		//decode stage
-		opD,functD,
-		pcsrcD,branchD,equalD,jumpD,
-		
-		//execute stage
-		flushE,
-		memtoregE,alusrcE,
-		regdstE,regwriteE,	
-		alucontrolE,
-
-		//mem stage
-		memtoregM,memwriteM,
-		regwriteM,
-		fcM,
-		//write back stage
-		memtoregW,regwriteW,
-		fcW
-		);
 	datapath dp(
 		clk,rst,
-		//fetch stage
-		pcF,
-		instrF,
-		//decode stage
-		pcsrcD,branchD,
-		jumpD,
-		equalD,
-		opD,functD,
-		//execute stage
-		memtoregE,
-		alusrcE,regdstE,
-		regwriteE,
-		alucontrolE,
-		flushE,
-		//mem stage
-		memtoregM,
-		regwriteM,
-		aluoutM,writedataM,
-		readdataM,
-		fcM,
-		//writeback stage
-		memtoregW,
-		regwriteW,
-		fcW
+	    instrF,
+	    flushE,
+	    aluoutM,writedataM
 //		debug_wb_pc,
 //        debug_wb_rf_wen,
 //        debug_wb_rf_wnum,

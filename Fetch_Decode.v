@@ -2,11 +2,11 @@
 
 
 module Fetch_Decode (
-	input wire clk,rst,stallD,flushD
+	input wire clk,rst,stallD,flushD,
 	input wire[31:0] pcplus4F,
     input wire[31:0] instrF,
 	output reg[31:0] pcplus4D,
-    output reg[31:0] instrD,
+    output reg[31:0] instrD
     );
     always @(posedge clk) begin
         if(rst | flushD) begin
