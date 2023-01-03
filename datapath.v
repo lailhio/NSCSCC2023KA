@@ -3,31 +3,16 @@
 
 
 module datapath(
+
+
 	input wire clk,rst,
-	//fetch stage
-	output wire[31:0] pcF,
+	
 	input wire[31:0] instrF,
-	//decode stage
-	input wire pcsrcD,branchD,
-	input wire jumpD,
-	output wire equalD,
-	output wire[5:0] opD,functD,
-	//execute stage
-	input wire memtoregE,
-	input wire alusrcE,regdstE,
-	input wire regwriteE,
-	input wire[4:0] alucontrolE,
+	
+	
 	output wire flushE,
-	//mem stage
-	input wire memtoregM,
-	input wire regwriteM,
+	
 	output wire[31:0] aluoutM,writedataM,
-	input wire[31:0] readdataM,
-	input wire[2:0] fcM,
-	//writeback stage
-	input wire memtoregW,
-	input wire regwriteW,
-	input wire [2:0] fcW
 	//debug interface
 //    output wire[31:0] debug_wb_pc,
 //    output wire[3:0] debug_wb_rf_wen,
@@ -37,9 +22,19 @@ module datapath(
 	
 	//fetch stage
 	wire stallF;
+	wire[31:0] pcF;
 	//FD
 	wire [31:0] pcnextFD,pcnextbrFD,pcplus4F,pcbranchD;
 	//decode stage
+	wire[1:0] aluopD;
+	wire memtoregD,memwriteD,alusrcD,
+		regdstD,regwriteD;
+	wire[4:0] alucontrolD;
+	wire[2:0] fcD;
+	wire pcsrcD,branchD;
+	wire jumpD;
+	wire equalD;
+	wire[5:0] opD,functD;
 	wire [31:0] pcplus4D,instrD;
 	wire forwardaD,forwardbD;
 	wire [4:0] rsD,rtD,rdD,saD;
@@ -47,6 +42,12 @@ module datapath(
 	wire [31:0] signimmD,signimmshD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
 	//execute stage
+	wire memtoregE;
+	wire alusrcE,regdstE;
+	wire regwriteE;
+	wire memwriteE;
+	wire[2:0] fcE;
+	wire[4:0] alucontrolE;
 	wire [1:0] forwardaE,forwardbE;
 	wire [4:0] rsE,rtE,rdE,saE;
 	wire [4:0] writeregE;
@@ -55,10 +56,48 @@ module datapath(
 	wire [31:0] aluoutE;
 	//mem stage
 	wire [4:0] writeregM;
+	wire memtoregM,memwriteM;
+	wire[31:0] readdataM;
+	wire[2:0] fcM;
+	wire regwriteM;
 	//writeback stage
+	wire memtoregW;
 	wire [4:0] writeregW;
+	wire regwriteW;
+	wire [2:0] fcW;
 	wire [31:0] aluoutW,readdataW,resultW;
 
+	maindec md(
+		opD,
+		memtoregD,memwriteD,
+		branchD,alusrcD,
+		regdstD,regwriteD,
+		jumpD,
+		aluopD,
+		fcD
+		);
+	aludec ad(opD,functD,alucontrolD);
+	assign pcsrcD = branchD & equalD;
+
+	//pipeline registers
+	floprc #(13) regE(
+		clk,
+		rst,
+		flushE,
+		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,fcD},
+		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,fcE}
+		);
+	flopr #(6) regM(
+		clk,rst,
+		{memtoregE,memwriteE,regwriteE,fcE},
+		{memtoregM,memwriteM,regwriteM,fcM}
+		);
+	flopr #(5) regW(
+		clk,rst,
+		{memtoregM,regwriteM,fcM},
+		{memtoregW,regwriteW,fcW}
+		);
+	
 	//hazard detection
 	hazard h(
 		//fetch stage
