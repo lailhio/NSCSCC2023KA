@@ -23,18 +23,31 @@
 module maindec(
 	input wire[31:0] instrD,
 
-	output wire memtoregD,memwriteD,
-	output wire branchD,alusrcD,
-	output wire regdstD,regwriteD,
-	output wire jumpD,
-	output wire[1:0] aluopD,
-	output wire[2:0] fcD
+	input wire stallE, stallM, stallW,
+	input wire flushE, flushM, flushW,
+    //ID
+    output wire sign_exD,          //立即数是否为符号扩展
+    //EX
+    output reg [1:0] reg_dstE,     	//写寄存器选择  00-> rd, 01-> rt, 10-> 写$ra
+    output reg is_immE,        //alu srcb选择 0->rd2E, 1->immE
+    output reg reg_write_enE,
+	output reg hilo_wenE,
+	//MEM
+	output reg mem_readM, mem_writeM,
+	output reg reg_write_enM,		//写寄存器堆使能
+    output reg mem_to_regM,         //result选择 0->alu_out, 1->read_data
+	output reg hilo_to_regM,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+	output reg riM,
+	output reg breakM, syscallM, eretM, 
+	output reg cp0_wenM,
+	output reg cp0_to_regM
+    //WB
     );
 	//Declare
 	wire [1:0] reg_dstD;
-    wire alu_imm_selD, reg_writeD, mem_to_regD, mem_readD, mem_writeD;
+    wire is_immD, reg_write_enD, mem_to_regD, mem_readD, mem_writeD;
 
-    reg mem_to_regE, mem_read_enE, mem_write_enE;
+    reg mem_to_regE, mem_readE, mem_writeE;
 
 	wire hilo_wenD, cp0_wenD;
 	reg cp0_wenE;
@@ -59,8 +72,8 @@ module maindec(
 	assign rdD = instrD[15:11];
 
 	//一部分能够容易判断的信号
-	assign sign_extD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展
-	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 
+	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
+	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//首先判断是不是R-type
 						& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
 							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]) //mthi mtlo
 						  );
@@ -74,19 +87,35 @@ module maindec(
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
 
 	always @(*) begin
-		riD = 1'b0;
+		// riD = 1'b0;
 		case(op_code)
 			`R_TYPE:
 				case(funct)
 					// 算数运算指令
-					`EXE_ADD,`EXE_ADDU,`EXE_SUB,`EXE_SUBU,`EXE_SLTU,`EXE_SLT ,
-					`EXE_AND,`EXE_NOR, `EXE_OR, `EXE_XOR,
-					`EXE_SLLV, `EXE_SLL, `EXE_SRAV, `EXE_SRA, `EXE_SRLV, `EXE_SRL,
-					`EXE_MFHI, `EXE_MFLO : begin
-						regfile_ctrl 	 =  4'b1_00_0;
-						mem_ctrl 		 =  3'b0;
+					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
+					`AND,`NOR, `OR, `XOR,
+					`SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
+					`MFHI, `MFLO : begin
+						{reg_write_enD, reg_dstD, is_immD} =  4'b1000;
+						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
+					end
+					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
+					`EXE_JR, `EXE_MULT, `EXE_MULTU, `EXE_DIV, `EXE_DIVU, `EXE_MTHI, `EXE_MTLO,
+					`EXE_SYSCALL, `EXE_BREAK : begin
+						{reg_write_enD, reg_dstD, is_immD} =  4'b0;
+						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
+					end
+					`EXE_JALR: begin
+						{reg_write_enD, reg_dstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对。
+						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
+					end
+					default: begin
+						riD  =  1'b1;
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b1000;
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 				endcase
+				
 		endcase
 	end
 endmodule
