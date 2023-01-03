@@ -53,6 +53,7 @@ module datapath(
 	wire 		breakD, syscallD, eretD;
 	wire 		cp0_wenD;
 	wire 		cp0_to_regD;
+	wire		is_mfcD;
     
     wire  is_in_delayslot_iD;//指令是否在延迟槽
 	//-------execute stage----------
@@ -169,6 +170,7 @@ module datapath(
 		breakD, syscallD, eretD, 
 		cp0_wenD,
 		cp0_to_regD,
+		is_mfcD,   //为mfc0
 		aluopD
 		);
 	aludec ad(funct,aluopD,alucontrol);
@@ -177,18 +179,59 @@ module datapath(
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 
-	Fetch_Decode Fe_De(clk,rst,stallD,flushD,
-				pcplus4F,instrF,
-				pcplus4D,instrD);
+	Fetch_Decode Fe_De(
+        .clk(clk), .rst(rst),
+        .stallD(stallD),
+        .flushD(flushD),
+
+        .pcF(pcF),
+        .pc_plus4F(pc_plus4F),
+        .instrF(instrF_4),
+        .F_change(F_change), //上一条指令是跳转
+        
+        .pcD(pcD),
+        .pc_plus4D(pc_plus4D),
+        .instrD(instrD),
+        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟槽
+    );
 	//-----------Execute----------------
 	Decode_Execute De_Ex(
-		clk,rst,flushE,
-		srcaD,srcbD,signimmD,rsD,rtD,rdD,saD,
-		memtoregD,memwriteD,alusrcD,regdstD,regwriteD,
-		alucontrolD,fcD,
-		srcaE,srcbE,signimmE,rsE,rtE,rdE,saE,
-		memtoregE,memwriteE,alusrcE,regdstE,regwriteE,
-		alucontrolE,fcE
+        .clk(clk),
+        .rst(rst),
+        .stallE(stallE),
+        .flushE(flushE),
+	//Decode stage
+        .pcD(pcD),
+        .rsD(rsD), .rd1D(rd1D), .rd2D(rd2D),
+        .rtD(rtD), .rdD(rdD),
+        .immD(immD),
+        .pc_plus4D(pc_plus4D),
+        .instrD(instrD),
+        .branchD(branchD),
+        .pred_takeD(pred_takeD),
+        .pc_branchD(pc_branchD),
+        .jump_conflictD(jump_conflictD),
+        .is_in_delayslot_iD(is_in_delayslot_iD),
+        .saD(saD),
+        .alucontrolD(alucontrolD),
+        .jumpD(jumpD),
+        .branch_judge_controlD(branch_judge_controlD),
+	//Execute stage
+        .pcE(pcE),
+        .rsE(rsE), .rd1E(rd1E), .rd2E(rd2E),
+        .rtE(rtE), .rdE(rdE),
+        .immE(immE),
+        .pc_plus4E(pc_plus4E),
+        .instrE(instrE),
+        .branchE(branchE),
+        .pred_takeE(pred_takeE),
+        .pc_branchE(pc_branchE),
+        .jump_conflictE(jump_conflictE),
+        .is_in_delayslot_iE(is_in_delayslot_iE),
+        .saE(saE),
+        .alucontrolE(alucontrolE),
+        .jumpE(jumpE),
+        .branch_judge_controlE(branch_judge_controlE)      
     );
 	//-------------Mem---------------------
 	Execute_Mem Ex_Me(

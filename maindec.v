@@ -19,6 +19,7 @@ module maindec(
 		output reg breakD, syscallD, eretD, 
 		output reg cp0_wenD,
 		output reg cp0_to_regD,
+		output wire is_mfcD,   //Ϊmfc0
 		output reg [3:0] aluopD
     );
 
@@ -46,7 +47,8 @@ module maindec(
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
 
 	always @(*) begin
-		// riD = 1'b0;
+		is_mfcD<=1'b0;
+		riD<=1'b0;
 		case(opD)
 			`R_TYPE:begin
 				case(funct)
@@ -185,6 +187,7 @@ module maindec(
 						aluopD<=`MFC0_OP;
 						{regwriteD, reg_dstD, is_immD}  =  4'b1010;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+						is_mfcD = 1'b1;
 					end
 					default: begin
 						aluopD<=`USELESS_OP;

@@ -75,26 +75,7 @@ module aludec(
 				//memory
 			`MEM_OP:
 						alucontrol <= `ADDU_CONTROL;
-			// `EXE_BEQ:
-            //     alu_controlD <= `ALU_EQ;
-            // `EXE_BGTZ:
-            //     alu_controlD <= `ALU_GTZ;
-            // `EXE_BLEZ:   
-            //     alu_controlD <= `ALU_LEZ;
-            // `EXE_BNE:
-            //     alu_controlD <= `ALU_NEQ;
-            // `EXE_BRANCHS:   //bltz, bltzal, bgez, bgezal
-            //     case(rt)
-            //         `EXE_BLTZ, `EXE_BLTZAL:      
-            //             alu_controlD <= `ALU_LTZ;
-            //         `EXE_BGEZ, `EXE_BGEZAL: 
-            //             alu_controlD <= `ALU_GEZ;
-            //         default:
-            //             alu_controlD <= `ALU_DONOTHING; 
-            //     endcase	
-			//J type
-			// `EXE_J:		alu_controlD <= `ALU_DONOTHING;
-			// `EXE_JAL:	alu_controlD <= `ALU_DONOTHING;
+			
 			default:
 						alucontrol <= 5'b0;
 		endcase

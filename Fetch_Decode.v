@@ -2,20 +2,34 @@
 
 
 module Fetch_Decode (
-	input wire clk,rst,stallD,flushD,
-	input wire[31:0] pcplus4F,
-    input wire[31:0] instrF,
-	output reg[31:0] pcplus4D,
-    output reg[31:0] instrD
-    );
+    input wire clk, rst,
+    input wire flushD,
+    input wire stallD,
+    input wire [31:0] pcF,
+    input wire [31:0] pc_plus4F,
+
+    input wire [31:0] instrF,
+    input wire [31:0] F_change,
+
+
+    output reg [31:0] pcD,
+    output reg [31:0] pc_plus4D,
+    output reg [31:0] instrD,
+    output reg [31:0] is_in_delayslot_iD
+);
+
     always @(posedge clk) begin
         if(rst | flushD) begin
-			pcplus4D<=0;
-            instrD<=0;
-		end
-        else if(~stallD) begin
-            pcplus4D<=pcplus4F;
-            instrD<=instrF;
+            pcD                 <= 0    ;
+            pc_plus4D           <= 0    ;
+            instrD              <= 0    ;
+            is_in_delayslot_iD  <= 0    ;
         end
-	end
+        else if(~stallD) begin
+            pcD                 <= pcF                  ;
+            pc_plus4D           <= pc_plus4F            ;
+            instrD              <= instrF               ;
+            is_in_delayslot_iD  <= F_change   ;
+        end
+    end
 endmodule
