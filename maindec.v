@@ -1,66 +1,29 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2017/10/23 15:21:30
-// Design Name: 
-// Module Name: maindec
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
 `include "defines2.vh"
 
 module maindec(
-	input wire[31:0] instrD,
+		input wire[31:0] instrD,
 
-	input wire stallE, stallM, stallW,
-	input wire flushE, flushM, flushW,
-    //ID
-    output wire sign_exD,          //立即数是否为符号扩展
-    //EX
-    output reg [1:0] reg_dstE,     	//写寄存器选择  00-> rd, 01-> rt, 10-> 写$ra
-    output reg is_immE,        //alu srcb选择 0->rd2E, 1->immE
-    output reg reg_write_enE,
-	output reg hilo_wenE,
-	//MEM
-	output reg mem_readM, mem_writeM,
-	output reg reg_write_enM,		//写寄存器堆使能
-    output reg mem_to_regM,         //result选择 0->alu_out, 1->read_data
-	output reg hilo_to_regM,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
-	output reg riM,
-	output reg breakM, syscallM, eretM, 
-	output reg cp0_wenM,
-	output reg cp0_to_regM
-    //WB
+		//Instruct decode
+		output wire sign_exD,          //立即数是否为符号扩展
+		//Execute
+		output reg [1:0] reg_dstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> 写$ra
+		output reg is_immD,        //alu srcb选择 0->rd2E, 1->immE
+		output reg reg_write_enD,
+		output reg hilo_wenD,
+		//Mem
+		output reg mem_readD, mem_writeD,
+		output reg reg_write_enD,		//写寄存器堆使能
+		output reg mem_to_regD,         //result选择 0->alu_out, 1->read_data
+		output reg hilo_to_regD,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+		output reg riD,
+		output reg breakD, syscallD, eretD, 
+		output reg cp0_wenD,
+		output reg cp0_to_regD,
+		output reg [3:0] aluopD
+		//WB
     );
-	//Declare
-	wire [1:0] reg_dstD;
-    wire is_immD, reg_write_enD, mem_to_regD, mem_readD, mem_writeD;
-
-    reg mem_to_regE, mem_readE, mem_writeE;
-
-	wire hilo_wenD, cp0_wenD;
-	reg cp0_wenE;
-	wire hilo_to_regD, cp0_to_regD;
-	reg hilo_to_regE, cp0_to_regE;
-
-	reg riD, riE;
-	//自陷指令
-	wire 	breakD, syscallD;
-	reg 	breakE, syscallE;
-	//中断返回
-	wire 	eretD;
-	reg 	eretE;
 
 	//Instruct Divide
 	wire [5:0] opD,functD;
@@ -71,12 +34,11 @@ module maindec(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 
-	//一部分能够容易判断的信号
 	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//首先判断是不是R-type
 						& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
-							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]) //mthi mtlo
-						  );
+							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
+
 	assign hilo_to_regD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
 	assign cp0_wenD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `MFC0));
@@ -88,43 +50,83 @@ module maindec(
 
 	always @(*) begin
 		// riD = 1'b0;
-		case(op_code)
-			`R_TYPE:
+		case(opD)
+			`R_TYPE:begin
 				case(funct)
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
 					`SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
 					`MFHI, `MFLO : begin
+						aluopD<=`R_TYPE_OP;
 						{reg_write_enD, reg_dstD, is_immD} =  4'b1000;
 						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
 					end
 					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
 					`SYSCALL, `BREAK : begin
+						aluopD<=`R_TYPE_OP;
 						{reg_write_enD, reg_dstD, is_immD} =  4'b0;
 						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
 					end
 					`JALR: begin
+						aluopD<=`R_TYPE_OP;
 						{reg_write_enD, reg_dstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对。
 						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
 					end
 					default: begin
+						aluopD<=`USELESS_OP;
 						riD  =  1'b1;
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b1000;
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 				endcase
-			// I type
-
-	// 算数运算指令
-	// 逻辑运算
-			`ADDI, `SLTI, `SLTIU, `ADDIU, `ANDI, `LUI, `XORI, `ORI: begin
-				{reg_write_enD, reg_dstD, is_immD}  =  4'b1_01_1;
+			end
+	// ------------------算数\逻辑运算--------------------------------------
+			`ADDI:	begin
+				aluopD<=`ADDI_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 			end
+			`SLTI:	begin
+				aluopD<=`SLTI_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+			`SLTIU:	begin
+				aluopD<=`SLTIU_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+			`ADDIU:	begin
+				aluopD<=`ADDIU_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+			`ANDI:	begin
+				aluopD<=`ADDI_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+			`LUI:	begin
+				aluopD<=`LUI_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+			`XORI:	begin
+				aluopD<=`XORI_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+			`ORI:	begin
+				aluopD<=`ORI_OP;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+	
 
 			`BEQ, `BNE, `BLEZ, `BGTZ: begin
+				aluopD<=`USELESS_OP;
 				{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 			end
@@ -132,15 +134,18 @@ module maindec(
 			`REGIMM_INST: begin
 				case(rt)
 					`BGEZAL,`BLTZAL: begin
+						aluopD<=`USELESS_OP;
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b1100;//需要写至31
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`BGEZ,`BLTZ: begin
+						aluopD<=`USELESS_OP;
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					default:begin
 						riD  =  1'b1;
+						aluopD<=`USELESS_OP;
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b0;
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
@@ -149,21 +154,25 @@ module maindec(
 			
 	// 访存指令，都是立即数指令。
 			`LW, `LB, `LBU, `LH, `LHU: begin
+				aluopD<=`MEM_OP;
 				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b110;
 			end
 			`SW, `SB, `SH: begin
+				aluopD<=`MEM_OP;
 				{reg_write_enD, reg_dstD, is_immD}  =  4'b0001;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b001;
 			end
 	
 	//  J type
 			`J: begin
+				aluopD<=`USELESS_OP;
 				{reg_write_enD, reg_dstD, is_immD}  =  4'b0;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 			end
 
 			`JAL: begin
+				aluopD<=`USELESS_OP;
 				{reg_write_enD, reg_dstD, is_immD}  =  4'b1100;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 			end
@@ -171,14 +180,17 @@ module maindec(
 			`SPECIAL3_INST:begin
 				case(instrD[25:21])
 					`MTC0: begin
+						aluopD<=`MTC0_OP;
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`MFC0: begin
+						aluopD<=`MFC0_OP;
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b1010;
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					default: begin
+						aluopD<=`USELESS_OP;
 						riD  =  |(instrD[25:0] ^ `ERET);
 						{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
@@ -188,6 +200,7 @@ module maindec(
 
 			default: begin
 				riD  =  1;
+				aluopD<=`USELESS_OP;
 				{reg_write_enD, reg_dstD, is_immD}  =  4'b0;
 				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 			end

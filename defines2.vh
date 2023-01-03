@@ -114,6 +114,8 @@
 `define SLTIU_OP    4'b0111
 
 `define MEM_OP  4'b0100
+
+
 `define R_TYPE_OP 4'b1000
 `define MFC0_OP 4'b1001
 `define MTC0_OP 4'b1010

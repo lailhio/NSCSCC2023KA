@@ -21,15 +21,23 @@ module datapath(
 	
 	//--------fetch stage----------
 	wire stallF;
-	wire[31:0] pcF;
-	//FD
-	wire [31:0] pcnextFD,pcnextbrFD,pcplus4F,pcbranchD;
+    wire [31:0] pcF, pcnextFD,pcnextbrFD, pcplus4F;
+	wire [31:0] pcbranchD;
+	wire pc_reg_ceF;
+    wire [2:0] pc_sel;
+    wire [31:0] instrF_temp;
+    wire is_in_delayslot_iF;
+// wire pcerrorD, pcerrorE, pcerrorM; 
 	//----------decode stage---------
-	wire[1:0] aluopD;
+	wire[3:0] aluopD;
 	wire memtoregD,memwriteD,alusrcD,
 		regdstD,regwriteD;
+	wire [31:0] rd1D, rd2D;
+	wire [31:0] pcD, pc_plus4D;
+	wire is_in_delayslot_iD;
 	wire[4:0] alucontrolD;
-	wire[2:0] fcD;
+	wire jump_conflictD;
+	wire pred_takeD;
 	wire pcsrcD,branchD;
 	wire jumpD;
 	wire equalD;
@@ -40,12 +48,41 @@ module datapath(
 	wire flushD,stallD; 
 	wire [31:0] signimmD,signimmshD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
+	wire [31:0] immD;
+    wire sign_exD;
+    wire [31:0] pc_branchD;
+    wire flush_pred_failedM;
+    wire [31:0] pc_jumpD;
+    wire [4:0] branch_judge_controlD;
 	//-------execute stage----------
+
+	wire [31:0] pcE;
+    wire [31:0] rd1E, rd2E, mem_wdataE;
+    wire [4:0] rsE, rtE, rdE, saE;
+    wire [31:0] immE;
+    wire [31:0] pc_plus4E;
+    wire pred_takeE;
+    wire [31:0] src_aE, src_bE;
+    wire [63:0] alu_outE;
+    wire alu_imm_selE;
+    wire [31:0] instrE;
+    wire branchE;
+    wire [31:0] pc_branchE;
+    wire [31:0] pc_jumpE;
+    wire jump_conflictE;
+    wire div_stallE;
+    wire [31:0] rs_valueE, rt_valueE;
+    wire flush_jump_confilctE;
+    wire is_in_delayslot_iE;
+    wire overflowE;
+    wire jumpE;
+    wire actual_takeE;
+    wire [4:0] branch_judge_controlE;
 	wire memtoregE;
-	wire alusrcE,regdstE;
+	wire alusrcE;
+	wire [1:0] reg_dstE;
 	wire regwriteE;
 	wire memwriteE;
-	wire[2:0] fcE;
 	wire[4:0] alucontrolE;
 	wire [1:0] forwardaE,forwardbE;
 	wire [4:0] rsE,rtE,rdE,saE;
@@ -54,17 +91,56 @@ module datapath(
 	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
 	wire [31:0] aluoutE;
 	//----------mem stage--------
-	wire [4:0] writeregM;
-	wire memtoregM,memwriteM;
-	wire[31:0] readdataM;
-	wire[2:0] fcM;
-	wire regwriteM;
+	 wire [31:0] pcM;
+    wire [31:0] alu_outM;
+    wire [31:0] instrM;
+    wire mem_read_enM;
+    wire [31:0] resultM;
+    wire actual_takeM;
+    wire succM;
+    wire pred_takeM;
+    wire branchM;
+    wire [31:0] pc_branchM;
+
+    wire [31:0] mem_ctrl_rdataM;
+    wire [31:0] mem_wdataM_temp;
+    wire [31:0] mem_ctrl_rdataM;
+
+    wire hilo_wenE;
+    wire [63:0] hilo_oM;
+    wire hilo_to_regM;
+    wire riM;
+    wire breakM;
+    wire syscallM;
+    wire eretM;
+    wire overflowM;
+    wire addrErrorLwM, addrErrorSwM;
+    wire pcErrorM;
+
+    wire [31:0] except_typeM;
+    wire [31:0] cp0_statusM;
+    wire [31:0] cp0_causeM;
+    wire [31:0] cp0_epcM;
+
+    wire flush_exceptionM;
+    wire [31:0] pc_exceptionM;
+    wire pc_trapM;
+    wire [31:0] badvaddrM;
+    wire is_in_delayslot_iM;
+    wire [4:0] rdM;
+    wire cp0_to_regM;
+    wire mem_error_enM;
+    wire cp0_wenM;
+    
 	//------writeback stage----------
 	wire memtoregW;
 	wire [4:0] writeregW;
 	wire regwriteW;
-	wire [2:0] fcW;
 	wire [31:0] aluoutW,readdataW,resultW;
+	wire [31:0] pcW;
+    wire [31:0] alu_outW;
+
+    wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
 //-----------------Data--------------------
 
 	
@@ -78,15 +154,23 @@ module datapath(
 	assign saD = instrD[10:6];
 	maindec md(
 		instrD,
-		memtoregD,memwriteD,
-		branchD,alusrcD,
-		regdstD,regwriteD,
-		jumpD,
-		aluopD,
-		fcD
+		//Instruct decode
+		sign_exD,
+		//Execute
+		reg_dstD,is_immD,
+		reg_write_enD,
+		hilo_wenD,
+		//Mem
+		mem_readD, mem_writeD,
+		reg_write_enD,mem_to_regD,
+		hilo_to_regD,riD,
+		breakD, syscallD, eretD, 
+		cp0_wenD,
+		cp0_to_regD,
+		aluopD
 		);
-	aludec ad(opD,functD,alucontrolD);
-	
+	aludec ad(funct,aluopD,alucontrol);
+
 	assign pcsrcD = branchD & equalD;
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
