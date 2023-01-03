@@ -100,12 +100,12 @@ module maindec(
 						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
 					end
 					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
-					`EXE_JR, `EXE_MULT, `EXE_MULTU, `EXE_DIV, `EXE_DIVU, `EXE_MTHI, `EXE_MTLO,
-					`EXE_SYSCALL, `EXE_BREAK : begin
+					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
+					`SYSCALL, `BREAK : begin
 						{reg_write_enD, reg_dstD, is_immD} =  4'b0;
 						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
 					end
-					`EXE_JALR: begin
+					`JALR: begin
 						{reg_write_enD, reg_dstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对。
 						{mem_to_regD, mem_readD, mem_writeD} =  3'b0;
 					end
@@ -115,7 +115,82 @@ module maindec(
 						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
 					end
 				endcase
-				
+			// I type
+
+	// 算数运算指令
+	// 逻辑运算
+			`ADDI, `SLTI, `SLTIU, `ADDIU, `ANDI, `LUI, `XORI, `ORI: begin
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1_01_1;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+
+			`BEQ, `BNE, `BLEZ, `BGTZ: begin
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+
+			`REGIMM_INST: begin
+				case(rt)
+					`BGEZAL,`BLTZAL: begin
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b1100;//需要写至31
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`BGEZ,`BLTZ: begin
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					default:begin
+						riD  =  1'b1;
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b0;
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+					end
+				endcase
+			end
+			
+	// 访存指令，都是立即数指令。
+			`LW, `LB, `LBU, `LH, `LHU: begin
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1011;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b110;
+			end
+			`SW, `SB, `SH: begin
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b0001;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b001;
+			end
+	
+	//  J type
+			`J: begin
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b0;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+
+			`JAL: begin
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b1100;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
+
+			`SPECIAL3_INST:begin
+				case(instrD[25:21])
+					`MTC0: begin
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`MFC0: begin
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b1010;
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					default: begin
+						riD  =  |(instrD[25:0] ^ `ERET);
+						{reg_write_enD, reg_dstD, is_immD}  =  4'b0000;
+						{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+					end
+				endcase
+			end
+
+			default: begin
+				riD  =  1;
+				{reg_write_enD, reg_dstD, is_immD}  =  4'b0;
+				{mem_to_regD, mem_readD, mem_writeD}  =  3'b0;
+			end
 		endcase
 	end
 endmodule
