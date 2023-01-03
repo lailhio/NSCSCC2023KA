@@ -160,11 +160,9 @@ module datapath(
 	assign saD = instrD[10:6];
 	maindec md(
 		instrD,
-		//Instruct decode
+		//output
 		sign_exD,
-		regdstD,is_immD,
-		regwriteD,
-		hilo_wenD,
+		regdstD,is_immD,regwriteD,hilo_wenD,
 		mem_readD, mem_writeD,
 		memtoregD,
 		hilo_to_regD,riD,

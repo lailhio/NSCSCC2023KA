@@ -73,7 +73,7 @@ module aludec(
 			`LUI_OP: 	alucontrol <= `LUI_CONTROL;
 			`ORI_OP: alucontrol <= `OR_CONTROL;
 				//memory
-			`LW, `LB, `LBU, `LH, `LHU, `SW, `SB, `SH:
+			`MEM_OP:
 						alucontrol <= `ADDU_CONTROL;
 			// `EXE_BEQ:
             //     alu_controlD <= `ALU_EQ;
