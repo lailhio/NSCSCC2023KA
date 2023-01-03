@@ -20,12 +20,12 @@ module datapath(
 //    output wire[31:0] debug_wb_rf_wdata
     );
 	
-	//fetch stage
+	//--------fetch stage----------
 	wire stallF;
 	wire[31:0] pcF;
 	//FD
 	wire [31:0] pcnextFD,pcnextbrFD,pcplus4F,pcbranchD;
-	//decode stage
+	//----------decode stage---------
 	wire[1:0] aluopD;
 	wire memtoregD,memwriteD,alusrcD,
 		regdstD,regwriteD;
@@ -41,7 +41,7 @@ module datapath(
 	wire flushD,stallD; 
 	wire [31:0] signimmD,signimmshD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
-	//execute stage
+	//-------execute stage----------
 	wire memtoregE;
 	wire alusrcE,regdstE;
 	wire regwriteE;
@@ -54,18 +54,19 @@ module datapath(
 	wire [31:0] signimmE;
 	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
 	wire [31:0] aluoutE;
-	//mem stage
+	//----------mem stage--------
 	wire [4:0] writeregM;
 	wire memtoregM,memwriteM;
 	wire[31:0] readdataM;
 	wire[2:0] fcM;
 	wire regwriteM;
-	//writeback stage
+	//------writeback stage----------
 	wire memtoregW;
 	wire [4:0] writeregW;
 	wire regwriteW;
 	wire [2:0] fcW;
 	wire [31:0] aluoutW,readdataW,resultW;
+//-----------------Data--------------------
 
 	maindec md(
 		opD,
@@ -78,25 +79,58 @@ module datapath(
 		);
 	aludec ad(opD,functD,alucontrolD);
 	assign pcsrcD = branchD & equalD;
+	//regfile (operates in decode and writeback)
+	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 
-	//pipeline registers
-	floprc #(13) regE(
-		clk,
-		rst,
-		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,fcD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,fcE}
-		);
-	flopr #(6) regM(
+
+	//-----------Decode----------------
+	assign opD = instrD[31:26];
+	assign functD = instrD[5:0];
+	assign rsD = instrD[25:21];
+	assign rtD = instrD[20:16];
+	assign rdD = instrD[15:11];
+	assign saD = instrD[10:6];
+
+	Fetch_Decode Fe_De(clk,rst,stallD,flushD,
+				pcplus4F,instrF,
+				pcplus4D,instrD);
+	//-----------Execute----------------
+	Decode_Execute De_Ex(
+		clk,rst,flushE,
+		srcaD,srcbD,signimmD,rsD,rtD,rdD,saD,
+		memtoregD,memwriteD,alusrcD,regdstD,regwriteD,
+		alucontrolD,fcD,
+		srcaE,srcbE,signimmE,rsE,rtE,rdE,saE,
+		memtoregE,memwriteE,alusrcE,regdstE,regwriteE,
+		alucontrolE,fcE
+    );
+	//----------Mem---------------------
+	Execute_Mem Ex_Me(
 		clk,rst,
-		{memtoregE,memwriteE,regwriteE,fcE},
-		{memtoregM,memwriteM,regwriteM,fcM}
-		);
-	flopr #(5) regW(
+		srcb2E,aluoutE,writeregE,
+		memtoregE,memwriteE,regwriteE,
+		fcE,
+		writedataM2,aluoutM,writeregM,
+		memtoregM,memwriteM,regwriteM,
+    	fcM
+    );
+	//---------Write_Back----------------
+	Mem_WriteBack Me_Wr(
 		clk,rst,
-		{memtoregM,regwriteM,fcM},
-		{memtoregW,regwriteW,fcW}
-		);
+		aluoutM,readdataM,writeregM,
+		memtoregM,regwriteM,
+		fcM,
+		aluoutW,readdataW,writeregW,
+		memtoregW,regwriteW,
+		fcW
+    );
+	
+	wire [31:0] readdataWB;
+	reg[31:0] readtempW = 32'b0;
+	//mem stage
+	wire [31:0] writedataM2;
+	reg [31:0] writetempM = 32'b0;
+	
 	
 	//hazard detection
 	hazard h(
@@ -135,15 +169,12 @@ module datapath(
 		{pcplus4D[31:28],instrD[25:0],2'b00},
 		jumpD,pcnextFD);
 
-	//regfile (operates in decode and writeback)
-	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
+	
 
 	//fetch stage logic
 	pc #(32) pcreg(clk,rst,~stallF,pcnextFD,pcF);
 	adder pcadd1(pcF,32'b100,pcplus4F);
-	//decode stage
-	flopenr #(32) r1D(clk,rst,~stallD,pcplus4F,pcplus4D);
-	flopenrc #(32) r2D(clk,rst,~stallD,flushD,instrF,instrD);
+
 	signext se(alusrcE,instrD[15:0],signimmD);
 	sl2 immsh(signimmD,signimmshD);
 	adder pcadd2(pcplus4D,signimmshD,pcbranchD);
@@ -151,21 +182,6 @@ module datapath(
 	mux2 #(32) forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
 	eqcmp comp(srca2D,srcb2D,equalD);
 
-	assign opD = instrD[31:26];
-	assign functD = instrD[5:0];
-	assign rsD = instrD[25:21];
-	assign rtD = instrD[20:16];
-	assign rdD = instrD[15:11];
-	assign saD = instrD[10:6];
-
-	//execute stage
-	floprc #(32) r1E(clk,rst,flushE,srcaD,srcaE);
-	floprc #(32) r2E(clk,rst,flushE,srcbD,srcbE);
-	floprc #(32) r3E(clk,rst,flushE,signimmD,signimmE);
-	floprc #(5) r4E(clk,rst,flushE,rsD,rsE);
-	floprc #(5) r5E(clk,rst,flushE,rtD,rtE);
-	floprc #(5) r6E(clk,rst,flushE,rdD,rdE);
-	floprc #(5) r7E(clk,rst,flushE,saD,saE);
 
 	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
@@ -173,12 +189,7 @@ module datapath(
 	alu alu(srca2E,srcb3E,saE,alucontrolE,aluoutE);
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
-	//mem stage
-	wire [31:0] writedataM2;
-	reg [31:0] writetempM = 32'b0;
-	flopr #(32) r1M(clk,rst,srcb2E,writedataM2);
-	flopr #(32) r2M(clk,rst,aluoutE,aluoutM);
-	flopr #(5) r3M(clk,rst,writeregE,writeregM);
+	
     
     assign writedataM = writetempM;
     always @(*) begin
@@ -206,13 +217,7 @@ module datapath(
         endcase
     end
     
-	//writeback stage
-	flopr #(32) r1W(clk,rst,aluoutM,aluoutW);
-	flopr #(32) r2W(clk,rst,readdataM,readdataW);
-	flopr #(5) r3W(clk,rst,writeregM,writeregW);
 	
-	wire [31:0] readdataWB;
-	reg[31:0] readtempW = 32'b0;
 	always @(*) begin
 	   case(fcW)
 	       //LB
