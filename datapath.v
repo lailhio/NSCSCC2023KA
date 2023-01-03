@@ -67,20 +67,7 @@ module datapath(
 	wire [31:0] aluoutW,readdataW,resultW;
 //-----------------Data--------------------
 
-	maindec md(
-		opD,
-		memtoregD,memwriteD,
-		branchD,alusrcD,
-		regdstD,regwriteD,
-		jumpD,
-		aluopD,
-		fcD
-		);
-	aludec ad(opD,functD,alucontrolD);
-	assign pcsrcD = branchD & equalD;
-	//regfile (operates in decode and writeback)
-	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
-
+	
 
 	//-----------Decode----------------
 	assign opD = instrD[31:26];
@@ -89,6 +76,20 @@ module datapath(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 	assign saD = instrD[10:6];
+	maindec md(
+		instrD,
+		memtoregD,memwriteD,
+		branchD,alusrcD,
+		regdstD,regwriteD,
+		jumpD,
+		aluopD,
+		fcD
+		);
+	aludec ad(opD,functD,alucontrolD);
+	
+	assign pcsrcD = branchD & equalD;
+	//regfile (operates in decode and writeback)
+	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 
 	Fetch_Decode Fe_De(clk,rst,stallD,flushD,
 				pcplus4F,instrF,

@@ -18,57 +18,75 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
+`include "defines2.vh"
 
 module maindec(
-	input wire[5:0] op,
+	input wire[31:0] instrD,
 
-	output wire memtoreg,memwrite,
-	output wire branch,alusrc,
-	output wire regdst,regwrite,
-	output wire jump,
-	output wire[1:0] aluop,
-	output wire[2:0] fc
+	output wire memtoregD,memwriteD,
+	output wire branchD,alusrcD,
+	output wire regdstD,regwriteD,
+	output wire jumpD,
+	output wire[1:0] aluopD,
+	output wire[2:0] fcD
     );
-	reg[11:0] controls;
-	assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,aluop,fc} = controls;
+	//Declare
+	wire [1:0] reg_dstD;
+    wire alu_imm_selD, reg_writeD, mem_to_regD, mem_readD, mem_writeD;
+
+    reg mem_to_regE, mem_read_enE, mem_write_enE;
+
+	wire hilo_wenD, cp0_wenD;
+	reg cp0_wenE;
+	wire hilo_to_regD, cp0_to_regD;
+	reg hilo_to_regE, cp0_to_regE;
+
+	reg riD, riE;
+	//×ÔÏÝÖ¸Áî
+	wire 	breakD, syscallD;
+	reg 	breakE, syscallE;
+	//ÖÐ¶Ï·µ»Ø
+	wire 	eretD;
+	reg 	eretE;
+
+	//Instruct Divide
+	wire [5:0] opD,functD;
+	wire [4:0] rsD,rtD,rdD;
+	assign opD = instrD[31:26];
+	assign functD = instrD[5:0];
+	assign rsD = instrD[25:21];
+	assign rtD = instrD[20:16];
+	assign rdD = instrD[15:11];
+
+	//Ò»²¿·ÖÄÜ¹»ÈÝÒ×ÅÐ¶ÏµÄÐÅºÅ
+	assign sign_extD = (|(opD[5:2] ^ 4'b0011));		//0±íÊ¾ÎÞ·ûºÅÍØÕ¹
+	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 
+						& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
+							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]) //mthi mtlo
+						  );
+	assign hilo_to_regD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
+														// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+	assign cp0_wenD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `MFC0));
+	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `MTC0));
+	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `ERET));
+	
+	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
+	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
+
 	always @(*) begin
-		case (op)
-			6'b000000:controls  = 12'b110000010_000;//R-TYRE
-			6'b000100:controls  = 12'b000100001_000;//BEQ
-			6'b001000:controls  = 12'b101000000_000;//ADDI
-			
-			6'b000010:controls  = 12'b000000100_000;//J
-			
-			//ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½
-			6'b000000:controls  = 12'b110000010_000;//and
-			6'b000000:controls  = 12'b110000010_000;//or
-			6'b000000:controls  = 12'b110000010_000;//xor
-			6'b000000:controls  = 12'b110000010_000;//nor
-			6'b001100:controls  = 12'b101000000_000;//andi
-			6'b001110:controls  = 12'b101000000_000;//xori
-			6'b001111:controls  = 12'b101000000_000;//lui
-			6'b001101:controls  = 12'b101000000_000;//ori
-			
-			//ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½
-			6'b000000:controls  = 12'b110000010_000;//sll
-			6'b000000:controls  = 12'b110000010_000;//srl
-			6'b000000:controls  = 12'b110000010_000;//sra
-			6'b000000:controls  = 12'b110000010_000;//sllv
-			6'b000000:controls  = 12'b110000010_000;//srlv
-			6'b000000:controls  = 12'b110000010_000;//srav
-			
-			//ï¿½Ã´ï¿½
-			6'b100000:controls  = 12'b101001000_000;//LB   000
-			6'b100100:controls  = 12'b101001000_001;//LBU  001
-			6'b100001:controls  = 12'b101001000_010;//LH   010
-			6'b100101:controls  = 12'b101001000_011;//LHU  011
-			6'b100011:controls  = 12'b101001000_100;//LW   100
-			6'b101000:controls  = 12'b001010000_101;//SB   101	
-			6'b101001:controls  = 12'b001010000_110;//SH   110
-			6'b101011:controls  = 12'b001010000_111;//SW   111
-			
-			default:  controls  = 12'b000000000_000;//illegal op
+		riD = 1'b0;
+		case(op_code)
+			`R_TYPE:
+				case(funct)
+					// ËãÊýÔËËãÖ¸Áî
+					`EXE_ADD,`EXE_ADDU,`EXE_SUB,`EXE_SUBU,`EXE_SLTU,`EXE_SLT ,
+					`EXE_AND,`EXE_NOR, `EXE_OR, `EXE_XOR,
+					`EXE_SLLV, `EXE_SLL, `EXE_SRAV, `EXE_SRA, `EXE_SRLV, `EXE_SRL,
+					`EXE_MFHI, `EXE_MFLO : begin
+						regfile_ctrl 	 =  4'b1_00_0;
+						mem_ctrl 		 =  3'b0;
+					end
+				endcase
 		endcase
 	end
 endmodule
