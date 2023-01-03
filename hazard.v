@@ -79,16 +79,16 @@ module hazard(
 	end
 
 	//stalls
-	assign #1 lwstallD = memtoregE & (rtE == rsD | rtE == rtD);
-	assign #1 branchstallD = branchD &
+	assign   lwstallD = memtoregE & (rtE == rsD | rtE == rtD);
+	assign   branchstallD = branchD &
 				(regwriteE & 
 				(writeregE == rsD | writeregE == rtD) |
 				memtoregM &
 				(writeregM == rsD | writeregM == rtD));
-	assign #1 stallD = lwstallD | branchstallD;
-	assign #1 stallF = stallD;
+	assign   stallD = lwstallD | branchstallD;
+	assign   stallF = stallD;
 		//stalling D stalls all previous stages
-	assign #1 flushE = stallD;
+	assign   flushE = stallD;
 		//stalling D flushes next stage
 	// Note: not necessary to stall D stage on store
   	//       if source comes from load;

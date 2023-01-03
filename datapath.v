@@ -1,23 +1,5 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2017/11/02 15:12:22
-// Design Name: 
-// Module Name: datapath
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
 
 
 module datapath(
@@ -41,9 +23,16 @@ module datapath(
 	input wire regwriteM,
 	output wire[31:0] aluoutM,writedataM,
 	input wire[31:0] readdataM,
+	input wire[2:0] fcM,
 	//writeback stage
 	input wire memtoregW,
-	input wire regwriteW
+	input wire regwriteW,
+	input wire [2:0] fcW
+	//debug interface
+//    output wire[31:0] debug_wb_pc,
+//    output wire[3:0] debug_wb_rf_wen,
+//    output wire[4:0] debug_wb_rf_wnum,
+//    output wire[31:0] debug_wb_rf_wdata
     );
 	
 	//fetch stage
@@ -53,13 +42,13 @@ module datapath(
 	//decode stage
 	wire [31:0] pcplus4D,instrD;
 	wire forwardaD,forwardbD;
-	wire [4:0] rsD,rtD,rdD;
+	wire [4:0] rsD,rtD,rdD,saD;
 	wire flushD,stallD; 
 	wire [31:0] signimmD,signimmshD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
 	//execute stage
 	wire [1:0] forwardaE,forwardbE;
-	wire [4:0] rsE,rtE,rdE;
+	wire [4:0] rsE,rtE,rdE,saE;
 	wire [4:0] writeregE;
 	wire [31:0] signimmE;
 	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
@@ -94,6 +83,12 @@ module datapath(
 		writeregW,
 		regwriteW
 		);
+	//--------------------debug---------------------
+//    assign debug_wb_pc          = pcplus4D;
+//    assign debug_wb_rf_wen      = {4{regwriteM & ~flushE }};
+//    assign debug_wb_rf_wnum     = regwriteM;
+//    assign debug_wb_rf_wdata    = resultW;
+
 
 	//next PC logic (operates in fetch an decode)
 	mux2 #(32) pcbrmux(pcplus4F,pcbranchD,pcsrcD,pcnextbrFD);
@@ -110,7 +105,7 @@ module datapath(
 	//decode stage
 	flopenr #(32) r1D(clk,rst,~stallD,pcplus4F,pcplus4D);
 	flopenrc #(32) r2D(clk,rst,~stallD,flushD,instrF,instrD);
-	signext se(instrD[15:0],signimmD);
+	signext se(alusrcE,instrD[15:0],signimmD);
 	sl2 immsh(signimmD,signimmshD);
 	adder pcadd2(pcplus4D,signimmshD,pcbranchD);
 	mux2 #(32) forwardamux(srcaD,aluoutM,forwardaD,srca2D);
@@ -122,6 +117,7 @@ module datapath(
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
+	assign saD = instrD[10:6];
 
 	//execute stage
 	floprc #(32) r1E(clk,rst,flushE,srcaD,srcaE);
@@ -130,21 +126,81 @@ module datapath(
 	floprc #(5) r4E(clk,rst,flushE,rsD,rsE);
 	floprc #(5) r5E(clk,rst,flushE,rtD,rtE);
 	floprc #(5) r6E(clk,rst,flushE,rdD,rdE);
+	floprc #(5) r7E(clk,rst,flushE,saD,saE);
 
 	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
 	mux2 #(32) srcbmux(srcb2E,signimmE,alusrcE,srcb3E);
-	alu alu(srca2E,srcb3E,alucontrolE,aluoutE);
+	alu alu(srca2E,srcb3E,saE,alucontrolE,aluoutE);
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
 	//mem stage
-	flopr #(32) r1M(clk,rst,srcb2E,writedataM);
+	wire [31:0] writedataM2;
+	reg [31:0] writetempM = 32'b0;
+	flopr #(32) r1M(clk,rst,srcb2E,writedataM2);
 	flopr #(32) r2M(clk,rst,aluoutE,aluoutM);
 	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-
+    
+    assign writedataM = writetempM;
+    always @(*) begin
+        case(fcM)
+            //SW
+            3'b111: 
+            begin 
+                writetempM  = writedataM2;
+            end
+            //SH
+            3'b110: 
+            begin
+                writetempM  = {16'b0,{writedataM2[15:0]}};
+            end
+            //SB
+            3'b101: 
+            begin
+                writetempM  = {24'b0,{writedataM2[7:0]}};
+            end
+            
+            default: 
+            begin
+                writetempM  = writedataM2;
+            end
+        endcase
+    end
+    
 	//writeback stage
 	flopr #(32) r1W(clk,rst,aluoutM,aluoutW);
 	flopr #(32) r2W(clk,rst,readdataM,readdataW);
 	flopr #(5) r3W(clk,rst,writeregM,writeregW);
-	mux2 #(32) resmux(aluoutW,readdataW,memtoregW,resultW);
+	
+	wire [31:0] readdataWB;
+	reg[31:0] readtempW = 32'b0;
+	always @(*) begin
+	   case(fcW)
+	       //LB
+	       3'b000: begin
+	           readtempW  = {{24{readdataW[7]}},readdataW[7:0]};
+	       end
+	       //LBU
+	       3'b001: begin
+	       	   readtempW  = {24'b0,readdataW[7:0]};
+	       end
+	       //LH
+	       3'b010: begin
+	       	   readtempW  = {{16{readdataW[7]}},readdataW[15:0]};
+	       end
+	       //LHU
+	       3'b011: begin
+	           readtempW  = {16'b0,readdataW[15:0]};
+	       end
+	       //LW
+	       3'b100: begin
+	           readtempW  = readdataW;
+	       end
+	       default: begin
+	           readtempW  = readdataW;
+	       end
+	   endcase
+	end
+    assign readdataWB = readtempW;
+	mux2 #(32) resmux(aluoutW,readdataWB,memtoregW,resultW);
 endmodule

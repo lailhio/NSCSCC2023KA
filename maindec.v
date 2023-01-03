@@ -18,7 +18,7 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-`include"defines2.vh"
+
 
 module maindec(
 	input wire[5:0] op,
@@ -27,29 +27,48 @@ module maindec(
 	output wire branch,alusrc,
 	output wire regdst,regwrite,
 	output wire jump,
-	output wire[3:0] aluop
+	output wire[1:0] aluop,
+	output wire[2:0] fc
     );
-	reg[10:0] controls;
-	assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,aluop} = controls;
+	reg[11:0] controls;
+	assign {regwrite,regdst,alusrc,branch,memwrite,memtoreg,jump,aluop,fc} = controls;
 	always @(*) begin
 		case (op)
-			`R_TYPE :controls <= 11'b1100_000_1000;//R-TYRE
-			`LW :controls <= 11'b1010_010_0100;//LW
-			6'b101011 :controls <= 11'b0010_100_0100;//SW
-			6'b000100 :controls <= 11'b0001_000_1011;//BEQ
+			6'b000000:controls  = 12'b110000010_000;//R-TYRE
+			6'b000100:controls  = 12'b000100001_000;//BEQ
+			6'b001000:controls  = 12'b101000000_000;//ADDI
 			
-			6'b001000 :controls <= 11'b1010_000_0100;//ADDI 
-			6'b001001 :controls <= 11'b1010_000_0101;//ADDIU
-			6'b001010 :controls <= 11'b1010_000_0110;//SLTI
-			6'b001011 :controls <= 11'b1010_000_0111;//SLTIU  
+			6'b000010:controls  = 12'b000000100_000;//J
 			
-			6'b001100 :controls <= 11'b1010_000_0000;//andi 
-			6'b001110 :controls <= 11'b1010_000_0001;//xori 
-			6'b001111 :controls <= 11'b1010_000_0010;//lui 
-			6'b001101 :controls <= 11'b1010_000_0011;//ori 
+			//�߼�����
+			6'b000000:controls  = 12'b110000010_000;//and
+			6'b000000:controls  = 12'b110000010_000;//or
+			6'b000000:controls  = 12'b110000010_000;//xor
+			6'b000000:controls  = 12'b110000010_000;//nor
+			6'b001100:controls  = 12'b101000000_000;//andi
+			6'b001110:controls  = 12'b101000000_000;//xori
+			6'b001111:controls  = 12'b101000000_000;//lui
+			6'b001101:controls  = 12'b101000000_000;//ori
 			
-			6'b000010 :controls <= 11'b0000_001_0100;//J
-			default:  controls <= 11'b0000_000_1111;//illegal op
+			//��λ����
+			6'b000000:controls  = 12'b110000010_000;//sll
+			6'b000000:controls  = 12'b110000010_000;//srl
+			6'b000000:controls  = 12'b110000010_000;//sra
+			6'b000000:controls  = 12'b110000010_000;//sllv
+			6'b000000:controls  = 12'b110000010_000;//srlv
+			6'b000000:controls  = 12'b110000010_000;//srav
+			
+			//�ô�
+			6'b100000:controls  = 12'b101001000_000;//LB   000
+			6'b100100:controls  = 12'b101001000_001;//LBU  001
+			6'b100001:controls  = 12'b101001000_010;//LH   010
+			6'b100101:controls  = 12'b101001000_011;//LHU  011
+			6'b100011:controls  = 12'b101001000_100;//LW   100
+			6'b101000:controls  = 12'b001010000_101;//SB   101	
+			6'b101001:controls  = 12'b001010000_110;//SH   110
+			6'b101011:controls  = 12'b001010000_111;//SW   111
+			
+			default:  controls  = 12'b000000000_000;//illegal op
 		endcase
 	end
 endmodule

@@ -26,14 +26,20 @@ module mips(
 	input wire[31:0] instrF,
 	output wire memwriteM,
 	output wire[31:0] aluoutM,writedataM,
-	input wire[31:0] readdataM 
+	input wire[31:0] readdataM
+//	//debug interface
+//    output wire[31:0] debug_wb_pc,
+//    output wire[3:0] debug_wb_rf_wen,
+//    output wire[4:0] debug_wb_rf_wnum,
+//    output wire[31:0] debug_wb_rf_wdata
     );
 	
 	wire [5:0] opD,functD;
 	wire regdstE,alusrcE,pcsrcD,memtoregE,memtoregM,memtoregW,
 			regwriteE,regwriteM,regwriteW;
 	wire [4:0] alucontrolE;
-	wire flushE,equalD;
+	wire flushE,equalD,branchD,jumpD;
+	wire [2:0] fcM,fcW;
 
 	controller c(
 		clk,rst,
@@ -50,8 +56,10 @@ module mips(
 		//mem stage
 		memtoregM,memwriteM,
 		regwriteM,
+		fcM,
 		//write back stage
-		memtoregW,regwriteW
+		memtoregW,regwriteW,
+		fcW
 		);
 	datapath dp(
 		clk,rst,
@@ -74,9 +82,15 @@ module mips(
 		regwriteM,
 		aluoutM,writedataM,
 		readdataM,
+		fcM,
 		//writeback stage
 		memtoregW,
-		regwriteW
+		regwriteW,
+		fcW
+//		debug_wb_pc,
+//        debug_wb_rf_wen,
+//        debug_wb_rf_wnum,
+//        debug_wb_rf_wdata
 	    );
 	
 endmodule
