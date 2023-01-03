@@ -77,7 +77,7 @@ module datapath(
     wire        alu_stallE;  //alu暂停
     wire [31:0] rs_valueE, rt_valueE;  //rs rt寄存器的值
     
-    wire        flush_jump_confilctE;  //jump冲突
+    wire        flush_jump_conflictE;  //jump冲突
     wire        jumpE; //jump信号
     wire        actual_takeE;  //分支预测 实际结果
     wire [4 :0] branch_judge_controlE; //分支判断控制
@@ -313,29 +313,26 @@ module datapath(
 	
 	
 	//hazard detection
-	hazard h(
-		//fetch stage
-		stallF,
-		//decode stage
-		rsD,rtD,
-		branchD,
-		forwardaD,forwardbD,
-		stallD,
-		//execute stage
-		rsE,rtE,
-		writeregE,
-		regwriteE,
-		memtoregE,
-		forwardaE,forwardbE,
-		flushE,
-		//mem stage
-		writeregM,
-		regwriteM,
-		memtoregM,
-		//write back stage
-		writeregW,
-		regwriteW
-		);
+	hazard hazard0(
+        .d_cache_stall(d_cache_stall),
+        .alu_stallE(alu_stallE),
+
+        .flush_jump_confilctE   (flush_jump_confilctE),
+        .flush_pred_failedM     (flush_pred_failedM),
+        .flush_exceptionM       (flush_exceptionM),
+
+        .rsE(rsE),
+        .rtE(rtE),
+        .reg_write_enM(reg_write_enM),
+        .reg_write_enW(reg_write_enW),
+        .reg_writeM(reg_writeM),
+        .reg_writeW(reg_writeW),
+        .mem_read_enM(mem_read_enM),
+
+        .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
+        .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
+        .forward_aE(forward_aE), .forward_bE(forward_bE)
+    );
 
 	//--------------------debug---------------------
 //    assign debug_wb_pc          = pcplus4D;
