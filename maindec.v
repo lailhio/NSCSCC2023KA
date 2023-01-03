@@ -7,19 +7,19 @@ module maindec(
 		input wire[31:0] instrD,
 
 
-		output reg sign_exD,          //Á¢¼´ÊıÊÇ·ñÎª·ûºÅÀ©Õ¹
-		output reg [1:0] reg_dstD,     	//Ğ´¼Ä´æÆ÷Ñ¡Ôñ  00-> rd, 01-> rt, 10-> Ğ´$ra
-		output reg is_immD,        //alu srcbÑ¡Ôñ 0->rd2E, 1->immE
-		output reg regwriteD,	//Ğ´¼Ä´æÆ÷¶ÑÊ¹ÄÜ
+		output reg sign_exD,          //ç«‹å³æ•°æ˜¯å¦ä¸ºç¬¦å·æ‰©å±•
+		output reg [1:0] reg_dstD,     	//å†™å¯„å­˜å™¨é€‰æ‹©  00-> rd, 01-> rt, 10-> å†™$ra
+		output reg is_immD,        //alu srcbé€‰æ‹© 0->rd2E, 1->immE
+		output reg regwriteD,	//å†™å¯„å­˜å™¨å †ä½¿èƒ½
 		output reg hilo_wenD,
 		output reg mem_readD, mem_writeD,
-		output reg memtoregD,         	//resultÑ¡Ôñ 0->alu_out, 1->read_data
+		output reg memtoregD,         	//resulté€‰æ‹© 0->alu_out, 1->read_data
 		output reg hilo_to_regD,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
 		output reg riD,
 		output reg breakD, syscallD, eretD, 
 		output reg cp0_wenD,
 		output reg cp0_to_regD,
-		output wire is_mfcD,   //Îªmfc0
+		output wire is_mfcD,   //ä¸ºmfc0
 		output reg [3:0] aluopD
     );
 
@@ -32,8 +32,8 @@ module maindec(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 
-	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0±íÊ¾ÎŞ·ûºÅÍØÕ¹£¬1±íÊ¾ÓĞ·ûºÅ
-	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//Ê×ÏÈÅĞ¶ÏÊÇ²»ÊÇR-type
+	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0è¡¨ç¤ºæ— ç¬¦å·æ‹“å±•ï¼Œ1è¡¨ç¤ºæœ‰ç¬¦å·
+	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//é¦–å…ˆåˆ¤æ–­æ˜¯ä¸æ˜¯R-type
 						& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
 							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
 
@@ -52,7 +52,7 @@ module maindec(
 		case(opD)
 			`R_TYPE:begin
 				case(funct)
-					// ËãÊıÔËËãÖ¸Áî
+					// ç®—æ•°è¿ç®—æŒ‡ä»¤
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
 					`SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
@@ -61,7 +61,7 @@ module maindec(
 						{regwriteD, reg_dstD, is_immD} =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
-					// ³Ë³ıhilo¡¢×ÔÏİ¡¢jr²»ĞèÒªÊ¹ÓÃ¼Ä´æÆ÷ºÍ´æ´¢Æ÷
+					// ä¹˜é™¤hiloã€è‡ªé™·ã€jrä¸éœ€è¦ä½¿ç”¨å¯„å­˜å™¨å’Œå­˜å‚¨å™¨
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
 					`SYSCALL, `BREAK : begin
 						aluopD<=`R_TYPE_OP;
@@ -70,7 +70,7 @@ module maindec(
 					end
 					`JALR: begin
 						aluopD<=`R_TYPE_OP;
-						{regwriteD, reg_dstD, is_immD} =  4'b1100;//xxxxxxxx£¬¸Ğ¾õ²»Ì«¶Ô¡£
+						{regwriteD, reg_dstD, is_immD} =  4'b1100;//xxxxxxxxï¼Œæ„Ÿè§‰ä¸å¤ªå¯¹ã€‚
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
 					default: begin
@@ -81,7 +81,7 @@ module maindec(
 					end
 				endcase
 			end
-	// ------------------ËãÊı\Âß¼­ÔËËã--------------------------------------
+	// ------------------ç®—æ•°\é€»è¾‘è¿ç®—--------------------------------------
 			`ADDI:	begin
 				aluopD<=`ADDI_OP;
 				{regwriteD, reg_dstD, is_immD}  =  4'b1011;
@@ -134,7 +134,7 @@ module maindec(
 				case(rt)
 					`BGEZAL,`BLTZAL: begin
 						aluopD<=`USELESS_OP;
-						{regwriteD, reg_dstD, is_immD}  =  4'b1100;//ĞèÒªĞ´ÖÁ31
+						{regwriteD, reg_dstD, is_immD}  =  4'b1100;//éœ€è¦å†™è‡³31
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`BGEZ,`BLTZ: begin
@@ -151,7 +151,7 @@ module maindec(
 				endcase
 			end
 			
-	// ·Ã´æÖ¸Áî£¬¶¼ÊÇÁ¢¼´ÊıÖ¸Áî¡£
+	// è®¿å­˜æŒ‡ä»¤ï¼Œéƒ½æ˜¯ç«‹å³æ•°æŒ‡ä»¤ã€‚
 			`LW, `LB, `LBU, `LH, `LHU: begin
 				aluopD<=`MEM_OP;
 				{regwriteD, reg_dstD, is_immD}  =  4'b1011;

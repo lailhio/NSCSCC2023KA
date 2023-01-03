@@ -1,33 +1,38 @@
 `timescale 1ns / 1ps
 module Mem_WriteBack (
-	input wire clk,rst,
-	input wire[31:0] aluoutM,
-    input wire[31:0] readdataM,
-    input wire [4:0]writeregM,
-    input wire memtoregM,regwriteM,
-    input wire [2:0] fcM,
-	output reg[31:0] aluoutW,
-    output reg[31:0] readdataW,
-    output reg [4:0]writeregW,
-    output reg memtoregW,regwriteW,
-    output reg [2:0] fcW
-    );
+    input wire clk, rst,
+    input wire stallW,
+    input wire [31:0] pcM,
+    input wire [31:0] aluoutM,
+    input wire [4:0] writeregM,
+    input wire reg_writeM,
+    input wire [31:0] mem_rdataM,
+    input wire [31:0] resultM,
+
+
+    output reg [31:0] pcW,
+    output reg [31:0] aluoutW,
+    output reg [4:0] writeregW,
+    output reg reg_writeW,
+    output reg [31:0] mem_rdataW,
+    output reg [31:0] resultW
+);
     always @(posedge clk) begin
         if(rst) begin
-			aluoutW<=0;
-            readdataW<=0;
-            writeregW<=0;
-            memtoregW<=0;
-            regwriteW<=0;
-            fcW<=0;
-		end
-        else  begin
-            aluoutW<=aluoutM;
-            readdataW<=readdataM;
-            writeregW<=writeregM;
-            memtoregW<=memtoregM;
-            regwriteW<=regwriteM;
-            fcW<=fcM;
+            pcW <= 0;
+            aluoutW <= 0;
+            writeregW <= 0;
+            reg_writeW <= 0;
+            mem_rdataW <= 0;
+            resultW <= 0;
         end
-	end
+        else if(~stallW) begin
+            pcW <= pcM;
+            aluoutW <= aluoutM;
+            writeregW <= writeregM;
+            reg_writeW <= reg_writeM;
+            mem_rdataW <= mem_rdataM;
+            resultW <= resultM;
+        end
+    end
 endmodule

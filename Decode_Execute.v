@@ -18,7 +18,16 @@ module Decode_Execute (
     input wire [4:0] alucontrolD,
     input wire jumpD,
     input wire [4:0] branch_judge_controlD,
-
+    input wire [1:0]  regdstD,
+    input wire is_immD,regwriteD,hilo_wenD,
+    input wire mem_readD, mem_writeD,
+    input wire memtoregD,         	//result选择 0->alu_out, 1->read_data
+    input wire hilo_to_regD,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+    input wire riD,
+    input wire breakD, syscallD, eretD, 
+    input wire cp0_wenD,
+    input wire cp0_to_regD,
+    input wire is_mfcD,   //为mfc0
 
     output reg [31:0] pcE,
     output reg [31:0] rd1E, rd2E,
@@ -35,6 +44,16 @@ module Decode_Execute (
     output reg [4:0] alucontrolE,
     output reg jumpE,
     output reg [4:0] branch_judge_controlE
+    output reg [1:0]  regdstE,
+    output reg is_immE,regwriteE,hilo_wenE,
+    output reg mem_readE, mem_writeE,
+    output reg memtoregE,         	//result选择 0->alu_out, 1->read_data
+    output reg hilo_to_regE,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+    output reg riE,
+    output reg breakE, syscallE, eretE, 
+    output reg cp0_wenE,
+    output reg cp0_to_regE,
+    output reg is_mfcE   //为mfc0
 );
     always @(posedge clk) begin
         if(rst | flushE) begin
@@ -53,9 +72,24 @@ module Decode_Execute (
             jump_conflictE          <=   0 ;
             saE                     <=   0 ;
             is_in_delayslot_iE      <=   0 ;
-            alucontrolE            <=   0 ;
+            alucontrolE             <=   0 ;
             jumpE                   <=   0 ;
             branch_judge_controlE   <=   0 ;
+            regdstE                 <=   0 ;
+            is_immE                 <=   0 ;
+            regwriteE               <=   0 ;
+            hilo_wenE               <=   0 ;
+            mem_readE               <=   0 ;
+            mem_writeE              <=   0 ;
+            memtoregE               <=   0 ;
+            hilo_to_regE            <=   0 ;
+            riE                     <=   0 ;
+            breakE                  <=   0 ;
+            syscallE                <=   0 ;
+            eretE                   <=   0 ;
+            cp0_wenE                <=   0 ;
+            cp0_to_regE             <=   0 ;
+            is_mfcE                 <=   0 ;
         end 
         else if(~stallE) begin
             pcE                     <= pcD                  ;
@@ -76,6 +110,21 @@ module Decode_Execute (
             alucontrolE            <= alucontrolD         ;
             jumpE                   <= jumpD                ;
             branch_judge_controlE   <= branch_judge_controlD;
+            regdstE                 <=   regdstD ;
+            is_immE                 <=  is_immD ;
+            regwriteE                <=  regwriteD ;
+            hilo_wenE                 <=  hilo_wenD ;
+            mem_readE               <=   mem_readD ;
+            mem_writeE              <=   mem_writeD ;
+            memtoregE               <=   memtoregD ;
+            hilo_to_regE            <=  hilo_to_regD ;
+            riE                     <=  riD ;
+            breakE                  <=  breakD;
+            syscallE                <=  syscallD ;
+            eretE                   <=  eretD;
+            cp0_wenE                <=   cp0_wenD;
+            cp0_to_regE             <=  cp0_to_regD;
+            is_mfcE                 <=   is_mfcD;
         end
     end
 endmodule

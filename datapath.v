@@ -47,8 +47,8 @@ module datapath(
 	wire 		regwriteD;//写寄存器堆使能
 	wire 		hilo_wenD;
 	wire 		mem_readD, mem_writeD;
-	wire 		memtoregD;       	//result选择 0->alu_out, 1->read_data
-	wire 		hilo_to_regD;			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+	wire 		memtoregD;       	//result选择 0->aluout, 1->read_data
+	wire 		hilo_to_regD;			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
 	wire 		riD;
 	wire 		breakD, syscallD, eretD;
 	wire 		cp0_wenD;
@@ -148,22 +148,27 @@ module datapath(
 	wire [31:0] pcW;
 
     wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
-//-----------------Data--------------------
+//-----------------Data------------------------------------------
 
-	
 
-	//-----------Decode----------------
+	//------------------Decode-------------------------
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 	assign saD = instrD[10:6];
+	aludec ad(funct,aluopD,alucontrol);
+
+	assign pcsrcD = branchD & equalD;
+	//regfile (operates in decode and writeback)
+	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 	maindec md(
 		instrD,
 		//output
 		sign_exD,
 		regdstD,is_immD,regwriteD,hilo_wenD,
+
 		mem_readD, mem_writeD,
 		memtoregD,
 		hilo_to_regD,riD,
@@ -173,12 +178,6 @@ module datapath(
 		is_mfcD,   //为mfc0
 		aluopD
 		);
-	aludec ad(funct,aluopD,alucontrol);
-
-	assign pcsrcD = branchD & equalD;
-	//regfile (operates in decode and writeback)
-	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
-
 	Fetch_Decode Fe_De(
         .clk(clk), .rst(rst),
         .stallD(stallD),
@@ -216,6 +215,12 @@ module datapath(
         .alucontrolD(alucontrolD),
         .jumpD(jumpD),
         .branch_judge_controlD(branch_judge_controlD),
+		.regdstD(regdstD),
+		.is_immD(is_immD),.regwriteD(regwriteD),.hilo_wenD(hilo_wenD),
+		.mem_readD(mem_readD),.mem_writeD(mem_writeD),.memtoregD(memtoregD),
+		.hilo_to_regD(hilo_to_regD),.riD(riD),.breakD(breakD),
+		.syscallD(syscallD),.eretD(eretD),.cp0_wenD(cp0_wenD),
+		.cp0_to_regD(cp0_to_regD),.is_mfcD(is_mfcD),
 	//Execute stage
         .pcE(pcE),
         .rsE(rsE), .rd1E(rd1E), .rd2E(rd2E),
@@ -231,27 +236,73 @@ module datapath(
         .saE(saE),
         .alucontrolE(alucontrolE),
         .jumpE(jumpE),
-        .branch_judge_controlE(branch_judge_controlE)      
+        .branch_judge_controlE(branch_judge_controlE),
+		.regdstE(regdstE),
+		.is_immE(is_immE),.regwriteE(regwriteE),.hilo_wenE(hilo_wenE),
+		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
+		.hilo_to_regE(hilo_to_regE),.riE(riE),.breakE(breakE),
+		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
+		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE)
     );
 	//-------------Mem---------------------
 	Execute_Mem Ex_Me(
-		clk,rst,
-		srcb2E,aluoutE,writeregE,
-		memtoregE,memwriteE,regwriteE,
-		fcE,
-		writedataM2,aluoutM,writeregM,
-		memtoregM,memwriteM,regwriteM,
-    	fcM
+        .clk(clk),
+        .rst(rst),
+        .stallM(stallM),
+        .flushM(flushM),
+
+        .pcE(pcE),
+        .aluoutE(aluoutE),
+        .rt_valueE(rt_valueE),
+        .writeregE(writeregE),
+        .instrE(instrE),
+        .branchE(branchE),
+        .pred_takeE(pred_takeE),
+        .pc_branchE(pc_branchE),
+        .overflowE(overflowE),
+        .is_in_delayslot_iE(is_in_delayslot_iE),
+        .rdE(rdE),
+        .actual_takeE(actual_takeE),
+		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
+		.hilo_to_regE(hilo_to_regE),.riE(riE),.breakE(breakE),
+		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
+		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE),
+
+        .pcM(pcM),
+        .aluoutM(aluoutM),
+        .rt_valueM(rt_valueM),
+        .writeregM(writeregM),
+        .instrM(instrM),
+        .branchM(branchM),
+        .pred_takeM(pred_takeM),
+        .pc_branchM(pc_branchM),
+        .overflowM(overflowM),
+        .is_in_delayslot_iM(is_in_delayslot_iM),
+        .rdM(rdM),
+        .actual_takeM(actual_takeM),
+		.mem_readM(mem_readM),.mem_writeM(mem_writeM),.memtoregM(memtoregM),
+		.hilo_to_regM(hilo_to_regM),.riM(riM),.breakM(breakM),
+		.syscallM(syscallM),.eretM(eretM),.cp0_wenM(cp0_wenM),
+		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM),
     );
 	//---------Write_Back----------------
 	Mem_WriteBack Me_Wr(
-		clk,rst,
-		aluoutM,readdataM,writeregM,
-		memtoregM,regwriteM,
-		fcM,
-		aluoutW,readdataW,writeregW,
-		memtoregW,regwriteW,
-		fcW
+        .clk(clk),
+        .rst(rst),
+        .stallW(stallW),
+
+        .pcM(pcM),
+        .aluoutM(aluoutM),
+        .writeregM(writeregM),
+        .regwriteM(regwriteM),
+        .resultM(resultM),
+
+
+        .pcW(pcW),
+        .aluoutW(aluoutW),
+        .writeregW(writeregW),
+        .regwriteW(regwriteW),
+        .resultW(resultW)
     );
 	
 	wire [31:0] readdataWB;
@@ -288,8 +339,8 @@ module datapath(
 
 	//--------------------debug---------------------
 //    assign debug_wb_pc          = pcplus4D;
-//    assign debug_wb_rf_wen      = {4{regwriteM & ~flushE }};
-//    assign debug_wb_rf_wnum     = regwriteM;
+//    assign debug_wb_rf_wen      = {4{writeregM & ~flushE }};
+//    assign debug_wb_rf_wnum     = writeregM;
 //    assign debug_wb_rf_wdata    = resultW;
 
 
