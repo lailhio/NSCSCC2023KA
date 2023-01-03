@@ -12,20 +12,6 @@
 //
 //result_o：64 位数字，表示除法运算的结果。
 //ready_o：布尔值，表示除法运算是否完成。
-//////////////////////////////////////////////////////////////////////
-
-//输入：
-//clk：时钟信号，指定每个时针周期的开始。
-//rst：复位信号，如果设为 1，则除法器将进入复位状态。
-//flush：布尔值，如果设为 1，则中止当前除法运算。
-//a：32 位数字，表示被除数。
-//b：32 位数字，表示除数。
-//valid：布尔值，如果设为 1，则表示除法运算的数据有效。
-//sign：布尔值，如果设为 1，则执行有符号除法。
-
-//输出：
-//div_stall：布尔值，表示当前是否正在执行除法运算。
-//result：64 位数字，表示除法运算的结果。
 
 
 `include "defines.v"
@@ -34,7 +20,7 @@ module div(
 
 	input wire clk,
 	input wire rst,
-	
+	input wire flush,
 	input wire signed_div_i,
 	input wire[31:0] opdata1_i,
 	input wire[31:0] opdata2_i,
@@ -56,7 +42,7 @@ module div(
 	assign div_temp = {1'b0,dividend[63:32]} - {1'b0,divisor};
 
 	always @ (posedge clk) begin
-		if (rst == `RstEnable) begin
+		if ((rst == `RstEnable )|flush) begin
 			state <= `DivFree;
 			ready_o <= `DivResultNotReady;
 			result_o <= {`ZeroWord,`ZeroWord};

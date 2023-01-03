@@ -149,7 +149,16 @@ module datapath(
 
     wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
 //-----------------Data------------------------------------------
+	//--------------------debug---------------------
+//    assign debug_wb_pc          = pcplus4D;
+//    assign debug_wb_rf_wen      = {4{writeregM & ~flushE }};
+//    assign debug_wb_rf_wnum     = writeregM;
+//    assign debug_wb_rf_wdata    = resultW;
 
+
+	assign inst_addrF = pcF; //F阶段地址
+    assign inst_enF = ~stallF & ~pc_errorF & ~flush_pred_failedM; // 指令读使能：一切正常
+    assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; //pc最后两位不是0 则pc错误
 
 	//------------------Decode-------------------------
 	assign opD = instrD[31:26];
@@ -159,10 +168,6 @@ module datapath(
 	assign rdD = instrD[15:11];
 	assign saD = instrD[10:6];
 	aludec ad(funct,aluopD,alucontrol);
-
-	assign pcsrcD = branchD & equalD;
-	//regfile (operates in decode and writeback)
-	regfile rf(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
 	maindec md(
 		instrD,
 		//output
@@ -178,6 +183,8 @@ module datapath(
 		is_mfcD,   //为mfc0
 		aluopD
 		);
+	//regfile (operates in decode and writeback)
+	regfile rf(clk,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
 	Fetch_Decode Fe_De(
         .clk(clk), .rst(rst),
         .stallD(stallD),
@@ -244,6 +251,49 @@ module datapath(
 		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
 		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE)
     );
+	//ALU
+    ALU alu0(
+        .clk(clk),
+        .rst(rst),
+        .flushE(flushE),
+        .src_aE(src_aE), .src_bE(src_bE),
+        .alucontrolE(alucontrolE),
+        .sa(saE),
+        .hilo(hilo_oM),
+
+        .div_stallE(alu_stallE),
+        .aluoutE(aluoutE),
+        .overflowE(overflowE)
+    );
+
+    mux4 #(5) mux4_regdst(
+        rdE,                                //
+        rtE,                                //
+        5'd31,                              //
+        5'b0,                               //
+        reg_dstE,                           //
+        reg_writeE                          //选择writeback寄存器
+    );
+
+    mux4 #(32) mux4_forward_aE(
+        rd1E,                               //
+        resultM,                            //
+        resultW,                            //
+        pc_plus4D,                          // 执行jalr，jal指令；写入到$ra寄存器的数据（跳转指令对应延迟槽指令的下一条指令的地址即PC+8） //可以保证延迟槽指令不会被flush，故plush_4D存在
+        {2{jumpE | branchE}} | forward_aE,  // 当ex阶段是jal或者jalr指令，或者bxxzal时，jumpE | branchE== 1；选择pc_plus4D；其他时候为数据前推
+
+        src_aE
+    );
+    mux4 #(32) mux4_forward_bE(
+        rd2E,                               //
+        resultM,                            //
+        resultW,                            // 
+        immE,                               //立即数
+        {2{alu_imm_selE}} | forward_bE,     //main_decoder产生alu_imm_selE信号，表示alu第二个操作数为立即数
+
+        src_bE
+    );
+
 	//-------------Mem---------------------
 	Execute_Mem Ex_Me(
         .clk(clk),
@@ -304,12 +354,7 @@ module datapath(
         .regwriteW(regwriteW),
         .resultW(resultW)
     );
-	
-	wire [31:0] readdataWB;
-	reg[31:0] readtempW = 32'b0;
-	//mem stage
-	wire [31:0] writedataM2;
-	reg [31:0] writetempM = 32'b0;
+
 	
 	
 	//hazard detection
@@ -333,42 +378,13 @@ module datapath(
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
         .forward_aE(forward_aE), .forward_bE(forward_bE)
     );
+	wire [31:0] readdataWB;
+	reg[31:0] readtempW = 32'b0;
+	//mem stage
+	wire [31:0] writedataM2;
+	reg [31:0] writetempM = 32'b0;
 
-	//--------------------debug---------------------
-//    assign debug_wb_pc          = pcplus4D;
-//    assign debug_wb_rf_wen      = {4{writeregM & ~flushE }};
-//    assign debug_wb_rf_wnum     = writeregM;
-//    assign debug_wb_rf_wdata    = resultW;
 
-
-	//next PC logic (operates in fetch an decode)
-	mux2 #(32) pcbrmux(pcplus4F,pcbranchD,pcsrcD,pcnextbrFD);
-	mux2 #(32) pcmux(pcnextbrFD,
-		{pcplus4D[31:28],instrD[25:0],2'b00},
-		jumpD,pcnextFD);
 
 	
-
-	//fetch stage logic
-	pc #(32) pcreg(clk,rst,~stallF,pcnextFD,pcF);
-	adder pcadd1(pcF,32'b100,pcplus4F);
-
-	signext se(alusrcE,instrD[15:0],signimmD);
-	sl2 immsh(signimmD,signimmshD);
-	adder pcadd2(pcplus4D,signimmshD,pcbranchD);
-	mux2 #(32) forwardamux(srcaD,aluoutM,forwardaD,srca2D);
-	mux2 #(32) forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
-	eqcmp comp(srca2D,srcb2D,equalD);
-
-
-	mux3 #(32) forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
-	mux3 #(32) forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
-	mux2 #(32) srcbmux(srcb2E,signimmE,alusrcE,srcb3E);
-	alu alu(srca2E,srcb3E,saE,alucontrolE,aluoutE);
-	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
-
-    //writedata
-    
-	
-	//read data 
 endmodule
