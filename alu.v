@@ -23,27 +23,27 @@
 module alu(
     input wire clk, rst,
     input wire flushE,
-    input wire [31:0] src_aE, src_bE,  //²Ù×÷Êı
-    input wire [4:0] alucontrolE,  //alu ¿ØÖÆĞÅºÅ
-    input wire [4:0] sa, //saÖµ
-    input wire [63:0] hilo,  //hiloÖµ
+    input wire [31:0] src_aE, src_bE,  //æ“ä½œæ•°
+    input wire [4:0] alucontrolE,  //alu æ§åˆ¶ä¿¡å·
+    input wire [4:0] sa, //saå€¼
+    input wire [63:0] hilo,  //hiloå€¼
 
     output wire div_stallE,
-    output wire [63:0] aluoutE, //aluÊä³ö
-    output wire overflowE//ËãÊıÒç³ö
+    output wire [63:0] aluoutE, //aluè¾“å‡º
+    output wire overflowE//ç®—æ•°æº¢å‡º
 );
-    wire [63:0] aluout_div; //³Ë³ı·¨½á¹û
+    wire [63:0] aluout_div; //ä¹˜é™¤æ³•ç»“æœ
     reg [63:0] aluout_mul;
-    wire mul_sign; //³Ë·¨·ûºÅ
-    wire mul_valid;  // Îª³Ë·¨
-    wire div_sign; //³ı·¨·ûºÅ
-	wire div_vaild;  //Îª³ı·¨
+    wire mul_sign; //ä¹˜æ³•ç¬¦å·
+    wire mul_valid;  // ä¸ºä¹˜æ³•
+    wire div_sign; //é™¤æ³•ç¬¦å·
+	wire div_vaild;  //ä¸ºé™¤æ³•
 	wire ready;
-    reg [31:0] aluout_simple; // ÆÕÍ¨ÔËËã½á¹û
-    reg carry_bit;  //½øÎ» ÅĞ¶ÏÒç³ö
+    reg [31:0] aluout_simple; // æ™®é€šè¿ç®—ç»“æœ
+    reg carry_bit;  //è¿›ä½ åˆ¤æ–­æº¢å‡º
 
 
-    //³Ë·¨ĞÅºÅ
+    //ä¹˜æ³•ä¿¡å·
 	assign mul_sign = (alucontrolE == `MULT_CONTROL);
     assign mul_valid = (alucontrolE == `MULT_CONTROL) | (alucontrolE == `MULTU_CONTROL);
 
@@ -51,14 +51,14 @@ module alu(
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
                     | ({64{~mul_valid & ~div_vaild}} & {32'b0, aluout_simple})
-                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]}) // ÈôÎªmthi/mtlo Ö±½ÓÈ¡HiloµÄµÍ32Î»ºÍ¸ß32Î»
+                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]}) // è‹¥ä¸ºmthi/mtlo ç›´æ¥å–Hiloçš„ä½32ä½å’Œé«˜32ä½
                     | ({64{(alucontrolE == `MTLO_CONTROL)}} & {hilo[63:32], src_aE});
-    // Îª¼Ó¼õ ÇÒÒç³öÎ»Óë×î¸ßÎ»²»µÈÊ± ËãÊıÒç³ö
+    // ä¸ºåŠ å‡ ä¸”æº¢å‡ºä½ä¸æœ€é«˜ä½ä¸ç­‰æ—¶ ç®—æ•°æº¢å‡º
     assign overflowE = (alucontrolE==`ADD_CONTROL || alucontrolE==`SUB_CONTROL) & (carry_bit ^ aluout_simple[31]);
 
-    // ËãÊı²Ù×÷¼°¶ÔÓ¦ÔËËã
+    // ç®—æ•°æ“ä½œåŠå¯¹åº”è¿ç®—
     always @(*) begin
-        carry_bit = 0; //Òç³öÎ»È¡0
+        carry_bit = 0; //æº¢å‡ºä½å–0
         case(alucontrolE)
             `AND_CONTROL:       aluout_simple = src_aE & src_bE;
             `OR_CONTROL:        aluout_simple = src_aE | src_bE;
@@ -70,18 +70,18 @@ module alu(
             `SUB_CONTROL:       {carry_bit, aluout_simple} = {src_aE[31], src_aE} - {src_bE[31], src_bE};
             `SUBU_CONTROL:      aluout_simple = src_aE - src_bE;
 
-            `SLT_CONTROL:       aluout_simple = $signed(src_aE) < $signed(src_bE); //ÓĞ·ûºÅ±È½Ï
-            `SLTU_CONTROL:      aluout_simple = src_aE < src_bE; //ÎŞ·ûºÅ±È½Ï
+            `SLT_CONTROL:       aluout_simple = $signed(src_aE) < $signed(src_bE); //æœ‰ç¬¦å·æ¯”è¾ƒ
+            `SLTU_CONTROL:      aluout_simple = src_aE < src_bE; //æ— ç¬¦å·æ¯”è¾ƒ
 
-            `SLLV_CONTROL:       aluout_simple = src_bE << src_aE[4:0]; //ÒÆÎ»src a
+            `SLLV_CONTROL:       aluout_simple = src_bE << src_aE[4:0]; //ç§»ä½src a
             `SRLV_CONTROL:       aluout_simple = src_bE >> src_aE[4:0];
             `SRAV_CONTROL:       aluout_simple = $signed(src_bE) >>> src_aE[4:0];
 
-            `SLL_CONTROL:    aluout_simple = src_bE << sa; //ÒÆÎ»sa
+            `SLL_CONTROL:    aluout_simple = src_bE << sa; //ç§»ä½sa
             `SRL_CONTROL:    aluout_simple = src_bE >> sa;
             `SRA_CONTROL:    aluout_simple = $signed(src_bE) >>> sa;
 
-            `LUI_CONTROL:       aluout_simple = {src_bE[15:0], 16'b0}; //È¡¸ß16Î»
+            `LUI_CONTROL:       aluout_simple = {src_bE[15:0], 16'b0}; //å–é«˜16ä½
             5'b00000: aluout_simple = src_aE;  // do nothing
 
             default:    aluout_simple = 32'b0;
@@ -89,7 +89,7 @@ module alu(
     end
 	mul mul(src_aE,src_bE,mul_sign,aluout_mul);
 
-    // ³ı·¨
+    // é™¤æ³•
 	assign div_sign = (alucontrolE == `DIV_CONTROL);
 	assign div_vaild = (alucontrolE == `DIV_CONTROL || alucontrolE == `DIVU_CONTROL);
 
