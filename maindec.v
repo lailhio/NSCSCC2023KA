@@ -20,7 +20,8 @@ module maindec(
 		output reg cp0_wenD,
 		output reg cp0_to_regD,
 		output wire is_mfcD,   //为mfc0
-		output reg [3:0] aluopD
+		output reg [3:0] aluopD,
+		output reg [2:0] branch_judge_controlD
     );
 
 	//Instruct Divide
@@ -203,6 +204,38 @@ module maindec(
 				aluopD<=`USELESS_OP;
 				{regwriteD, reg_dstD, is_immD}  =  4'b0;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+			end
+		endcase
+	end
+	always @(*) begin
+		case(opD)
+			`BEQ: begin
+				branch_judge_controlD<=3'b001;
+			end
+			`BNE: begin
+				branch_judge_controlD<=3'b010;
+			end
+			`BLEZ: begin
+				branch_judge_controlD<=3'b011;
+			end
+			`BGTZ: begin
+				branch_judge_controlD<=3'b100;
+			end
+			`REGIMM_INST: begin
+				case(rt)
+					`BLTZ,`BLTZAL: begin
+						branch_judge_controlD<=3'b101;
+					end
+					`BGEZ,`BGEZAL: begin
+						branch_judge_controlD<=3'b110;
+					end
+					default:begin
+						branch_judge_controlD<=3'b101;
+					end
+				endcase
+			default:begin
+						branch_judge_controlD<=3'b001;
+					end
 			end
 		endcase
 	end

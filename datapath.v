@@ -181,10 +181,29 @@ module datapath(
 		cp0_wenD,
 		cp0_to_regD,
 		is_mfcD,   //为mfc0
-		aluopD
+		aluopD,
+		branch_judge_controlD
 		);
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
+	//分支预测器
+    BranchPredict branch_predict0(
+        .clk(clk), .rst(rst),
+
+        .flushD(flushD),
+        .stallD(stallD),
+
+        .instrD(instrD),
+        .immD(immD),
+        .pcF(pcF),
+        .pcM(pcM),
+        .branchM(branchM),
+        .actual_takeM(actual_takeM),
+
+        .branchD(branchD),
+        .branchL_D(),
+        .pred_takeD(pred_takeD)
+    );
 	Fetch_Decode Fe_De(
         .clk(clk), .rst(rst),
         .stallD(stallD),
@@ -294,7 +313,17 @@ module datapath(
         src_bE
     );
 
+	//计算branch结果 得到真实是否跳转
+    branch_check branch_check(
+        .branch_judge_controlE(branch_judge_controlE),
+        .src_aE(rs_valueE),
+        .src_bE(rt_valueE),
+        .actual_takeE(actual_takeE)
+    );
+
+
 	//-------------Mem---------------------
+	
 	Execute_Mem Ex_Me(
         .clk(clk),
         .rst(rst),
