@@ -20,125 +20,131 @@ module datapath(
     );
 	
 	//--------fetch stage----------
-	wire stallF;
-    wire [31:0] pcF, pcnextFD,pcnextbrFD, pcplus4F;
-	wire [31:0] pcbranchD;
-	wire pc_reg_ceF;
-    wire [2:0] pc_sel;
-    wire [31:0] instrF_temp;
-    wire is_in_delayslot_iF;
+	wire [31:0] pcF, pc_next, pc_plus4F;    //pc
+    wire [31:0] instrF_4;                   //instrF末尾为2'b00
+    
+    wire pc_errorF;  // pc错误
+    wire pcerrorD, pcerrorE, pcerrorM; 
+
+    wire F_change; // 此时的D阶段（即上一条指令）是否为跳转指令
 // wire pcerrorD, pcerrorE, pcerrorM; 
 	//----------decode stage---------
 	wire[3:0] aluopD;
-	wire memtoregD,memwriteD,alusrcD,
-		regdstD,regwriteD;
-	wire [31:0] rd1D, rd2D;
-	wire [31:0] pcD, pc_plus4D;
-	wire is_in_delayslot_iD;
 	wire[4:0] alucontrolD;
-	wire jump_conflictD;
-	wire pred_takeD;
-	wire pcsrcD,branchD;
-	wire jumpD;
-	wire equalD;
-	wire[5:0] opD,functD;
-	wire [31:0] pcplus4D,instrD;
-	wire forwardaD,forwardbD;
-	wire [4:0] rsD,rtD,rdD,saD;
-	wire flushD,stallD; 
-	wire [31:0] signimmD,signimmshD;
-	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
-	wire [31:0] immD;
-    wire sign_exD;
-    wire [31:0] pc_branchD;
-    wire flush_pred_failedM;
-    wire [31:0] pc_jumpD;
-    wire [4:0] branch_judge_controlD;
-	//-------execute stage----------
+	 wire [31:0] instrD;  //指令
+    wire [4 :0] rsD, rtD, rdD, saD;  //rs rt rd 寄存器标号
+    wire [31:0] pcD, pc_plus4D;  //pc
 
-	wire [31:0] pcE;
-    wire [31:0] rd1E, rd2E, mem_wdataE;
-    wire [4:0] rsE, rtE, rdE, saE;
-    wire [31:0] immE;
-    wire [31:0] pc_plus4E;
-    wire pred_takeE;
-    wire [31:0] src_aE, src_bE;
-    wire [63:0] alu_outE;
-    wire alu_imm_selE;
+    wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
+    wire        sign_exD, pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
+    wire        flush_pred_failedM;  //分支预测失败
+
+    wire        jump_conflictD;  //jump冲突
+    wire [4 :0] branch_judge_controlD; //分支判断控制
+	wire 		sign_exD;          //立即数是否为符号扩展
+	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> 写$ra
+	wire 		is_immD;       //alu srcb选择 0->rd2E, 1->immE
+	wire 		regwriteD;//写寄存器堆使能
+	wire 		hilo_wenD;
+	wire 		mem_readD, mem_writeD;
+	wire 		memtoregD;       	//result选择 0->alu_out, 1->read_data
+	wire 		hilo_to_regD;			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+	wire 		riD;
+	wire 		breakD, syscallD, eretD;
+	wire 		cp0_wenD;
+	wire 		cp0_to_regD;
+    
+    wire  is_in_delayslot_iD;//指令是否在延迟槽
+	//-------execute stage----------
+	wire [31:0] pcE, pc_plus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器值 写内存值 立即数
+    wire [4 :0] rsE, rtE, rdE, saE;  //寄存器号
+    wire        pred_takeE;  //分支预测
+    wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> 写$ra
+    wire [4 :0] alucontrolE;  //alu控制信号
+
+    wire [31:0] src_aE, src_bE; //alu输入（操作数
+    wire [63:0] aluoutE; //alu输出
+    wire        is_immE;  //alu srcb选择 0->rd2E, 1->immE
+    wire [4 :0] writeregE; //写寄存器号
+    wire        branchE; //分支信号
+    wire [31:0] pc_branchE;  //分支跳转pc
+
     wire [31:0] instrE;
-    wire branchE;
-    wire [31:0] pc_branchE;
-    wire [31:0] pc_jumpE;
-    wire jump_conflictE;
-    wire div_stallE;
-    wire [31:0] rs_valueE, rt_valueE;
-    wire flush_jump_confilctE;
-    wire is_in_delayslot_iE;
-    wire overflowE;
-    wire jumpE;
-    wire actual_takeE;
-    wire [4:0] branch_judge_controlE;
-	wire memtoregE;
-	wire alusrcE;
-	wire [1:0] reg_dstE;
-	wire regwriteE;
-	wire memwriteE;
-	wire[4:0] alucontrolE;
-	wire [1:0] forwardaE,forwardbE;
-	wire [4:0] rsE,rtE,rdE,saE;
-	wire [4:0] writeregE;
-	wire [31:0] signimmE;
-	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
-	wire [31:0] aluoutE;
+    wire [31:0] pc_jumpE;  //jump pc
+    wire        jump_conflictE; //jump冲突
+    wire        regwriteE;	//寄存器写
+    wire        alu_stallE;  //alu暂停
+    wire [31:0] rs_valueE, rt_valueE;  //rs rt寄存器的值
+    
+    wire        flush_jump_confilctE;  //jump冲突
+    wire        jumpE; //jump信号
+    wire        actual_takeE;  //分支预测 实际结果
+    wire [4 :0] branch_judge_controlE; //分支判断控制
+	wire        memtoregE, mem_readE, mem_writeE;
+	wire        hilo_to_regE;
+	wire        breakE, syscallE;is_mfc
+	wire        riE;
+	wire        cp0_wenE;
+	wire        cp0_to_regE;
+	wire 		is_mfcE;
+	wire        hilo_wenE;  //hilo写使能
+ // 异常处理信号
+    wire        is_in_delayslot_iE; //是否处于延迟槽
+    wire        overflowE; //溢出
+	
 	//----------mem stage--------
-	 wire [31:0] pcM;
-    wire [31:0] alu_outM;
-    wire [31:0] instrM;
-    wire mem_read_enM;
-    wire [31:0] resultM;
-    wire actual_takeM;
-    wire succM;
-    wire pred_takeM;
-    wire branchM;
-    wire [31:0] pc_branchM;
+	wire [31:0] pcM;  // pc
+    wire [31:0] aluoutM; //alu输出
+    wire [4:0] 	writeregM; //写寄存器号
+    wire [31:0] instrM;  //指令
+    wire        mem_readM; //读内存
+    wire        mem_writeM; //写内存
+    wire        regwriteM;  //寄存器写
+    wire        memtoregM;  //写回寄存器选择信号
+    wire [31:0] resultM;  // mem out
+    wire        actual_takeM;  //分支预测 真实结果
+    wire        pre_right;  // 预测正确
+    wire        pred_takeM; // 预测
+    wire        branchM; // 分支信号
+    wire [31:0] pc_branchM; //分支跳转地址
 
     wire [31:0] mem_ctrl_rdataM;
     wire [31:0] mem_wdataM_temp;
     wire [31:0] mem_ctrl_rdataM;
+    wire [63:0] hilo_oM;  //hilo输出
+    wire        hilo_to_regM; 
+	wire		is_mfcM;
 
-    wire hilo_wenE;
-    wire [63:0] hilo_oM;
-    wire hilo_to_regM;
-    wire riM;
-    wire breakM;
-    wire syscallM;
-    wire eretM;
-    wire overflowM;
-    wire addrErrorLwM, addrErrorSwM;
-    wire pcErrorM;
+    wire [4:0] 	rdM;
+    wire [31:0] rt_valueM;
+    //异常处理信号 exception
+    wire        riM;  //指令不存在
+    wire        breakM; //break指令
+    wire        syscallM; //syscall指令
+    wire        eretM; //eretM指令
+    wire        overflowM;  //算数溢出
+    wire        addrErrorLwM, addrErrorSwM; //访存指令异常
+    wire        pcErrorM;  //pc异常
 
-    wire [31:0] except_typeM;
-    wire [31:0] cp0_statusM;
-    wire [31:0] cp0_causeM;
-    wire [31:0] cp0_epcM;
-
-    wire flush_exceptionM;
-    wire [31:0] pc_exceptionM;
-    wire pc_trapM;
+	// cp0	
+    wire [31:0] except_typeM;  // 异常类型
+    wire [31:0] cp0_statusM;  //status值
+    wire [31:0] cp0_causeM;  //cause值
+    wire [31:0] cp0_epcM;  //epc值
+    wire        flush_exceptionM;  // 发生异常时需要刷新流水线
+    wire [31:0] pc_exceptionM; //异常处理的地址0xbfc0_0380，若为eret指令 则为返回地址
+    wire        pc_trapM; // 发生异常时pc特殊处理
     wire [31:0] badvaddrM;
-    wire is_in_delayslot_iM;
-    wire [4:0] rdM;
-    wire cp0_to_regM;
-    wire mem_error_enM;
-    wire cp0_wenM;
+    wire        is_in_delayslot_iM;
+    wire        cp0_to_regM;
+    wire        cp0_wenM;
     
 	//------writeback stage----------
 	wire memtoregW;
-	wire [4:0] writeregW;
+	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
-	wire [31:0] aluoutW,readdataW,resultW;
+	wire [31:0] aluoutW,resultW;
 	wire [31:0] pcW;
-    wire [31:0] alu_outW;
 
     wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
 //-----------------Data--------------------
@@ -156,13 +162,11 @@ module datapath(
 		instrD,
 		//Instruct decode
 		sign_exD,
-		//Execute
-		reg_dstD,is_immD,
-		reg_write_enD,
+		regdstD,is_immD,
+		regwriteD,
 		hilo_wenD,
-		//Mem
 		mem_readD, mem_writeD,
-		reg_write_enD,mem_to_regD,
+		memtoregD,
 		hilo_to_regD,riD,
 		breakD, syscallD, eretD, 
 		cp0_wenD,
@@ -188,7 +192,7 @@ module datapath(
 		memtoregE,memwriteE,alusrcE,regdstE,regwriteE,
 		alucontrolE,fcE
     );
-	//----------Mem---------------------
+	//-------------Mem---------------------
 	Execute_Mem Ex_Me(
 		clk,rst,
 		srcb2E,aluoutE,writeregE,
@@ -240,6 +244,7 @@ module datapath(
 		writeregW,
 		regwriteW
 		);
+
 	//--------------------debug---------------------
 //    assign debug_wb_pc          = pcplus4D;
 //    assign debug_wb_rf_wen      = {4{regwriteM & ~flushE }};
@@ -273,62 +278,8 @@ module datapath(
 	alu alu(srca2E,srcb3E,saE,alucontrolE,aluoutE);
 	mux2 #(5) wrmux(rtE,rdE,regdstE,writeregE);
 
-	
-    
-    assign writedataM = writetempM;
-    always @(*) begin
-        case(fcM)
-            //SW
-            3'b111: 
-            begin 
-                writetempM  = writedataM2;
-            end
-            //SH
-            3'b110: 
-            begin
-                writetempM  = {16'b0,{writedataM2[15:0]}};
-            end
-            //SB
-            3'b101: 
-            begin
-                writetempM  = {24'b0,{writedataM2[7:0]}};
-            end
-            
-            default: 
-            begin
-                writetempM  = writedataM2;
-            end
-        endcase
-    end
+    //writedata
     
 	
-	always @(*) begin
-	   case(fcW)
-	       //LB
-	       3'b000: begin
-	           readtempW  = {{24{readdataW[7]}},readdataW[7:0]};
-	       end
-	       //LBU
-	       3'b001: begin
-	       	   readtempW  = {24'b0,readdataW[7:0]};
-	       end
-	       //LH
-	       3'b010: begin
-	       	   readtempW  = {{16{readdataW[7]}},readdataW[15:0]};
-	       end
-	       //LHU
-	       3'b011: begin
-	           readtempW  = {16'b0,readdataW[15:0]};
-	       end
-	       //LW
-	       3'b100: begin
-	           readtempW  = readdataW;
-	       end
-	       default: begin
-	           readtempW  = readdataW;
-	       end
-	   endcase
-	end
-    assign readdataWB = readtempW;
-	mux2 #(32) resmux(aluoutW,readdataWB,memtoregW,resultW);
+	//read data 
 endmodule
