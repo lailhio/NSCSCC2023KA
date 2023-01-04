@@ -33,7 +33,7 @@ module alu(
     output wire overflowE//算数溢出
 );
     wire [63:0] aluout_div; //乘除法结�?
-    reg [63:0] aluout_mul;
+    wire [63:0] aluout_mul;
     wire mul_sign; //乘法符号
     wire mul_valid;  // 为乘�?
     wire div_sign; //除法符号
@@ -104,8 +104,8 @@ module alu(
 		.signed_div_i(div_sign),   //1 signed
 
 		// .ready(ready),
-		.ready_o(~div_stallE),
-		.result(aluout_div)
+		.ready_o(div_stallE),
+		.result_o(aluout_div)
 	);
 
 endmodule
