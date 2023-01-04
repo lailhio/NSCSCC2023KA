@@ -2,8 +2,8 @@ module jump_control (
     input wire [31:0] instrD,
     input wire [31:0] pc_plus4D,
     input wire [31:0] rd1D,
-    input wire reg_write_enE, reg_write_enM,
-    input wire [4:0] reg_writeE, reg_writeM,
+    input wire regwriteE, regwriteM,
+    input wire [4:0] writeregE, writeregM,
 
     output wire jumpD,          
     output wire jump_conflictD, 
@@ -18,8 +18,8 @@ module jump_control (
 
     // jump冲突 在E阶段或M阶段需要写回rsD（jr指令跳转目标为rs中的值
     assign jump_conflictD = jr &&
-                            ((reg_write_enE && rsD == reg_writeE) ||          
-                            (reg_write_enM && rsD == reg_writeM));
+                            ((regwriteE && rsD == writeregE) ||          
+                            (regwriteM && rsD == writeregM));
     
     wire [31:0] pc_jump_immD;
     assign pc_jump_immD = {pc_plus4D[31:28], instrD[25:0], 2'b00}; //instr_index左移2位 与pc+4高四位拼接

@@ -28,12 +28,12 @@ module hazard(
 
     input wire [4:0] rsE,
     input wire [4:0] rtE,  //寄存器序号
-    input wire reg_write_enM,
-    input wire reg_write_enW,  //写寄存器信号
-    input wire [4:0] reg_writeM,
-    input wire [4:0] reg_writeW,  //写寄存器序号
+    input wire regwriteM,
+    input wire regwriteW,  //写寄存器信号
+    input wire [4:0] writeregM,
+    input wire [4:0] writeregW,  //写寄存器序号
 
-    input wire mem_read_enM,   //读mem信号
+    input wire mem_readM,   //读mem信号
     
     output wire stallF, stallD, stallE, stallM, stallW,
     output wire flushF, flushD, flushE, flushM, flushW,  //流水线控制
@@ -41,11 +41,11 @@ module hazard(
     output wire [1:0] forward_1E, forward_2E //00-> NONE, 01-> MEM, 10-> WB (LW instr)
 );
     // 数据冒险，前推片选信号
-    assign forward_1E = rsE != 0 && reg_write_enM && (rsE == reg_writeM) ? 2'b01 :
-                        rsE != 0 && reg_write_enW && (rsE == reg_writeW) ? 2'b10 :
+    assign forward_1E = rsE != 0 && regwriteM && (rsE == writeregM) ? 2'b01 :
+                        rsE != 0 && regwriteW && (rsE == writeregW) ? 2'b10 :
                         2'b00;
-    assign forward_2E = reg_write_enM && (rtE == reg_writeM) ? 2'b01 :
-                        reg_write_enW && (rtE == reg_writeW) ? 2'b10 :
+    assign forward_2E = regwriteM && (rtE == writeregM) ? 2'b01 :
+                        regwriteW && (rtE == writeregW) ? 2'b10 :
                         2'b00;
     
     assign stallF = ~flush_exceptionM & (d_cache_stall | alu_stallE);//

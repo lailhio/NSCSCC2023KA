@@ -271,8 +271,8 @@ module datapath(
         .instrD(instrD),
         .pc_plus4D(pc_plus4D),
         .rd1D(rd1D),
-        .reg_write_enE(reg_write_enE), .reg_write_enM(reg_write_enM),
-        .reg_writeE(reg_writeE), .reg_writeM(reg_writeM),
+        .regwriteE(regwriteE), .regwriteM(regwriteM),
+        .writeregE(writeregE), .writeregM(writeregM),
 
         .jumpD(jumpD),                      //是jump类指令(j, jr)
         .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲突
@@ -350,7 +350,7 @@ module datapath(
         5'd31,                              //
         5'b0,                               //
         reg_dstE,                           //
-        reg_writeE                          //选择writeback寄存器
+        writeregE                          //选择writeback寄存器
     );
 
     mux4 #(32) mux4_forward_1E(
@@ -426,7 +426,7 @@ module datapath(
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM),
     );
     assign mem_addrM = alu_outM;
-    assign mem_enM = (mem_read_enM  |  mem_write_enM) ; //读或者写
+    assign mem_enM = (mem_readM  |  mem_write_enM) ; //读或者写
     // mem读写控制
     mem_control mem_control(
         .instrM(instrM),
@@ -443,6 +443,7 @@ module datapath(
         .addr_error_lw(addrErrorLwM)  
     );
     // hilo寄存器
+    hilo hilo(clk,rst,instrM,hilo_wenE&flush_exceptionM,aluoutE,hilo_oM);
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不是00
 	//---------Write_Back----------------
 	Mem_WriteBack Me_Wr(
@@ -477,11 +478,11 @@ module datapath(
 
         .rsE(rsE),
         .rtE(rtE),
-        .reg_write_enM(reg_write_enM),
-        .reg_write_enW(reg_write_enW),
-        .reg_writeM(reg_writeM),
-        .reg_writeW(reg_writeW),
-        .mem_read_enM(mem_read_enM),
+        .regwriteM(regwriteM),
+        .regwriteW(regwriteW),
+        .writeregM(writeregM),
+        .writeregW(writeregW),
+        .mem_readM(mem_readM),
 
         .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
@@ -492,8 +493,5 @@ module datapath(
 	//mem stage
 	wire [31:0] writedataM2;
 	reg [31:0] writetempM = 32'b0;
-
-
-
 	
 endmodule
