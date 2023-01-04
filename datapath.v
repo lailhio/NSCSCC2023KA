@@ -36,7 +36,7 @@ module datapath(
     wire [31:0] pcD, pc_plus4D;  //pc
 
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
-    wire        sign_exD, pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
+    wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
     wire        flush_pred_failedM;  //分支预测失败
 
     wire        jump_conflictD;  //jump冲突
@@ -155,12 +155,54 @@ module datapath(
 //    assign debug_wb_rf_wnum     = writeregM;
 //    assign debug_wb_rf_wdata    = resultW;
 
-
-	assign inst_addrF = pcF; //F阶段地址
-    assign inst_enF = ~stallF & ~pc_errorF & ~flush_pred_failedM; // 指令读使能：一切正常
+    //------------------Fetch-------------------------
     assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; //pc最后两位不是0 则pc错误
+    // pc+4
+    assign pc_plus4F = pcF + 4;
+    // pc reg
+    pc_reg pc_reg0(
+        .clk(clk),
+        .rst(rst),
+        .stallF(stallF),
+        .branchD(branchD),
+        .branchM(branchM),
+        .pre_right(pre_right),
+        .actual_takeM(actual_takeM),
+        .pred_takeD(pred_takeD),
+        .pc_trapM(pc_trapM),
+        .jumpD(jumpD),
+        .jump_conflictD(jump_conflictD),
+        .jump_conflictE(jump_conflictE),
 
+        .pc_exceptionM(pc_exceptionM),
+        .pc_plus4E(pc_plus4E),
+        .pc_branchM(pc_branchM),
+        .pc_jumpE(pc_jumpE),
+        .pc_jumpD(pc_jumpD),
+        .pc_branchD(pc_branchD),
+        .pc_plus4F(pc_plus4F),
+
+        .pc(pcF)
+    );
+    assign instrF_4 = ({32{~(|(pcF[1:0] ^ 2'b00))}} & instrF);  //低2位一定为00 不为0则inst清0
+    assign F_change = branchD | jumpD; //F阶段得到此时d阶段是否为跳转指令
 	//------------------Decode-------------------------
+
+    Fetch_Decode Fe_De(
+        .clk(clk), .rst(rst),
+        .stallD(stallD),
+        .flushD(flushD),
+
+        .pcF(pcF),
+        .pc_plus4F(pc_plus4F),
+        .instrF(instrF_4),
+        .F_change(F_change), //上一条指令是跳转
+        
+        .pcD(pcD),
+        .pc_plus4D(pc_plus4D),
+        .instrD(instrD),
+        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟槽
+    );
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
@@ -184,8 +226,20 @@ module datapath(
 		aluopD,
 		branch_judge_controlD
 		);
+    //use for debug
+    // 指令转化为ascii码
+    wire [44:0] ascii;
+    inst_ascii_decoder inst_ascii_decoder0(
+        .instr(instrD),
+        .ascii(ascii)
+    );
+    //扩展立即数
+    signext signex(sign_exD,instrD[15:0],immD);
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
+    // 分支跳转  立即数左移2 + pc+4
+    assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
+
 	//分支预测器
     BranchPredict branch_predict0(
         .clk(clk), .rst(rst),
@@ -203,21 +257,6 @@ module datapath(
         .branchD(branchD),
         .branchL_D(),
         .pred_takeD(pred_takeD)
-    );
-	Fetch_Decode Fe_De(
-        .clk(clk), .rst(rst),
-        .stallD(stallD),
-        .flushD(flushD),
-
-        .pcF(pcF),
-        .pc_plus4F(pc_plus4F),
-        .instrF(instrF_4),
-        .F_change(F_change), //上一条指令是跳转
-        
-        .pcD(pcD),
-        .pc_plus4D(pc_plus4D),
-        .instrD(instrD),
-        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟槽
     );
 	//-----------Execute----------------
 	Decode_Execute De_Ex(
