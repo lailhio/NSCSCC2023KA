@@ -48,7 +48,7 @@ module pc_reg(
 
     always @(posedge clk) begin
         if(rst) begin
-            pc<=32'h0000_0000; //起始地址
+            pc<=32'hbfc0_0000; //起始地址
         end
         else if(~stallF) begin
             pc<=next_pc;
