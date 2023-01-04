@@ -47,7 +47,7 @@ module datapath(
     wire        flush_pred_failedM;  //分支预测失败
 
     wire        jump_conflictD;  //jump冲突
-    wire [4 :0] branch_judge_controlD; //分支判断控制
+    wire [2 :0] branch_judge_controlD; //分支判断控制
 	wire 		sign_exD;          //立即数是否为符号扩展
 	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> �?$ra
 	wire 		is_immD;       //alu srcb选择 0->rd2E, 1->immE
@@ -87,7 +87,7 @@ module datapath(
     wire        flush_jump_conflictE;  //jump冲突
     wire        jumpE; //jump信号
     wire        actual_takeE;  //分支预测 实际结果
-    wire [4 :0] branch_judge_controlE; //分支判断控制
+    wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
 	wire        hilo_to_regE;
 	wire        breakE, syscallE,is_mfc;
@@ -163,7 +163,7 @@ module datapath(
 
     //------------------Fetch-------------------------
     assign inst_addrF = pcF; //F阶段地址
-    assign inst_enF = ~stallF & ~pc_errorF & ~flush_pred_failedM; // 指令读使能：�?切正�?
+    assign inst_enF = ~stallF & ~pc_errorF& ~flush_pred_failedM; // 指令读使能：�?切正�?
     assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; //pc�?后两位不�?0 则pc错误
     // pc+4
     assign pc_plus4F = pcF + 4;
@@ -240,7 +240,7 @@ module datapath(
     //扩展立即�?
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile (operates in decode and writeback)
-	regfile rf(clk,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
+	regfile rf(clk,rst,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
     // 分支跳转  立即数左�?2 + pc+4   
     assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
 
@@ -381,6 +381,7 @@ module datapath(
         .aluoutE(aluoutE),
         .rt_valueE(rt_valueE),
         .writeregE(writeregE),
+        .regwriteE(regwriteE),
         .instrE(instrE),
         .branchE(branchE),
         .pred_takeE(pred_takeE),
@@ -398,6 +399,7 @@ module datapath(
         .aluoutM(aluoutM),
         .rt_valueM(rt_valueM),
         .writeregM(writeregM),
+        .regwriteM(regwriteM),
         .instrM(instrM),
         .branchM(branchM),
         .pred_takeM(pred_takeM),

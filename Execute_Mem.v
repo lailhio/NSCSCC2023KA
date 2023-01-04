@@ -6,6 +6,7 @@ module Execute_Mem (
     input wire [63:0] aluoutE,
     input wire [31:0] rt_valueE,
     input wire [4:0] writeregE,
+    input wire regwriteE,
     input wire [31:0] instrE,
     input wire branchE,
     input wire pred_takeE,
@@ -27,6 +28,7 @@ module Execute_Mem (
     output reg [31:0] aluoutM,
     output reg [31:0] rt_valueM,
     output reg [4:0] writeregM,
+    output reg regwriteM,
     output reg [31:0] instrM,
     output reg branchM,
     output reg pred_takeM,
@@ -50,6 +52,7 @@ module Execute_Mem (
             aluoutM                <=              0;
             rt_valueM               <=              0;
             writeregM              <=              0;
+            regwriteM              <=              0;
             instrM                  <=              0;
             branchM                 <=              0;
             pred_takeM              <=              0;
@@ -75,6 +78,7 @@ module Execute_Mem (
             aluoutM                <=           aluoutE[31:0]     ;
             rt_valueM               <=           rt_valueE          ;
             writeregM              <=           writeregE         ;
+            regwriteM              <=           regwriteE          ;
             instrM                  <=           instrE             ;
             branchM                 <=           branchE            ;
             pred_takeM              <=           pred_takeE         ;

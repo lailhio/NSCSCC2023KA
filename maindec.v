@@ -235,7 +235,7 @@ module maindec(
 				endcase
 				end
 			default:begin
-						branch_judge_controlD<=3'b001;
+						branch_judge_controlD<=3'b000;
 					end
 		endcase
 	end
