@@ -434,8 +434,43 @@ module datapath(
     // hilo寄存器
     hilo hilo(clk,rst,instrM,hilo_wenE&flush_exceptionM,aluoutE,hilo_oM);
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不是00
-     //异常处理待补充
-     // cp0寄存器待补充
+     //异常处理
+    exception exception(
+        .rst(rst),
+        .ext_int(ext_int),
+        .ri(riM), .break(breakM), .syscall(syscallM), .overflow(overflowM), .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
+        .cp0_status(cp0_statusW), .cp0_cause(cp0_causeW), .cp0_epc(cp0_epcW),
+        .pcM(pcM),
+        .alu_outM(alu_outM),
+
+        .except_type(except_typeM),
+        .flush_exception(flush_exceptionM),
+        .pc_exception(pc_exceptionM),
+        .pc_trap(pc_trapM),
+        .badvaddrM(badvaddrM)
+    );
+     // cp0寄存器
+    cp0_reg cp0(
+        .clk(clk),
+        .rst(rst),
+        .en(flush_exceptionM),
+        .we_i(cp0_wenM),
+        .waddr_i(rdM),
+        .raddr_i(rdM),
+        .data_i(rt_valueM),
+        .int_i(ext_int),
+        
+        .data_o(cp0_data_oW),
+
+        .except_type_i(except_typeM),
+        .current_inst_addr_i(pcM),
+        .is_in_delayslot_i(is_in_delayslot_iM),
+        .badvaddr_i(badvaddrM),
+
+        .status_o(cp0_statusW),
+        .cause_o(cp0_causeW),
+        .epc_o(cp0_epcW)
+    );
 	//---------Write_Back----------------
     //在alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中选择写入寄存器的值
     mux4 #(32) mux4_memtoreg(alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
