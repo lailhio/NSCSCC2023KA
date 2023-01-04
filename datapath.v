@@ -34,10 +34,9 @@ module datapath(
     wire [31:0] instrF_4;                   //instrF末尾为2'b00
     
     wire pc_errorF;  // pc错误
-    wire pcerrorD, pcerrorE, pcerrorM; 
 
     wire F_change; // 此时的D阶段（即上一条指令）是否为跳转指令
-// wire pcerrorD, pcerrorE, pcerrorM; 
+    // wire pcerrorD, pcerrorE, pcerrorM; 
 	//----------decode stage---------
 	wire[3:0] aluopD;
 	wire[4:0] alucontrolD;
@@ -65,7 +64,7 @@ module datapath(
 	wire 		cp0_to_regD;
 	wire		is_mfcD;
     
-    wire  is_in_delayslot_iD;//指令是否在延迟槽
+    wire        is_in_delayslot_iD;//指令是否在延迟槽
 	//-------execute stage----------
 	wire [31:0] pcE, pc_plus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器值 写内存值 立即数
     wire [4 :0] rsE, rtE, rdE, saE;  //寄存器号
@@ -440,8 +439,8 @@ module datapath(
 	//---------Write_Back----------------
     //在alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中选择写入寄存器的值
     mux4 #(32) mux4_memtoreg(alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
-                            {hilo_to_regM, mem_to_regM} | {2{is_mfcM}}
-                            ,resultM);
+                            {hilo_to_regM, mem_to_regM} | {2{is_mfcM}},
+                            resultM);
     //分支预测结果
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
     assign flush_pred_failedM = ~pre_right;
