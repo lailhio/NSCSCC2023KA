@@ -5,8 +5,8 @@ module mem_control(
     input wire [31:0] addr,  //访存地址
 
     input wire [31:0] data_wdataM, //要写的数据
-    output wire [31:0] mem_wdataM,  //真正写数据
-    output wire [3:0] mem_wenM,  //写使能
+    output wire [31:0] writedataM,  //真正写数据
+    output wire [3:0] mem_wenM,  //选择写哪一位
 
     input wire [31:0] mem_rdataM, //内存读出
     output wire [31:0] data_rdataM,  // 实际读出
@@ -55,7 +55,7 @@ module mem_control(
 
 
 // data ram 按字寻址
-    assign mem_wdataM =   ({ 32{instr_sw}} & data_wdataM)               //
+    assign writedataM =   ({ 32{instr_sw}} & data_wdataM)               //
                         | ( {32{instr_sh}}  & {2{data_wdataM[15:0]}  })  // 低位高位均为数据 具体根据操作
                         | ( {32{instr_sb}}  & {4{data_wdataM[7:0]}  }); //
 // rdata   

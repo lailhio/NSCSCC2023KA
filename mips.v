@@ -22,11 +22,20 @@
 
 module mips(
 	input wire clk,rst,
-	output wire[31:0] pcF,
-	input wire[31:0] instrF,
-	output wire memwriteM,
-	output wire[31:0] aluoutM,writedataM,
-	input wire[31:0] readdataM
+	input wire  [5 :0] ext_int, //异常处理
+    
+    //inst
+    output wire [31:0] inst_addrF,  //指令地址
+    output wire        inst_enF,  //使能
+    input wire  [31:0] instrF,  //注：instr ram时钟取反
+
+    //data
+    output wire mem_enM,                    
+    output wire [31:0] mem_addrM,     //读/写地址
+    input  wire [31:0] mem_rdataM,    //读数据
+    output wire [3 :0] mem_wenM,      //选择写哪一位
+    output wire [31:0] writedataM   //写数据
+	// input wire         d_cache_stall,
 	//debug interface
 //    output wire[31:0] debug_wb_pc,
 //    output wire[3:0] debug_wb_rf_wen,
@@ -34,17 +43,18 @@ module mips(
 //    output wire[31:0] debug_wb_rf_wdata
     );
 	
-	wire flushE;
 
 	datapath dp(
 		clk,rst,
-	    instrF,
-	    flushE,
-	    aluoutM,writedataM
+		ext_int,
+    	inst_addrF, inst_enF,instrF,
+
+    	mem_enM,mem_addrM,mem_rdataM,mem_wenM,writedataM,0,
+		//debug interface
 //		debug_wb_pc,
-//        debug_wb_rf_wen,
-//        debug_wb_rf_wnum,
-//        debug_wb_rf_wdata
+//      debug_wb_rf_wen,
+//      debug_wb_rf_wnum,
+//      debug_wb_rf_wdata
 	    );
 	
 endmodule

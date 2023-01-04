@@ -18,10 +18,8 @@ module datapath(
     output wire [31:0] mem_addrM,     //读/写地址
     input  wire [31:0] mem_rdataM,    //读数据
     output wire [3 :0] mem_wenM,      //写使能
-    output wire [31:0] mem_wdataM,    //写数据
-    // input wire         d_cache_stall,
-	
-	output wire[31:0] aluoutM,writedataM
+    output wire [31:0] writedataM,    //写数据
+    input wire         d_cache_stall
 	//debug interface
 //    output wire[31:0] debug_wb_pc,
 //    output wire[3:0] debug_wb_rf_wen,
@@ -119,7 +117,7 @@ module datapath(
     wire [31:0] pc_branchM; //分支跳转地址
 
     wire [31:0] mem_ctrl_rdataM;
-    wire [31:0] mem_wdataM_temp;
+    wire [31:0] writedataM_temp;
     wire [31:0] mem_ctrl_rdataM;
     wire [63:0] hilo_oM;  //hilo输出
     wire        hilo_to_regM; 
@@ -422,7 +420,7 @@ module datapath(
         .addr(aluoutM),
     
         .data_wdataM(rt_valueM),    //原始的wdata
-        .mem_wdataM(mem_wdataM),    //新的wdata
+        .writedataM(writedataM),    //新的wdata
         .mem_wenM(mem_wenM),
 
         .mem_rdataM(mem_rdataM),    
