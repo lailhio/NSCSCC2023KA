@@ -345,30 +345,20 @@ module datapath(
     );
 
     mux4 #(5) mux4_regdst(
-        rdE,                                //
-        rtE,                                //
-        5'd31,                              //
-        5'b0,                               //
-        reg_dstE,                           //
-        writeregE                          //选择writeback寄存器
+        rdE,rtE,5'd31,5'b0,
+        regdstE, 
+        writeregE //选择writeback寄存器
     );
 
     mux4 #(32) mux4_forward_1E(
-        rd1E,                               //
-        resultM,                            //
-        resultW,                            //
-        pc_plus4D,                          // 执行jalr，jal指令；写入到$ra寄存器的数据（跳转指令对应延迟槽指令的下一条指令的地址即PC+8） //可以保证延迟槽指令不会被flush，故plush_4D存在
+        rd1E,resultM,resultW,pc_plus4D,     // 执行jalr，jal指令；写入到$ra寄存器的数据（跳转指令对应延迟槽指令的下一条指令的地址即PC+8） 
+                                             //可以保证延迟槽指令不会被flush，故plush_4D存在
         {2{jumpE | branchE}} | forward_1E,  // 当ex阶段是jal或者jalr指令，或者bxxzal时，jumpE | branchE== 1；选择pc_plus4D；其他时候为数据前推
-
         src_aE
     );
     mux4 #(32) mux4_forward_2E(
-        rd2E,                               //
-        resultM,                            //
-        resultW,                            // 
-        immE,                               //立即数
-        {2{alu_imm_selE}} | forward_2E,     //main_decoder产生alu_imm_selE信号，表示alu第二个操作数为立即数
-
+        rd2E,resultM,resultW,immE,                               //立即数
+        {2{is_immE}} | forward_2E,     //main_decoder产生is_immE信号，表示alu第二个操作数为立即数
         src_bE
     );
     mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的值
@@ -426,7 +416,7 @@ module datapath(
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM),
     );
     assign mem_addrM = alu_outM;
-    assign mem_enM = (mem_readM  |  mem_write_enM) ; //读或者写
+    assign mem_enM = (mem_readM  |  mem_writeM) ; //读或者写
     // mem读写控制
     mem_control mem_control(
         .instrM(instrM),
@@ -445,7 +435,16 @@ module datapath(
     // hilo寄存器
     hilo hilo(clk,rst,instrM,hilo_wenE&flush_exceptionM,aluoutE,hilo_oM);
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不是00
+     //异常处理待补充
+     // cp0寄存器待补充
 	//---------Write_Back----------------
+    //在alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中选择写入寄存器的值
+    mux4 #(32) mux4_memtoreg(alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
+                            {hilo_to_regM, mem_to_regM} | {2{is_mfcM}}
+                            ,resultM);
+    //分支预测结果
+    assign pre_right = ~(pred_takeM ^ actual_takeM); 
+    assign flush_pred_failedM = ~pre_right;
 	Mem_WriteBack Me_Wr(
         .clk(clk),
         .rst(rst),
@@ -488,10 +487,5 @@ module datapath(
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
         .forward_1E(forward_1E), .forward_2E(forward_2E)
     );
-	wire [31:0] readdataWB;
-	reg[31:0] readtempW = 32'b0;
-	//mem stage
-	wire [31:0] writedataM2;
-	reg [31:0] writetempM = 32'b0;
 	
 endmodule

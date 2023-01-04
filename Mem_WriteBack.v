@@ -5,7 +5,7 @@ module Mem_WriteBack (
     input wire [31:0] pcM,
     input wire [31:0] aluoutM,
     input wire [4:0] writeregM,
-    input wire writeregM,
+    input wire regwriteM,
     input wire [31:0] mem_rdataM,
     input wire [31:0] resultM,
 
@@ -13,7 +13,7 @@ module Mem_WriteBack (
     output reg [31:0] pcW,
     output reg [31:0] aluoutW,
     output reg [4:0] writeregW,
-    output reg writeregW,
+    output reg regwriteW,
     output reg [31:0] mem_rdataW,
     output reg [31:0] resultW
 );
@@ -22,7 +22,7 @@ module Mem_WriteBack (
             pcW <= 0;
             aluoutW <= 0;
             writeregW <= 0;
-            writeregW <= 0;
+            regwriteW <= 0;
             mem_rdataW <= 0;
             resultW <= 0;
         end
@@ -30,7 +30,7 @@ module Mem_WriteBack (
             pcW <= pcM;
             aluoutW <= aluoutM;
             writeregW <= writeregM;
-            writeregW <= writeregM;
+            regwriteW <= regwriteM;
             mem_rdataW <= mem_rdataM;
             resultW <= resultM;
         end
