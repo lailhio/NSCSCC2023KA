@@ -184,8 +184,10 @@ module datapath(
 
         .pc(pcF)
     );
+
     assign instrF_4 = ({32{~(|(pcF[1:0] ^ 2'b00))}} & instrF);  //低2位一定为00 不为0则inst清0
     assign F_change = branchD | jumpD; //F阶段得到此时d阶段是否为跳转指令
+
 	//------------------Decode-------------------------
 
     Fetch_Decode Fe_De(
@@ -203,6 +205,7 @@ module datapath(
         .instrD(instrD),
         .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟槽
     );
+
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
@@ -237,7 +240,7 @@ module datapath(
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
-    // 分支跳转  立即数左移2 + pc+4
+    // 分支跳转  立即数左移2 + pc+4   
     assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
 
 	//分支预测器
@@ -257,6 +260,18 @@ module datapath(
         .branchD(branchD),
         .branchL_D(),
         .pred_takeD(pred_takeD)
+    );
+    // jump指令控制
+    jump_control jump_control(
+        .instrD(instrD),
+        .pc_plus4D(pc_plus4D),
+        .rd1D(rd1D),
+        .reg_write_enE(reg_write_enE), .reg_write_enM(reg_write_enM),
+        .reg_writeE(reg_writeE), .reg_writeM(reg_writeM),
+
+        .jumpD(jumpD),                      //是jump类指令(j, jr)
+        .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲突
+        .pc_jumpD(pc_jumpD)                 //D阶段最终跳转地址
     );
 	//-----------Execute----------------
 	Decode_Execute De_Ex(
@@ -351,6 +366,8 @@ module datapath(
 
         src_bE
     );
+    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_aE, rs_valueE); //数据前推后的rs寄存器的值
+    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_bE, rt_valueE); //数据前推后的rt寄存器的值
 
 	//计算branch结果 得到真实是否跳转
     branch_check branch_check(
