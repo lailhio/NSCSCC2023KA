@@ -220,7 +220,7 @@ module datapath(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 	assign saD = instrD[10:6];
-	aludec ad(funct,aluopD,alucontrol);
+	aludec ad(functD,aluopD,alucontrolD);
 	maindec md(
 		instrD,
 		//output
