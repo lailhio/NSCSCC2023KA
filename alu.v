@@ -19,27 +19,27 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
+`include "defines2.vh"
 module alu(
     input wire clk, rst,
     input wire flushE,
-    input wire [31:0] src_aE, src_bE,  //操作数
+    input wire [31:0] src_aE, src_bE,  //操作�?
     input wire [4:0] alucontrolE,  //alu 控制信号
-    input wire [4:0] sa, //sa值
-    input wire [63:0] hilo,  //hilo值
+    input wire [4:0] sa, //sa�?
+    input wire [63:0] hilo,  //hilo�?
 
     output wire div_stallE,
     output wire [63:0] aluoutE, //alu输出
     output wire overflowE//算数溢出
 );
-    wire [63:0] aluout_div; //乘除法结果
+    wire [63:0] aluout_div; //乘除法结�?
     reg [63:0] aluout_mul;
     wire mul_sign; //乘法符号
-    wire mul_valid;  // 为乘法
+    wire mul_valid;  // 为乘�?
     wire div_sign; //除法符号
-	wire div_vaild;  //为除法
+	wire div_vaild;  //为除�?
 	wire ready;
-    reg [31:0] aluout_simple; // 普通运算结果
+    reg [31:0] aluout_simple; // 普�?�运算结�?
     reg carry_bit;  //进位 判断溢出
 
 
@@ -51,12 +51,12 @@ module alu(
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
                     | ({64{~mul_valid & ~div_vaild}} & {32'b0, aluout_simple})
-                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]}) // 若为mthi/mtlo 直接取Hilo的低32位和高32位
+                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]}) // 若为mthi/mtlo 直接取Hilo的低32位和�?32�?
                     | ({64{(alucontrolE == `MTLO_CONTROL)}} & {hilo[63:32], src_aE});
-    // 为加减 且溢出位与最高位不等时 算数溢出
+    // 为加�? 且溢出位与最高位不等�? 算数溢出
     assign overflowE = (alucontrolE==`ADD_CONTROL || alucontrolE==`SUB_CONTROL) & (carry_bit ^ aluout_simple[31]);
 
-    // 算数操作及对应运算
+    // 算数操作及对应运�?
     always @(*) begin
         carry_bit = 0; //溢出位取0
         case(alucontrolE)
@@ -70,8 +70,8 @@ module alu(
             `SUB_CONTROL:       {carry_bit, aluout_simple} = {src_aE[31], src_aE} - {src_bE[31], src_bE};
             `SUBU_CONTROL:      aluout_simple = src_aE - src_bE;
 
-            `SLT_CONTROL:       aluout_simple = $signed(src_aE) < $signed(src_bE); //有符号比较
-            `SLTU_CONTROL:      aluout_simple = src_aE < src_bE; //无符号比较
+            `SLT_CONTROL:       aluout_simple = $signed(src_aE) < $signed(src_bE); //有符号比�?
+            `SLTU_CONTROL:      aluout_simple = src_aE < src_bE; //无符号比�?
 
             `SLLV_CONTROL:       aluout_simple = src_bE << src_aE[4:0]; //移位src a
             `SRLV_CONTROL:       aluout_simple = src_bE >> src_aE[4:0];
@@ -81,7 +81,7 @@ module alu(
             `SRL_CONTROL:    aluout_simple = src_bE >> sa;
             `SRA_CONTROL:    aluout_simple = $signed(src_bE) >>> sa;
 
-            `LUI_CONTROL:       aluout_simple = {src_bE[15:0], 16'b0}; //取高16位
+            `LUI_CONTROL:       aluout_simple = {src_bE[15:0], 16'b0}; //取高16�?
             5'b00000: aluout_simple = src_aE;  // do nothing
 
             default:    aluout_simple = 32'b0;

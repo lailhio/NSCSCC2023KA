@@ -43,7 +43,7 @@ module Decode_Execute (
     output reg is_in_delayslot_iE,
     output reg [4:0] alucontrolE,
     output reg jumpE,
-    output reg [4:0] branch_judge_controlE
+    output reg [4:0] branch_judge_controlE,
     output reg [1:0]  regdstE,
     output reg is_immE,regwriteE,hilo_wenE,
     output reg mem_readE, mem_writeE,

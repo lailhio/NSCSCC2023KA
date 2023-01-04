@@ -7,19 +7,19 @@ module maindec(
 		input wire[31:0] instrD,
 
 
-		output reg sign_exD,          //立即数是否为符号扩展
-		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> 写$ra
+		output wire sign_exD,          //立即数是否为符号扩展
+		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> �?$ra
 		output reg is_immD,        //alu srcb选择 0->rd2E, 1->immE
-		output reg regwriteD,	//写寄存器堆使能
-		output reg hilo_wenD,
+		output reg regwriteD,	//写寄存器堆使�?
+		output wire hilo_wenD,
 		output reg mem_readD, mem_writeD,
 		output reg memtoregD,         	//result选择 0->alu_out, 1->read_data
-		output reg hilo_to_regD,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+		output wire hilo_to_regD,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
 		output reg riD,
-		output reg breakD, syscallD, eretD, 
-		output reg cp0_wenD,
-		output reg cp0_to_regD,
-		output wire is_mfcD,   //为mfc0
+		output wire breakD, syscallD, eretD, 
+		output wire cp0_wenD,
+		output wire cp0_to_regD,
+		output reg is_mfcD,   //为mfc0
 		output reg [3:0] aluopD,
 		output reg [2:0] branch_judge_controlD
     );
@@ -33,16 +33,16 @@ module maindec(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 
-	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
+	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符�?
 	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//首先判断是不是R-type
 						& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
 							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
 
 	assign hilo_to_regD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
-	assign cp0_wenD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `MFC0));
-	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `MTC0));
-	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rs ^ `ERET));
+	assign cp0_wenD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MFC0));
+	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
+	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `ERET));
 	
 	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
@@ -52,7 +52,7 @@ module maindec(
 		riD<=1'b0;
 		case(opD)
 			`R_TYPE:begin
-				case(funct)
+				case(functD)
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
@@ -62,7 +62,7 @@ module maindec(
 						{regwriteD, regdstD, is_immD} =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
-					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
+					// 乘除hilo、自陷�?�jr不需要使用寄存器和存储器
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
 					`SYSCALL, `BREAK : begin
 						aluopD<=`R_TYPE_OP;
@@ -71,7 +71,7 @@ module maindec(
 					end
 					`JALR: begin
 						aluopD<=`R_TYPE_OP;
-						{regwriteD, regdstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对。
+						{regwriteD, regdstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对�?
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
 					default: begin
@@ -132,10 +132,10 @@ module maindec(
 			end
 
 			`REGIMM_INST: begin
-				case(rt)
+				case(rtD)
 					`BGEZAL,`BLTZAL: begin
 						aluopD<=`USELESS_OP;
-						{regwriteD, regdstD, is_immD}  =  4'b1100;//需要写至31
+						{regwriteD, regdstD, is_immD}  =  4'b1100;//�?要写�?31
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`BGEZ,`BLTZ: begin
@@ -152,7 +152,7 @@ module maindec(
 				endcase
 			end
 			
-	// 访存指令，都是立即数指令。
+	// 访存指令，都是立即数指令�?
 			`LW, `LB, `LBU, `LH, `LHU: begin
 				aluopD<=`MEM_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
@@ -222,7 +222,7 @@ module maindec(
 				branch_judge_controlD<=3'b100;
 			end
 			`REGIMM_INST: begin
-				case(rt)
+				case(rtD)
 					`BLTZ,`BLTZAL: begin
 						branch_judge_controlD<=3'b101;
 					end
@@ -233,10 +233,10 @@ module maindec(
 						branch_judge_controlD<=3'b101;
 					end
 				endcase
+				end
 			default:begin
 						branch_judge_controlD<=3'b001;
 					end
-			end
 		endcase
 	end
 endmodule

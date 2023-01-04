@@ -14,7 +14,7 @@ module Fetch_Decode (
     output reg [31:0] pcD,
     output reg [31:0] pc_plus4D,
     output reg [31:0] instrD,
-    output reg [31:0] is_in_delayslot_iD,
+    output reg [31:0] is_in_delayslot_iD
     
 );
 
