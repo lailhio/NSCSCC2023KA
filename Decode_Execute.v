@@ -21,8 +21,8 @@ module Decode_Execute (
     input wire [1:0]  regdstD,
     input wire is_immD,regwriteD,hilo_wenD,
     input wire mem_readD, mem_writeD,
-    input wire memtoregD,         	//result选择 0->alu_out, 1->read_data
-    input wire hilo_to_regD,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+    input wire memtoregD,         	//result选择 0->aluout, 1->read_data
+    input wire hilo_to_regD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
     input wire riD,
     input wire breakD, syscallD, eretD, 
     input wire cp0_wenD,
@@ -47,8 +47,8 @@ module Decode_Execute (
     output reg [1:0]  regdstE,
     output reg is_immE,regwriteE,hilo_wenE,
     output reg mem_readE, mem_writeE,
-    output reg memtoregE,         	//result选择 0->alu_out, 1->read_data
-    output reg hilo_to_regE,			// 00--alu_outM; 01--hilo_o; 10 11--rdataM;
+    output reg memtoregE,         	//result选择 0->aluout, 1->read_data
+    output reg hilo_to_regE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
     output reg riE,
     output reg breakE, syscallE, eretE, 
     output reg cp0_wenE,

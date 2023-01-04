@@ -38,8 +38,8 @@ module mycpu_top(
 
     //ascii
     //use for debug
-    // 指令转化为ascii�?
-    wire [39:0] ascii;
+    // 指令转化为ascii�?
+    wire [44:0] ascii;
     instdec instdec(
         .instr(inst_sram_rdata),
         .ascii(ascii)

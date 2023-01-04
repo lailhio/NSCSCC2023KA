@@ -148,7 +148,6 @@ module datapath(
     wire        cp0_wenM;
     
 	//------writeback stage----------
-	wire memtoregW;
 	wire [4:0] writeregW;//写寄存器�?
 	wire regwriteW;
 	wire [31:0] aluoutW,resultW;
@@ -412,7 +411,7 @@ module datapath(
 		.syscallM(syscallM),.eretM(eretM),.cp0_wenM(cp0_wenM),
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM)
     );
-    assign mem_addrM = alu_outM;
+    assign mem_addrM = aluoutM;
     assign mem_enM = (mem_readM  |  mem_writeM) ; //读或者写
     // mem读写控制
     mem_control mem_control(
@@ -439,7 +438,7 @@ module datapath(
         .ri(riM), .break(breakM), .syscall(syscallM), .overflow(overflowM), .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
         .cp0_status(cp0_statusW), .cp0_cause(cp0_causeW), .cp0_epc(cp0_epcW),
         .pcM(pcM),
-        .alu_outM(alu_outM),
+        .aluoutM(aluoutM),
 
         .except_type(except_typeM),
         .flush_exception(flush_exceptionM),
@@ -469,9 +468,9 @@ module datapath(
         .epc_o(cp0_epcW)
     );
 	//---------Write_Back----------------
-    //在alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中�?�择写入寄存器的�?
-    mux4 #(32) mux4_memtoreg(alu_outM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
-                            {hilo_to_regM, mem_to_regM} | {2{is_mfcM}},
+    //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中�?�择写入寄存器的�?
+    mux4 #(32) mux4_memtoreg(aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
+                            {hilo_to_regM, memtoregM} | {2{is_mfcM}},
                             resultM);
     //分支预测结果
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
