@@ -6,10 +6,20 @@ module datapath(
 
 	input wire clk,rst,
 	
-	input wire[31:0] instrF,
-	
-	
-	output wire flushE,
+	input wire  [5 :0] ext_int, //异常处理
+    
+    //inst
+    output wire [31:0] inst_addrF,  //指令地址
+    output wire        inst_enF,  //使能
+    input wire  [31:0] instrF,  //注：instr ram时钟取反
+
+    //data
+    output wire mem_enM,                    
+    output wire [31:0] mem_addrM,     //读/写地址
+    input  wire [31:0] mem_rdataM,    //读数据
+    output wire [3 :0] mem_wenM,      //写使能
+    output wire [31:0] mem_wdataM,    //写数据
+    // input wire         d_cache_stall,
 	
 	output wire[31:0] aluoutM,writedataM
 	//debug interface
@@ -156,6 +166,8 @@ module datapath(
 //    assign debug_wb_rf_wdata    = resultW;
 
     //------------------Fetch-------------------------
+    assign inst_addrF = pcF; //F阶段地址
+    assign inst_enF = ~stallF & ~pc_errorF & ~flush_pred_failedM; // 指令读使能：一切正常
     assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; //pc最后两位不是0 则pc错误
     // pc+4
     assign pc_plus4F = pcF + 4;
@@ -229,13 +241,6 @@ module datapath(
 		aluopD,
 		branch_judge_controlD
 		);
-    //use for debug
-    // 指令转化为ascii码
-    wire [44:0] ascii;
-    inst_ascii_decoder inst_ascii_decoder0(
-        .instr(instrD),
-        .ascii(ascii)
-    );
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile (operates in decode and writeback)
@@ -348,26 +353,26 @@ module datapath(
         reg_writeE                          //选择writeback寄存器
     );
 
-    mux4 #(32) mux4_forward_aE(
+    mux4 #(32) mux4_forward_1E(
         rd1E,                               //
         resultM,                            //
         resultW,                            //
         pc_plus4D,                          // 执行jalr，jal指令；写入到$ra寄存器的数据（跳转指令对应延迟槽指令的下一条指令的地址即PC+8） //可以保证延迟槽指令不会被flush，故plush_4D存在
-        {2{jumpE | branchE}} | forward_aE,  // 当ex阶段是jal或者jalr指令，或者bxxzal时，jumpE | branchE== 1；选择pc_plus4D；其他时候为数据前推
+        {2{jumpE | branchE}} | forward_1E,  // 当ex阶段是jal或者jalr指令，或者bxxzal时，jumpE | branchE== 1；选择pc_plus4D；其他时候为数据前推
 
         src_aE
     );
-    mux4 #(32) mux4_forward_bE(
+    mux4 #(32) mux4_forward_2E(
         rd2E,                               //
         resultM,                            //
         resultW,                            // 
         immE,                               //立即数
-        {2{alu_imm_selE}} | forward_bE,     //main_decoder产生alu_imm_selE信号，表示alu第二个操作数为立即数
+        {2{alu_imm_selE}} | forward_2E,     //main_decoder产生alu_imm_selE信号，表示alu第二个操作数为立即数
 
         src_bE
     );
-    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_aE, rs_valueE); //数据前推后的rs寄存器的值
-    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_bE, rt_valueE); //数据前推后的rt寄存器的值
+    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的值
+    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_2E, rt_valueE); //数据前推后的rt寄存器的值
 
 	//计算branch结果 得到真实是否跳转
     branch_check branch_check(
@@ -376,8 +381,8 @@ module datapath(
         .src_bE(rt_valueE),
         .actual_takeE(actual_takeE)
     );
-
-
+    assign pc_jumpE = rs_valueE; //jr指令 跳转到rs的值
+    assign flush_jump_confilctE = jump_conflictE;
 	//-------------Mem---------------------
 	
 	Execute_Mem Ex_Me(
@@ -420,6 +425,25 @@ module datapath(
 		.syscallM(syscallM),.eretM(eretM),.cp0_wenM(cp0_wenM),
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM),
     );
+    assign mem_addrM = alu_outM;
+    assign mem_enM = (mem_read_enM  |  mem_write_enM) ; //读或者写
+    // mem读写控制
+    mem_control mem_control(
+        .instrM(instrM),
+        .addr(aluoutM),
+    
+        .data_wdataM(rt_valueM),    //原始的wdata
+        .mem_wdataM(mem_wdataM),    //新的wdata
+        .mem_wenM(mem_wenM),
+
+        .mem_rdataM(mem_rdataM),    
+        .data_rdataM(mem_ctrl_rdataM),
+
+        .addr_error_sw(addrErrorSwM),
+        .addr_error_lw(addrErrorLwM)  
+    );
+    // hilo寄存器
+    assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不是00
 	//---------Write_Back----------------
 	Mem_WriteBack Me_Wr(
         .clk(clk),
@@ -461,7 +485,7 @@ module datapath(
 
         .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
-        .forward_aE(forward_aE), .forward_bE(forward_bE)
+        .forward_1E(forward_1E), .forward_2E(forward_2E)
     );
 	wire [31:0] readdataWB;
 	reg[31:0] readtempW = 32'b0;

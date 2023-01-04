@@ -21,7 +21,7 @@ module mycpu_top(
 //    output wire[31:0] debug_wb_rf_wdata
 );
 
-// �?个例�?
+
 	wire [31:0] pc;
 	wire [31:0] instr;
 	wire memwrite;
@@ -58,8 +58,12 @@ module mycpu_top(
     assign readdata = data_sram_rdata;
 
     //ascii
+    //use for debug
+    // 指令转化为ascii码
+    wire [39:0] ascii;
     instdec instdec(
-        .instr(instr)
+        .instr(instr),
+        .ascii(ascii)
     );
 
 endmodule

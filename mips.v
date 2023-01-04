@@ -27,19 +27,14 @@ module mips(
 	output wire memwriteM,
 	output wire[31:0] aluoutM,writedataM,
 	input wire[31:0] readdataM
-//	//debug interface
+	//debug interface
 //    output wire[31:0] debug_wb_pc,
 //    output wire[3:0] debug_wb_rf_wen,
 //    output wire[4:0] debug_wb_rf_wnum,
 //    output wire[31:0] debug_wb_rf_wdata
     );
 	
-	wire [5:0] opD,functD;
-	wire regdstE,alusrcE,pcsrcD,memtoregE,memtoregM,memtoregW,
-			regwriteE,regwriteM,regwriteW;
-	wire [4:0] alucontrolE;
-	wire flushE,equalD,branchD,jumpD;
-	wire [2:0] fcM,fcW;
+	wire flushE;
 
 	datapath dp(
 		clk,rst,

@@ -38,13 +38,13 @@ module hazard(
     output wire stallF, stallD, stallE, stallM, stallW,
     output wire flushF, flushD, flushE, flushM, flushW,  //流水线控制
 
-    output wire [1:0] forward_aE, forward_bE //00-> NONE, 01-> MEM, 10-> WB (LW instr)
+    output wire [1:0] forward_1E, forward_2E //00-> NONE, 01-> MEM, 10-> WB (LW instr)
 );
     // 数据冒险，前推片选信号
-    assign forward_aE = rsE != 0 && reg_write_enM && (rsE == reg_writeM) ? 2'b01 :
+    assign forward_1E = rsE != 0 && reg_write_enM && (rsE == reg_writeM) ? 2'b01 :
                         rsE != 0 && reg_write_enW && (rsE == reg_writeW) ? 2'b10 :
                         2'b00;
-    assign forward_bE = reg_write_enM && (rtE == reg_writeM) ? 2'b01 :
+    assign forward_2E = reg_write_enM && (rtE == reg_writeM) ? 2'b01 :
                         reg_write_enW && (rtE == reg_writeW) ? 2'b10 :
                         2'b00;
     
