@@ -99,6 +99,8 @@ module datapath(
  // 异常处理信号
     wire        is_in_delayslot_iE; //是否处于延迟�?
     wire        overflowE; //溢出
+    wire [1:0]  forward_1E;
+    wire [1:0]  forward_2E;
 	
 	//----------mem stage--------
 	wire [31:0] pcM;  // pc
