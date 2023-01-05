@@ -27,7 +27,8 @@ module alu(
     input wire [4:0] alucontrolE,  //alu 控制信号
     input wire [4:0] sa, //sa�?
     input wire [63:0] hilo,  //hilo�?
-
+    
+    output wire hilo_wenE,
     output wire div_stallE,
     output wire [63:0] aluoutE, //alu输出
     output wire overflowE//算数溢出
@@ -43,9 +44,6 @@ module alu(
     reg carry_bit;  //进位 判断溢出
 
 
-    //乘法信号
-	assign mul_sign = (alucontrolE == `MULT_CONTROL);
-    assign mul_valid = (alucontrolE == `MULT_CONTROL) | (alucontrolE == `MULTU_CONTROL);
     //aluout
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
@@ -86,12 +84,19 @@ module alu(
             default:    aluout_simple = 32'b0;
         endcase
     end
+
+    assign hilo_wenE=ready;
+
+    assign mul_sign = (alucontrolE == `MULT_CONTROL);
+    assign mul_valid = (alucontrolE == `MULT_CONTROL) | (alucontrolE == `MULTU_CONTROL);
+
+    assign div_sign = (alucontrolE == `DIV_CONTROL);
+    assign div_vaild = (alucontrolE == `DIV_CONTROL || alucontrolE == `DIVU_CONTROL);
+    assign div_stallE= ready ? 0 : div_vaild; 
 	mul mul(src_aE,src_bE,mul_sign,aluout_mul);
 
-    // 除法
-	assign div_sign = (alucontrolE == `DIV_CONTROL);
-	assign div_vaild = (alucontrolE == `DIV_CONTROL || alucontrolE == `DIVU_CONTROL);
-    assign div_stallE= ready ? 0 : div_vaild; 
+    
+
 	div div(
 		.clk(~clk),
 		.rst(rst),

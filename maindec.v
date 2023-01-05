@@ -11,7 +11,6 @@ module maindec(
 		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> �?$ra
 		output reg is_immD,        //alu srcb选择 0->rd2E, 1->immE
 		output reg regwriteD,	//写寄存器堆使�?
-		output wire hilo_wenD,
 		output reg mem_readD, mem_writeD,
 		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
 		output wire hilo_to_regD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
@@ -35,9 +34,9 @@ module maindec(
 	assign rdD = instrD[15:11];
 
 	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符�?
-	assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//首先判断是不是R-type
-						& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
-							|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
+	// assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//首先判断是不是R-type
+	// 					& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
+	// 						|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
 
 	assign hilo_to_regD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--aluoutM; 01--hilo_o; 10 11--rdataM;

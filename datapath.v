@@ -51,8 +51,8 @@ module datapath(
 	wire 		sign_exD;          //立即数是否为符号扩展
 	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> �?$ra
 	wire 		is_immD;       //alu srcb选择 0->rd2E, 1->immE
-	wire 		regwriteD;//写寄存器堆使�?
-	wire 		hilo_wenD;
+	wire 		regwriteD;//写寄存器堆使?
+
 	wire 		mem_readD, mem_writeD;
 	wire 		memtoregD;       	//result选择 0->aluout, 1->read_data
 	wire 		hilo_to_regD;			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
@@ -95,7 +95,7 @@ module datapath(
 	wire        cp0_wenE;
 	wire        cp0_to_regE;
 	wire 		is_mfcE;
-	wire        hilo_wenE;  //hilo写使�?
+	wire        hilo_wenE;  //hilo写使?
     wire [1:0]  forward_1E;
     wire [1:0]  forward_2E;
  // 异常处理信号
@@ -226,7 +226,7 @@ module datapath(
 		instrD,
 		//output
 		sign_exD,
-		regdstD,is_immD,regwriteD,hilo_wenD,
+		regdstD,is_immD,regwriteD,
 		mem_readD, mem_writeD,
 		memtoregD,
 		hilo_to_regD,riD,
@@ -298,7 +298,7 @@ module datapath(
         .jumpD(jumpD),
         .branch_judge_controlD(branch_judge_controlD),
 		.regdstD(regdstD),
-		.is_immD(is_immD),.regwriteD(regwriteD),.hilo_wenD(hilo_wenD),
+		.is_immD(is_immD),.regwriteD(regwriteD),
 		.mem_readD(mem_readD),.mem_writeD(mem_writeD),.memtoregD(memtoregD),
 		.hilo_to_regD(hilo_to_regD),.riD(riD),.breakD(breakD),
 		.syscallD(syscallD),.eretD(eretD),.cp0_wenD(cp0_wenD),
@@ -320,7 +320,7 @@ module datapath(
         .jumpE(jumpE),
         .branch_judge_controlE(branch_judge_controlE),
 		.regdstE(regdstE),
-		.is_immE(is_immE),.regwriteE(regwriteE),.hilo_wenE(hilo_wenE),
+		.is_immE(is_immE),.regwriteE(regwriteE),
 		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
 		.hilo_to_regE(hilo_to_regE),.riE(riE),.breakE(breakE),
 		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
@@ -336,6 +336,7 @@ module datapath(
         .sa(saE),
         .hilo(hilo_oM),
 
+        .hilo_wenE(hilo_wenE),
         .div_stallE(alu_stallE),
         .aluoutE(aluoutE),
         .overflowE(overflowE)
@@ -432,7 +433,7 @@ module datapath(
         .addr_error_lw(addrErrorLwM)  
     );
     // hilo寄存�?
-    hilo hilo(clk,rst,instrM,hilo_wenE&flush_exceptionM,aluoutE,hilo_oM);
+    hilo hilo(clk,rst,hilo_wenE&~flush_exceptionM,instrM,aluoutE,hilo_oM);
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不�?00
      //异常处理
     exception exception(
