@@ -25,7 +25,7 @@ module aludec(
 	input wire[3:0] aluop,
 	output reg[4:0] alucontrol
     );
-	always @(aluop|funct) begin
+	always @(*) begin
 		case (aluop)
             `R_TYPE_OP: 
 				case(funct)
@@ -43,9 +43,9 @@ module aludec(
 					`SLTU:  	alucontrol <= `SLTU_CONTROL;
 						//div and mul
 					`DIV:   	alucontrol <= `DIV_CONTROL;
-					`DIVU:  	alucontrol <= `DIV_CONTROL;
+					`DIVU:  	alucontrol <= `DIVU_CONTROL;
 					`MULT:  	alucontrol <= `MULT_CONTROL;
-					`MULTU: 	alucontrol <= `MULT_CONTROL;
+					`MULTU: 	alucontrol <= `MULTU_CONTROL;
 
 					//移位指令
 					`SLL:   	alucontrol <= `SLL_CONTROL;	//2

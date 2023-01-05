@@ -46,7 +46,6 @@ module alu(
     //乘法信号
 	assign mul_sign = (alucontrolE == `MULT_CONTROL);
     assign mul_valid = (alucontrolE == `MULT_CONTROL) | (alucontrolE == `MULTU_CONTROL);
-
     //aluout
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
@@ -92,19 +91,19 @@ module alu(
     // 除法
 	assign div_sign = (alucontrolE == `DIV_CONTROL);
 	assign div_vaild = (alucontrolE == `DIV_CONTROL || alucontrolE == `DIVU_CONTROL);
-
+    assign div_stallE= ready ? 0 : div_vaild; 
 	div div(
 		.clk(~clk),
 		.rst(rst),
         .flush(flushE),
 		.opdata1_i(src_aE),  //divident
 		.opdata2_i(src_bE),  //divisor
-		.start_i(div_vaild),
+		.start_i(div_stallE),
         .annul_i(0),
 		.signed_div_i(div_sign),   //1 signed
 
 		// .ready(ready),
-		.ready_o(div_stallE),
+		.ready_o(ready),
 		.result_o(aluout_div)
 	);
 

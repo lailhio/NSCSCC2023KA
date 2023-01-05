@@ -96,11 +96,11 @@ module datapath(
 	wire        cp0_to_regE;
 	wire 		is_mfcE;
 	wire        hilo_wenE;  //hilo写使�?
+    wire [1:0]  forward_1E;
+    wire [1:0]  forward_2E;
  // 异常处理信号
     wire        is_in_delayslot_iE; //是否处于延迟�?
     wire        overflowE; //溢出
-    wire [1:0]  forward_1E;
-    wire [1:0]  forward_2E;
 	
 	//----------mem stage--------
 	wire [31:0] pcM;  // pc
@@ -164,7 +164,8 @@ module datapath(
 
     //------------------Fetch-------------------------
     assign inst_addrF = pcF; //F阶段地址
-    assign inst_enF = ~stallF & ~pc_errorF& ~flush_pred_failedM; // 指令读使能：�?切正�?
+    //assign inst_enF = ~stallF & ~pc_errorF& ~flush_pred_failedM; // 指令读使能：�?切正�?
+    assign inst_enF = ~pc_errorF& ~flush_pred_failedM; 
     assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; //pc�?后两位不�?0 则pc错误
     // pc+4
     assign pc_plus4F = pcF + 4;
