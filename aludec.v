@@ -25,7 +25,7 @@ module aludec(
 	input wire[3:0] aluop,
 	output reg[4:0] alucontrol
     );
-	always @(*) begin
+	always @(aluop|funct) begin
 		case (aluop)
             `R_TYPE_OP: 
 				case(funct)

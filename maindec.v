@@ -21,6 +21,7 @@ module maindec(
 		output wire cp0_to_regD,
 		output reg is_mfcD,   //为mfc0
 		output reg [3:0] aluopD,
+		output reg [5:0] funct_to_aluD,
 		output reg [2:0] branch_judge_controlD
     );
 
@@ -206,6 +207,7 @@ module maindec(
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 		endcase
+		funct_to_aluD=functD;
 	end
 	always @(*) begin
 		case(opD)

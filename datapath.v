@@ -28,7 +28,7 @@ module datapath(
     );
 	
 	//--------fetch stage----------
-	wire [31:0] pcF, pc_next, pc_plus4F;    //pc
+	wire [31:0] pcF, pc_plus4F;    //pc
     wire [31:0] instrF_4;                   //instrF末尾�?2'b00
     
     wire pc_errorF;  // pc错误
@@ -90,7 +90,7 @@ module datapath(
     wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
 	wire        hilo_to_regE;
-	wire        breakE, syscallE,is_mfc;
+	wire        breakE, syscallE;
 	wire        riE;
 	wire        cp0_wenE;
 	wire        cp0_to_regE;
@@ -118,7 +118,6 @@ module datapath(
 
     wire [31:0] mem_ctrl_rdataM;
     wire [31:0] writedataM_temp;
-    wire [31:0] mem_ctrl_rdataM;
     wire [63:0] hilo_oM;  //hilo输出
     wire        hilo_to_regM; 
 	wire		is_mfcM;
@@ -213,9 +212,8 @@ module datapath(
         .instrD(instrD),
         .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟�?
     );
-
+    wire[5:0] functD;
 	assign opD = instrD[31:26];
-	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
@@ -226,7 +224,6 @@ module datapath(
 		//output
 		sign_exD,
 		regdstD,is_immD,regwriteD,hilo_wenD,
-
 		mem_readD, mem_writeD,
 		memtoregD,
 		hilo_to_regD,riD,
@@ -235,6 +232,7 @@ module datapath(
 		cp0_to_regD,
 		is_mfcD,   //为mfc0
 		aluopD,
+        functD,
 		branch_judge_controlD
 		);
     //扩展立即�?

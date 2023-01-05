@@ -23,7 +23,7 @@ module mycpu_top(
 );
 
     mips mips(
-        .clk(~clk),
+        .clk(clk),
         .rst(~resetn),
         .ext_int(ext_int),
         .inst_addrF(inst_sram_addr), .inst_enF(inst_sram_en),.instrF(inst_sram_rdata),
