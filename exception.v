@@ -3,7 +3,7 @@
 module exception(
    input rst,
    input [5:0] ext_int,
-   input ri, break, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretM,
+   input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretM,
    input [31:0] cp0_status, cp0_cause, cp0_epc,
    input [31:0] pcM,
    input [31:0] aluoutM,
@@ -16,9 +16,9 @@ module exception(
 );
 
    //INTERUPT
-   wire int;
+   wire interupt;
    //             //IE             //EXL            
-   assign int =   cp0_status[0] && ~cp0_status[1] && (
+   assign interupt =   cp0_status[0] && ~cp0_status[1] && (
                      //IM                 //IP
                   ( |(cp0_status[9:8] & cp0_cause[9:8]) ) ||        //软件中断
                   ( |(cp0_status[15:10] & ext_int) )      ||     //硬件中断
@@ -26,11 +26,11 @@ module exception(
    );
    // 全局中断�?�?,且没有例外在处理,识别软件中断或�?�硬件中�?
 
-   assign except_type =    (int)                   ? 32'h00000001 :    //中断
+   assign except_type =    (interupt)                   ? 32'h00000001 :    //中断
                            (addrErrorLw | pcError) ? 32'h00000004 :   //地址错误例外（lw地址 pc错误
                            (ri)                    ? 32'h0000000a :     //保留指令例外（指令不存在
                            (syscall)               ? 32'h00000008 :    //系统调用例外（syscall指令
-                           (break)                 ? 32'h00000009 :     //断点例外（break指令
+                           (break_exception)       ? 32'h00000009 :     //断点例外（break指令
                            (addrErrorSw)           ? 32'h00000005 :   //地址错误例外（sw地址异常
                            (overflow)              ? 32'h0000000c :     //算数溢出例外
                            (eretM)                 ? 32'h0000000e :   //eret指令

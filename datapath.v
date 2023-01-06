@@ -351,7 +351,7 @@ module datapath(
     mux4 #(32) mux4_forward_1E(
         rd1E,resultM,resultW,pc_plus4D,  
                                              
-        forward_1E,  
+        {2{jumpE | branchE}} |forward_1E,  
         src_aE
     );
     mux4 #(32) mux4_forward_2E(
@@ -442,7 +442,7 @@ module datapath(
     exception exception(
         .rst(rst),
         .ext_int(ext_int),
-        .ri(riM), .break(breakM), .syscall(syscallM), .overflow(overflowM), .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
+        .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
         .cp0_status(cp0_statusW), .cp0_cause(cp0_causeW), .cp0_epc(cp0_epcW),
         .pcM(pcM),
         .aluoutM(aluoutM),
