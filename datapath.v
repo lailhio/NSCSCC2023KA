@@ -419,7 +419,7 @@ module datapath(
 		.syscallM(syscallM),.eretM(eretM),.cp0_wenM(cp0_wenM),
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM)
     );
-    assign mem_addrM = aluoutM;
+    assign mem_addrM = aluoutM;     //访存地址
     assign mem_enM = (mem_readM  |  mem_writeM) ; //读或者写
     // mem读写控制
     mem_control mem_control(

@@ -42,19 +42,22 @@ module mips(
     output wire[4:0] debug_wb_rf_wnum,
     output wire[31:0] debug_wb_rf_wdata
     );
-	
-
+	wire [31:0] virtual_mem_addr;
+    wire [31:0] virtual_instr_addr;
+    mmu mmu(.inst_vaddr(virtual_instr_addr),.inst_paddr(inst_addrF),
+            .data_vaddr(virtual_mem_addr),.data_paddr(mem_addrM));
 	datapath dp(
-		clk,rst,
-		ext_int,
-    	inst_addrF, inst_enF,instrF,
+		.clk(clk),.rst(rst),
+		.ext_int(ext_int),
+    	.inst_addrF(virtual_instr_addr), .inst_enF(inst_enF),.instrF(instrF),
 
-    	mem_enM,mem_addrM,mem_rdataM,mem_wenM,writedataM,0,
+    	.mem_enM(mem_enM),.mem_addrM(virtual_mem_addr),.mem_rdataM(mem_rdataM),
+        .mem_wenM(mem_wenM),.writedataM(writedataM),.d_cache_stall(0),
 		//debug interface
-		debug_wb_pc,
-      debug_wb_rf_wen,
-      debug_wb_rf_wnum,
-      debug_wb_rf_wdata
+		.debug_wb_pc(debug_wb_pc),
+        .debug_wb_rf_wen(debug_wb_rf_wen),
+        .debug_wb_rf_wnum(debug_wb_rf_wnum),
+        .debug_wb_rf_wdata(debug_wb_rf_wdata)
 	    );
 	
 endmodule
