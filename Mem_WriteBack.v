@@ -8,6 +8,7 @@ module Mem_WriteBack (
     input wire regwriteM,
     input wire [31:0] mem_rdataM,
     input wire [31:0] resultM,
+    input wire flush_exceptionM,
 
 
     output reg [31:0] pcW,
@@ -15,7 +16,8 @@ module Mem_WriteBack (
     output reg [4:0] writeregW,
     output reg regwriteW,
     output reg [31:0] mem_rdataW,
-    output reg [31:0] resultW
+    output reg [31:0] resultW,
+    output reg flush_exceptionW
 );
     always @(posedge clk) begin
         if(rst) begin
@@ -25,6 +27,7 @@ module Mem_WriteBack (
             regwriteW <= 0;
             mem_rdataW <= 0;
             resultW <= 0;
+            flush_exceptionW<=0;
         end
         else if(~stallW) begin
             pcW <= pcM;
@@ -33,6 +36,7 @@ module Mem_WriteBack (
             regwriteW <= regwriteM;
             mem_rdataW <= mem_rdataM;
             resultW <= resultM;
+            flush_exceptionW<=flush_exceptionM;
         end
     end
 endmodule

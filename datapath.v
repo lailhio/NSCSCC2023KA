@@ -142,6 +142,7 @@ module datapath(
     wire [31:0] cp0_causeM;  //cause�?
     wire [31:0] cp0_epcM;  //epc�?
     wire        flush_exceptionM;  // 发生异常时需要刷新流水线
+    wire        flush_exceptionW;  // 发生异常时需要刷新流水线
     wire [31:0] pc_exceptionM; //异常处理的地�?0xbfc0_0380，若为eret指令 则为返回地址
     wire        pc_trapM; // 发生异常时pc特殊处理
     wire [31:0] badvaddrM;
@@ -158,10 +159,10 @@ module datapath(
     wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
 //-----------------Data------------------------------------------
 	//--------------------debug---------------------
-    assign debug_wb_pc          = pcM;
-    assign debug_wb_rf_wen      = {4{regwriteM & ~d_cache_stall & ~flush_exceptionM }};//
-    assign debug_wb_rf_wnum     = writeregM;
-    assign debug_wb_rf_wdata    = resultM;
+    assign debug_wb_pc          = pcW;
+    assign debug_wb_rf_wen      = {4{regwriteW & ~d_cache_stall & ~flush_exceptionW }};//
+    assign debug_wb_rf_wnum     = writeregW;
+    assign debug_wb_rf_wdata    = resultW;
 
     //------------------Fetch-------------------------
     assign inst_addrF = pcF; //F阶段地址
@@ -492,13 +493,16 @@ module datapath(
         .writeregM(writeregM),
         .regwriteM(regwriteM),
         .resultM(resultM),
+        .flush_exceptionM(flush_exceptionM),
+        
 
 
         .pcW(pcW),
         .aluoutW(aluoutW),
         .writeregW(writeregW),
         .regwriteW(regwriteW),
-        .resultW(resultW)
+        .resultW(resultW),
+        .flush_exceptionW(flush_exceptionW)
     );
 
 	
