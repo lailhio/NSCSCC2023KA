@@ -76,7 +76,7 @@ module alu(
     assign mul_valid = ~|(alucontrolE[4:1]^4'b1100);
 
     assign div_sign = ~|(alucontrolE ^ `DIV_CONTROL);
-    assign div_vaild = ~|(alucontrolE ^ 4'b1101);
+    assign div_vaild = ~|(alucontrolE[4:1] ^ 4'b1101);
     assign div_stallE= ready ? 0 : div_vaild; 
 	mul mul(src_aE,src_bE,mul_sign,aluout_mul);
 

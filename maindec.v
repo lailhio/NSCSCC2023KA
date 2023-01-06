@@ -201,7 +201,7 @@ module maindec(
 
 			default: begin
 				riD  =  1;
-				aluopD<=`USELESS_OP;
+				aluopD =`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end

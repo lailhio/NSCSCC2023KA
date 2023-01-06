@@ -31,10 +31,10 @@ module mips(
 
     //data
     output wire mem_enM,                    
-    output wire [31:0] mem_addrM,     //�?/写地�?
-    input  wire [31:0] mem_rdataM,    //读数�?
-    output wire [3 :0] mem_wenM,      //选择写哪�?�?
-    output wire [31:0] writedataM,   //写数�?
+    output wire [31:0] mem_addrM,     //�?/写地�?
+    input  wire [31:0] mem_rdataM,    //读数�?
+    output wire [3 :0] mem_wenM,      //选择写哪�?�?
+    output wire [31:0] writedataM,   //写数�?
 	// input wire         d_cache_stall,
 	//debug interface
     output wire[31:0] debug_wb_pc,
@@ -44,8 +44,10 @@ module mips(
     );
 	wire [31:0] virtual_mem_addr;
     wire [31:0] virtual_instr_addr;
+
     mmu mmu(.inst_vaddr(virtual_instr_addr),.inst_paddr(inst_addrF),
             .data_vaddr(virtual_mem_addr),.data_paddr(mem_addrM));
+            
 	datapath dp(
 		.clk(clk),.rst(rst),
 		.ext_int(ext_int),
