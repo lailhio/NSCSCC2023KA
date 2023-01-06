@@ -347,15 +347,16 @@ module datapath(
         regdstE, 
         writeregE //选择writeback寄存�?
     );
+
     mux4 #(32) mux4_forward_1E(
-        rd1E,resultM,resultW,pc_plus4D,
-                                             //可以保证延迟槽指令不会被flush，故plush_4D存在
-        forward_1E, 
+        rd1E,resultM,resultW,pc_plus4D,  
+                                             
+        forward_1E,  
         src_aE
     );
     mux4 #(32) mux4_forward_2E(
-        rd2E,resultM,resultW,immE,
-        forward_2E, 
+        rd2E,resultM,resultW,immE, 
+        {2{is_immE}} | forward_2E,  
         src_bE
     );
     mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的�?
