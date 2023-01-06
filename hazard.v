@@ -51,8 +51,8 @@ module hazard(
     assign stallF = ~flush_exceptionM & (d_cache_stall | alu_stallE);//
     assign stallD = d_cache_stall | alu_stallE;
     assign stallE = d_cache_stall | alu_stallE;
-    assign stallM = d_cache_stall| alu_stallE;
-    assign stallW = d_cache_stall| alu_stallE;  // 不暂停,会减少jr等指令冲突;
+    assign stallM = d_cache_stall;
+    assign stallW = d_cache_stall;  // 不暂停,会减少jr等指令冲突;
 
     assign flushF = 1'b0;
     assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~d_cache_stall); //       //EX: jr(冲突), MEM: lw这种情况时，flush_jump_conflictE会导致暂停在D阶段jr的延迟槽指令消失
