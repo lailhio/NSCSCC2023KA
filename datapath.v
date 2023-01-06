@@ -82,20 +82,21 @@ module datapath(
     wire        jump_conflictE; //jump冲突
     wire        regwriteE;	//寄存器写
     wire        alu_stallE;  //alu暂停
-    wire [31:0] rs_valueE, rt_valueE;  //rs rt寄存器的�?
-    
+    wire [31:0] rs_valueE, rt_valueE;  //rs rt寄存器的
     wire        flush_jump_conflictE;  //jump冲突
     wire        jumpE; //jump信号
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
-	wire        hilo_to_regE;
+    wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
+                              //低位1表示是用hi，0表示用lo
+	wire        hilo_to_regE;//hilo到寄存器
+    wire        hilo_wenE;  //hilo写使
 	wire        breakE, syscallE;
 	wire        riE;
 	wire        cp0_wenE;
 	wire        cp0_to_regE;
 	wire 		is_mfcE;
-	wire        hilo_wenE;  //hilo写使?
     wire [1:0]  forward_1E;
     wire [1:0]  forward_2E;
  // 异常处理信号
@@ -242,8 +243,6 @@ module datapath(
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,rst,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
-    // 分支跳转  立即数左�?2 + pc+4   
-    assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
 
 	//分支预测�?
     BranchPredict branch_predict0(
@@ -337,6 +336,7 @@ module datapath(
         .hilo(hilo_oM),
 
         .hilo_wenE(hilo_wenE),
+        .hilo_selectE(hilo_selectE),
         .div_stallE(alu_stallE),
         .aluoutE(aluoutE),
         .overflowE(overflowE)
@@ -347,16 +347,15 @@ module datapath(
         regdstE, 
         writeregE //选择writeback寄存�?
     );
-
     mux4 #(32) mux4_forward_1E(
-        rd1E,resultM,resultW,pc_plus4D,     // 执行jalr，jal指令；写入到$ra寄存器的数据（跳转指令对应延迟槽指令的下�?条指令的地址即PC+8�? 
+        rd1E,resultM,resultW,pc_plus4D,
                                              //可以保证延迟槽指令不会被flush，故plush_4D存在
-        {2{jumpE | branchE}} | forward_1E,  // 当ex阶段是jal或�?�jalr指令，或者bxxzal时，jumpE | branchE== 1；�?�择pc_plus4D；其他时候为数据前推
+        forward_1E, 
         src_aE
     );
     mux4 #(32) mux4_forward_2E(
-        rd2E,resultM,resultW,immE,                               //立即�?
-        {2{is_immE}} | forward_2E,     //main_decoder产生is_immE信号，表示alu第二个操作数为立即数
+        rd2E,resultM,resultW,immE,
+        forward_2E, 
         src_bE
     );
     mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的�?
@@ -365,10 +364,13 @@ module datapath(
 	//计算branch结果 得到真实是否跳转
     branch_check branch_check(
         .branch_judge_controlE(branch_judge_controlE),
-        .src_aE(rs_valueE),
-        .src_bE(rt_valueE),
+        .rs_valueE(rs_valueE),
+        .rt_valueE(rt_valueE),
         .actual_takeE(actual_takeE)
     );
+
+    // 分支跳转  立即数左移2 + pc+4   
+    assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
     assign pc_jumpE = rs_valueE; //jr指令 跳转到rs的�??
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------Mem---------------------
@@ -433,7 +435,7 @@ module datapath(
         .addr_error_lw(addrErrorLwM)  
     );
     // hilo寄存�?
-    hilo hilo(clk,rst,hilo_wenE&~flush_exceptionM,instrM,aluoutE,hilo_oM);
+    hilo hilo(clk,rst,hilo_selectE,hilo_wenE&~flush_exceptionM,instrM,aluoutE,hilo_oM);
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不�?00
      //异常处理
     exception exception(

@@ -2,7 +2,9 @@
 `include "defines2.vh"
 
 module hilo(
-   input wire        clk,rst,we, //both write lo and hi
+   input wire        clk,rst,
+   input wire [1:0] hilo_selectE,
+   input wire        we, //both write lo and hi
    input wire [31:0] instrM,  
    input wire [63:0] hilo_in,  //存入hilo的值
    
@@ -16,7 +18,14 @@ module hilo(
       if(rst)
          hilo <= 0;
       else if(we)
-         hilo <= hilo_in;
+         if(~hilo_selectE[1])//高位为0表示是div或者mult指令
+            hilo<=hilo_in;
+         else if(hilo_selectE[0])
+            hilo[63:32]<=hilo_in[63:32];
+         else if(~hilo_selectE[0])
+            hilo[31:0]<=hilo_in[31:0];
+         else
+            hilo<=hilo;
       else
          hilo <= hilo;
    end

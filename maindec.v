@@ -104,7 +104,7 @@ module maindec(
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ANDI:	begin
-				aluopD<=`ADDI_OP;
+				aluopD<=`ANDI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
