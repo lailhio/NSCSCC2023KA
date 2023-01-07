@@ -24,7 +24,7 @@ module exception(
                   ( |(cp0_status[15:10] & ext_int) )      ||     //硬件中断
                   (|(cp0_status[30] & cp0_cause[30]))            //计时器中断?
    );
-   // 全局中断�?�?,且没有例外在处理,识别软件中断或�?�硬件中�?
+   // 全局中断,且没有例外在处理,识别软件中断或 硬件中?
 
    assign except_type =    (interupt)                   ? 32'h00000001 :    //中断
                            (addrErrorLw | pcError) ? 32'h00000004 :   //地址错误例外（lw地址 pc错误

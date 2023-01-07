@@ -33,7 +33,7 @@ module cp0_reg(
 		if(rst == `RstEnable) begin
 			count_o <= `ZeroWord;
 			compare_o <= `ZeroWord;
-			status_o <= 32'b00010000000000000000000000000000;
+			status_o <= 32'b00000000010000000000000000000000;
 			cause_o <= `ZeroWord;
 			epc_o <= `ZeroWord;
 			config_o <= 32'b00000000000000001000000000000000;

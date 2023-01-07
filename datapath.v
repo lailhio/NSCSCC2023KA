@@ -360,8 +360,8 @@ module datapath(
         {2{is_immE}} | forward_2E,  
         src_bE
     );
-    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的�?
-    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_2E, rt_valueE); //数据前推后的rt寄存器的�?
+    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的?
+    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_2E, rt_valueE); //数据前推后的rt寄存器的?
 
 	//计算branch结果 得到真实是否跳转
     branch_check branch_check(
@@ -454,7 +454,7 @@ module datapath(
         .pc_trap(pc_trapM),
         .badvaddrM(badvaddrM)
     );
-     // cp0寄存�?
+     // cp0寄存?
     cp0_reg cp0(
         .clk(clk),
         .rst(rst),
