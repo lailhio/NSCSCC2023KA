@@ -487,6 +487,7 @@ module datapath(
         .clk(clk),
         .rst(rst),
         .stallW(stallW),
+        .flushW(flushW),
 
         .pcM(pcM),
         .aluoutM(aluoutM),

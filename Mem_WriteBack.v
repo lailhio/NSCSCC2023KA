@@ -2,6 +2,7 @@
 module Mem_WriteBack (
     input wire clk, rst,
     input wire stallW,
+    input wire flushW,
     input wire [31:0] pcM,
     input wire [31:0] aluoutM,
     input wire [4:0] writeregM,
@@ -28,6 +29,15 @@ module Mem_WriteBack (
             mem_rdataW <= 0;
             resultW <= 0;
             flush_exceptionW<=0;
+        end
+        else if(flushW)begin
+            pcW <= 0;
+            aluoutW <= 0;
+            writeregW <= 0;
+            regwriteW <= 0;
+            mem_rdataW <= 0;
+            resultW <= 0;
+            flush_exceptionW<=flush_exceptionM;
         end
         else if(~stallW) begin
             pcW <= pcM;
