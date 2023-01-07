@@ -48,10 +48,10 @@ module maindec(
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
 
 	always @(*) begin
-		is_mfcD<=1'b0;
 		riD<=1'b0;
 		case(opD)
 			`R_TYPE:begin
+				is_mfcD<=1'b0;
 				case(functD)
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
@@ -84,41 +84,49 @@ module maindec(
 			end
 	// ------------------算数\逻辑运算--------------------------------------
 			`ADDI:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`ADDI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`SLTI:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`SLTI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`SLTIU:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`SLTIU_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ADDIU:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`ADDIU_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ANDI:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`ANDI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`LUI:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`LUI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`XORI:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`XORI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ORI:	begin
+				is_mfcD<=1'b0;
 				aluopD<=`ORI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
@@ -126,6 +134,7 @@ module maindec(
 	
 
 			`BEQ, `BNE, `BLEZ, `BGTZ: begin
+				is_mfcD<=1'b0;
 				aluopD<=`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0000;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
@@ -134,16 +143,19 @@ module maindec(
 			`REGIMM_INST: begin
 				case(rtD)
 					`BGEZAL,`BLTZAL: begin
+						is_mfcD<=1'b0;
 						aluopD<=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b1100;//�?要写�?31
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`BGEZ,`BLTZ: begin
+						is_mfcD<=1'b0;
 						aluopD<=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					default:begin
+						is_mfcD<=1'b0;
 						riD  =  1'b1;
 						aluopD<=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0;
@@ -154,11 +166,13 @@ module maindec(
 			
 	// 访存指令，都是立即数指令�?
 			`LW, `LB, `LBU, `LH, `LHU: begin
+				is_mfcD<=1'b0;
 				aluopD<=`MEM_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b110;
 			end
 			`SW, `SB, `SH: begin
+				is_mfcD<=1'b0;
 				aluopD<=`MEM_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0001;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b001;
@@ -167,11 +181,13 @@ module maindec(
 	//  J type
 			`J: begin
 				aluopD<=`USELESS_OP;
+				is_mfcD<=1'b0;
 				{regwriteD, regdstD, is_immD}  =  4'b0;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 
 			`JAL: begin
+				is_mfcD<=1'b0;
 				aluopD<=`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1100;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
@@ -180,17 +196,19 @@ module maindec(
 			`SPECIAL3_INST:begin
 				case(instrD[25:21])
 					`MTC0: begin
+						is_mfcD<=1'b0;
 						aluopD<=`MTC0_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`MFC0: begin
+						is_mfcD = 1'b1;
 						aluopD<=`MFC0_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b1010;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
-						is_mfcD = 1'b1;
 					end
 					default: begin
+						is_mfcD<=1'b0;
 						aluopD<=`USELESS_OP;
 						riD  =  |(instrD[25:0] ^ `ERET);
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
@@ -201,6 +219,7 @@ module maindec(
 
 			default: begin
 				riD  =  1;
+				is_mfcD<=1'b0;
 				aluopD =`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
