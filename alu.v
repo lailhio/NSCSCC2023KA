@@ -13,32 +13,32 @@ module alu(
     output wire hilo_wenE,
     output wire [1:0]hilo_selectE,
     output wire div_stallE,
-    output wire [63:0] aluoutE, //aluè¾“å‡º
-    output wire overflowE//ç®—æ•°æº¢å‡º
+    output wire [63:0] aluoutE, 
+    output wire overflowE
 );
-    wire [63:0] aluout_div; //ä¹˜é™¤æ³•ç»“æž?
+    wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
-    wire mul_sign; //ä¹˜æ³•ç¬¦å·
-    wire mul_valid;  // ä¸ºä¹˜æ³?
-    wire div_sign; //é™¤æ³•ç¬¦å·
-	wire div_vaild;  //ä¸ºé™¤æ³?
+    wire mul_sign;
+    wire mul_valid;  
+    wire div_sign; 
+	wire div_vaild; 
 	wire ready;
-    reg [31:0] aluout_simple; // æ™®é?šè¿ç®—ç»“æž?
-    reg carry_bit;  //è¿›ä½ åˆ¤æ–­æº¢å‡º
+    reg [31:0] aluout_simple; 
+    reg carry_bit; 
 
 
     //aluout
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
                     | ({64{~mul_valid & ~div_vaild}} & {32'b0, aluout_simple})
-                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]}) // è‹¥ä¸ºmthi/mtlo ç›´æŽ¥å–Hiloçš„ä½Ž32ä½å’Œé«?32ä½?
+                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]})
                     | ({64{(alucontrolE == `MTLO_CONTROL)}} & {hilo[63:32], src_aE});
 
     assign overflowE = (alucontrolE==`ADD_CONTROL || alucontrolE==`SUB_CONTROL) & (carry_bit ^ aluout_simple[31]);
 
-    // ç®—æ•°æ“ä½œåŠå¯¹åº”è¿ç®?
+   
     always @(*) begin
-        carry_bit = 0; //æº¢å‡ºä½å–0
+        carry_bit = 0;
         case(alucontrolE)
             `AND_CONTROL:       aluout_simple = src_aE & src_bE;
             `OR_CONTROL:        aluout_simple = src_aE | src_bE;
