@@ -12,6 +12,7 @@ module datapath(
     output wire [31:0] inst_addrF,  //指令地址
     output wire        inst_enF,  //使能
     input wire  [31:0] instrF,  //注：instr ram时钟取反
+    input wire         i_cache_stall,
 
     //data
     output wire mem_enM,                    
@@ -20,6 +21,8 @@ module datapath(
     output wire [3 :0] mem_wenM,      //写使�?
     output wire [31:0] writedataM,    //写数�?
     input wire         d_cache_stall,
+
+    output wire        longest_stall,
 	//debug interface
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
@@ -510,6 +513,7 @@ module datapath(
 	
 	//hazard detection
 	hazard hazard0(
+        .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
         .alu_stallE(alu_stallE),
 
@@ -527,6 +531,7 @@ module datapath(
 
         .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
+        .longest_stall(longest_stall),
         .forward_1E(forward_1E), .forward_2E(forward_2E)
     );
 	
