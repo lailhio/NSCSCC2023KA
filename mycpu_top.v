@@ -44,6 +44,12 @@ module mycpu_top(
     input wire[1:0] bresp,
     input bvalid,
     output bready,
+
+    //debug interface
+    output wire[31:0] debug_wb_pc,
+    output wire[3:0] debug_wb_rf_wen,
+    output wire[4:0] debug_wb_rf_wnum,
+    output wire[31:0] debug_wb_rf_wdata
 );
     wire rst,clk;
     wire no_dcache;
@@ -119,7 +125,7 @@ mips mips(
     .ext_int(ext_int),
     //mips传出的inst请求
     .inst_req     (cpu_inst_req  ),     .inst_wr      (cpu_inst_wr   ),
-    .inst_addr    (cpu_inst_addr ),     .inst_size    (cpu_inst_size ),
+    .physics_inst_addr    (cpu_inst_addr ),     .inst_size    (cpu_inst_size ),
     .inst_wdata   (cpu_inst_wdata),     
     //mips得到的inst回复
     .inst_rdata   (cpu_inst_rdata),
@@ -127,7 +133,7 @@ mips mips(
 
     //mips传出的data请求
     .data_req     (cpu_data_req  ),     .data_wr      (cpu_data_wr   ),
-    .data_addr    (cpu_data_addr ),     .data_wdata   (cpu_data_wdata),
+    .physics_data_addr    (cpu_data_addr ),     .data_wdata   (cpu_data_wdata),
     .data_size    (cpu_data_size ), 
     //mips得到的data回复
     .data_rdata   (cpu_data_rdata),
@@ -167,7 +173,7 @@ bridge_1x2 bridge_1x2 (
     .conf_data_addr_ok (conf_data_addr_ok),   .conf_data_data_ok (conf_data_data_ok)
 );
 
-d_cache_write_through d_cache (
+d_cache d_cache (
     .clk(clk), .rst(rst),
 
     .cpu_data_req(ram_data_req),    .cpu_data_wr(ram_data_wr),
@@ -185,7 +191,7 @@ d_cache_write_through d_cache (
     .cache_data_addr_ok(cache_data_addr_ok) ,.cache_data_data_ok(cache_data_data_ok)
 );
 
-i_cache_direct_map i_cache(
+i_cache i_cache(
     .clk(clk), .rst(rst),
     
     .cpu_inst_req(cpu_inst_req),    .cpu_inst_wr(cpu_inst_wr),
@@ -229,7 +235,7 @@ bridge_2x1 bridge_2x1(
 );
 
 cpu_axi_interface axi_interface(
-    .clk(clk), .rst(aresetn),
+    .clk(clk), .resetn(aresetn),
     //input
     .inst_req(cpu_inst_req),    .inst_wr(cpu_inst_wr),
     .inst_size(cpu_inst_size),  .inst_addr(cpu_inst_addr),

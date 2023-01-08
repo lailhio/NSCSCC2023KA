@@ -1,4 +1,4 @@
-module d_cache_write_through (
+module d_cache (
     input wire clk, rst,
     //mips core
     input         cpu_data_req     ,
@@ -10,7 +10,7 @@ module d_cache_write_through (
     output        cpu_data_addr_ok ,
     output        cpu_data_data_ok ,
 
-    //sram-like interface
+    //axi interface
     output         cache_data_req     ,
     output         cache_data_wr      ,
     output  [1 :0] cache_data_size    ,
@@ -143,7 +143,7 @@ module d_cache_write_through (
     always @(posedge clk) begin
         if(rst) begin
             for(t=0; t<CACHE_DEEPTH; t=t+1) begin   //刚开始将Cache置为无效
-                cache_valid[t] <= 0;
+                cache_valid[t] = 0;
             end
         end
         else begin

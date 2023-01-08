@@ -1,4 +1,4 @@
-module i_cache_direct_map (
+module i_cache (
     input wire clk, rst,
     //mips core
     input         cpu_inst_req     ,
@@ -10,7 +10,7 @@ module i_cache_direct_map (
     output        cpu_inst_addr_ok ,
     output        cpu_inst_data_ok ,
 
-    //sram-like interface
+    //axi interface
     output         cache_inst_req     ,
     output         cache_inst_wr      ,
     output  [1 :0] cache_inst_size    ,
@@ -108,7 +108,7 @@ module i_cache_direct_map (
     always @(posedge clk) begin
         if(rst) begin
             for(t=0; t<CACHE_DEEPTH; t=t+1) begin   //刚开始将Cache置为无效
-                cache_valid[t] <= 0;
+                cache_valid[t] = 0;
             end
         end
         else begin

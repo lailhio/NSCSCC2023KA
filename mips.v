@@ -25,7 +25,7 @@ module mips(
     input wire data_data_ok,
     input wire [31:0] data_rdata,
 
-    output wire no_dcache;
+    output wire no_dcache,
 
 	//debug interface
     output wire[31:0] debug_wb_pc,
