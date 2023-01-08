@@ -38,7 +38,7 @@ module mycpu_top(
     wire [31:0] cpu_data_rdata;
     wire        cpu_data_addr_ok;
     wire        cpu_data_data_ok;
-    mips_core mips_core(
+    mips mips(
     .clk(~clk), .rst(~resetn),
     .ext_int(ext_int),
 
