@@ -1,4 +1,4 @@
-module i_cache (
+module i_cache_direct_map (
     input wire clk, rst,
     //mips core
     input         cpu_inst_req     ,
@@ -10,7 +10,7 @@ module i_cache (
     output        cpu_inst_addr_ok ,
     output        cpu_inst_data_ok ,
 
-    //axi interface
+    //sram-like interface
     output         cache_inst_req     ,
     output         cache_inst_wr      ,
     output  [1 :0] cache_inst_size    ,

@@ -1,4 +1,4 @@
-module d_cache (
+module d_cache_write_through (
     input wire clk, rst,
     //mips core
     input         cpu_data_req     ,
@@ -10,7 +10,7 @@ module d_cache (
     output        cpu_data_addr_ok ,
     output        cpu_data_data_ok ,
 
-    //axi interface
+    //sram-like interface
     output         cache_data_req     ,
     output         cache_data_wr      ,
     output  [1 :0] cache_data_size    ,

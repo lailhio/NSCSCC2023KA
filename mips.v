@@ -1,23 +1,5 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2017/11/07 10:58:03
-// Design Name: 
-// Module Name: mips
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
 
 
 module mips(
@@ -42,6 +24,8 @@ module mips(
     input wire data_addr_ok,
     input wire data_data_ok,
     input wire [31:0] data_rdata,
+
+    output wire no_dcache;
 
 	//debug interface
     output wire[31:0] debug_wb_pc,
@@ -131,5 +115,6 @@ module mips(
     );
 
 	mmu mmu(.inst_vaddr(virtual_instr_addr),.inst_paddr(physics_inst_addr),
-            .data_vaddr(virtual_data_addr),.data_paddr(physics_data_addr));
+            .data_vaddr(virtual_data_addr),.data_paddr(physics_data_addr),
+            .no_dcache(no_dcache));
 endmodule
