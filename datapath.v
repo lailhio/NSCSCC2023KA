@@ -332,7 +332,7 @@ module datapath(
 	//ALU
     alu alu0(
         .clk(clk),
-        .rst(rst),
+        .rst(rst),.stallE(stallE),
         .flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),

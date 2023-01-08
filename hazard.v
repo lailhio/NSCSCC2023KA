@@ -42,8 +42,8 @@ module hazard(
     assign stallW =  id_cache_stall;  // 不暂停,会减少jr等指令冲突;
 
     assign flushF = 1'b0;
-    assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~d_cache_stall); //       //EX: jr(冲突), MEM: lw这种情况时，flush_jump_conflictE会导致暂停在D阶段jr的延迟槽指令消失
-    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) | (flush_jump_conflictE& ~d_cache_stall);  //EX: div, MEM: beq, beq预测失败，要flush D和E，但由于div暂停在E，因此只需要flushD就可以了
+    assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); //       //EX: jr(冲突), MEM: lw这种情况时，flush_jump_conflictE会导致暂停在D阶段jr的延迟槽指令消失
+    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) ;  //EX: div, MEM: beq, beq预测失败，要flush D和E，但由于div暂停在E，因此只需要flushD就可以了
     assign flushM = flush_exceptionM;//控制hilo的写入 
     assign flushW = flush_exceptionM;
 endmodule
