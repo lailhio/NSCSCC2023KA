@@ -162,10 +162,10 @@ module datapath(
     wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
 //-----------------Data------------------------------------------
 	//--------------------debug---------------------
-    assign debug_wb_pc          = pcW;
-    assign debug_wb_rf_wen      = {4{regwriteW & ~d_cache_stall & ~flush_exceptionW }};//
-    assign debug_wb_rf_wnum     = writeregW;
-    assign debug_wb_rf_wdata    = resultW;
+    assign debug_wb_pc          = pcM;
+    assign debug_wb_rf_wen      = {4{regwriteM & ~stallW & ~flush_exceptionM }};//
+    assign debug_wb_rf_wnum     = writeregM;
+    assign debug_wb_rf_wdata    = resultM;
 
     //------------------Fetch-------------------------
     assign inst_addrF = pcF; //F阶段地址
