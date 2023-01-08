@@ -48,7 +48,7 @@ module mycpu_top(
     wire rst,clk;
     wire no_dcache;
     assign clk=aclk;
-    assign rst=~resetn;
+    assign rst=~aresetn;
 
     wire cpu_inst_req  ;
     wire [31:0] cpu_inst_addr ;
@@ -228,9 +228,8 @@ bridge_2x1 bridge_2x1(
     .wrap_data_addr_ok (wrap_data_addr_ok),   .wrap_data_data_ok (wrap_data_data_ok)
 );
 
-module cpu_axi_interface
-(
-    .clk(clk), .rst(resetn),
+cpu_axi_interface axi_interface(
+    .clk(clk), .rst(aresetn),
     //input
     .inst_req(cpu_inst_req),    .inst_wr(cpu_inst_wr),
     .inst_size(cpu_inst_size),  .inst_addr(cpu_inst_addr),
