@@ -75,7 +75,10 @@ module aludec(
 				//memory
 			`MEM_OP:
 						alucontrol <= `ADDU_CONTROL;
-			
+			`MTC0_OP:
+						alucontrol<=`MTC0_CONTROL;
+			`MFC0_OP:
+						alucontrol<=`MFC0_CONTROL;
 			default:
 						alucontrol <= 5'b0;
 		endcase

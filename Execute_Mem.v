@@ -87,17 +87,17 @@ module Execute_Mem (
             is_in_delayslot_iM      <=           is_in_delayslot_iE ;
             rdM                     <=           rdE                ;
             actual_takeM            <=           actual_takeE       ;
-            mem_readM               <=             mem_readE;
-            mem_writeM             <=              mem_writeE;
-            memtoregM               <=              memtoregE;
-            hilo_to_regM           <=              hilo_to_regE;     
-            riM                     <=              riE;
-            breakM                  <=              breakE;
-            syscallM                <=              syscallE;  
-            eretM                   <=              eretE;
-            cp0_wenM                <=              cp0_wenE;
-            cp0_to_regM             <=              cp0_to_regE;
-            is_mfcM                 <=              is_mfcE;
+            mem_readM               <=             mem_readE        ;
+            mem_writeM             <=              mem_writeE       ;
+            memtoregM               <=              memtoregE       ;
+            hilo_to_regM           <=              hilo_to_regE     ;     
+            riM                     <=              riE             ;
+            breakM                  <=              breakE          ;
+            syscallM                <=              syscallE        ;  
+            eretM                   <=              eretE           ;
+            cp0_wenM                <=              cp0_wenE        ;
+            cp0_to_regM             <=              cp0_to_regE     ;
+            is_mfcM                 <=              is_mfcE         ;
         end
     end
 endmodule

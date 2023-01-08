@@ -346,7 +346,7 @@ module datapath(
     mux4 #(5) mux4_regdst(
         rdE,rtE,5'd31,5'b0,
         regdstE, 
-        writeregE //选择writeback寄存�?
+        writeregE //选择writeback寄存器
     );
 
     mux4 #(32) mux4_forward_1E(
@@ -360,8 +360,8 @@ module datapath(
         {2{is_immE}} | forward_2E,  
         src_bE
     );
-    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器的?
-    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_2E, rt_valueE); //数据前推后的rt寄存器的?
+    mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器
+    mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_2E, rt_valueE); //数据前推后的rt寄存器
 
 	//计算branch结果 得到真实是否跳转
     branch_check branch_check(
@@ -373,7 +373,7 @@ module datapath(
 
     // 分支跳转  立即数左移2 + pc+4   
     assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
-    assign pc_jumpE = rs_valueE; //jr指令 跳转到rs的�??
+    assign pc_jumpE = rs_valueE; //jr指令 跳转到rs
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------Mem---------------------
 	
@@ -476,7 +476,7 @@ module datapath(
         .epc_o(cp0_epcW)
     );
 	//---------Write_Back----------------
-    //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中�?�择写入寄存器的�?
+    //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中写入寄存器的�?
     mux4 #(32) mux4_memtoreg(aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
                             {hilo_to_regM, memtoregM} | {2{is_mfcM}},
                             resultM);
