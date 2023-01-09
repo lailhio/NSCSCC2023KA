@@ -169,11 +169,14 @@ module datapath(
 
     //------------------Fetch-------------------------
     assign inst_addrF = pcF; //F阶段地址
-    //assign inst_enF = ~stallF & ~pc_errorF& ~flush_pred_failedM; // 指令读使能：�?切正�?
-    assign inst_enF = ~pc_errorF& ~flush_pred_failedM; 
-    assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; //pc�?后两位不�?0 则pc错误
+    assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; 
+    
+    assign inst_enF = ~rst & ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE;
+    wire [31:0] instrF_valid;
+    assign instrF_valid = inst_enF ? instrF : 32'b0;  //丢掉
     // pc+4
     assign pc_plus4F = pcF + 4;
+    assign F_change = branchD | jumpD; //F阶段得到此时d阶段是否为跳转
     // pc reg
     pc_reg pc_reg0(
         .clk(clk),
@@ -200,9 +203,6 @@ module datapath(
         .pc(pcF)
     );
 
-    assign instrF_4 = ({32{~(|(pcF[1:0] ^ 2'b00))}} & instrF);  //�?2位一定为00 不为0则inst�?0
-    assign F_change = branchD | jumpD; //F阶段得到此时d阶段是否为跳转指�?
-
 	//------------------Decode-------------------------
 
     Fetch_Decode Fe_De(
@@ -212,13 +212,13 @@ module datapath(
 
         .pcF(pcF),
         .pc_plus4F(pc_plus4F),
-        .instrF(instrF_4),
+        .instrF(instrF_valid),
         .F_change(F_change), //上一条指令是跳转
         
         .pcD(pcD),
         .pc_plus4D(pc_plus4D),
         .instrD(instrD),
-        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟�?
+        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟
     );
     wire[5:0] functD;
 	assign opD = instrD[31:26];
@@ -332,7 +332,7 @@ module datapath(
 	//ALU
     alu alu0(
         .clk(clk),
-        .rst(rst),
+        .rst(rst),.stallE(stallE),
         .flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),
@@ -462,6 +462,7 @@ module datapath(
         .clk(clk),
         .rst(rst),
         .we_i(cp0_wenM),
+        .i_cache_stall(i_cache_stall),
         .waddr_i(rdM),
         .raddr_i(rdM),
         .data_i(rt_valueM),
