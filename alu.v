@@ -50,18 +50,18 @@ module alu(
             `SUB_CONTROL:       {carry_bit, aluout_simple} = {src_aE[31], src_aE} - {src_bE[31], src_bE};
             `SUBU_CONTROL:      aluout_simple = src_aE - src_bE;
 
-            `SLT_CONTROL:       aluout_simple = $signed(src_aE) < $signed(src_bE); //æœ‰ç¬¦å·æ¯”è¾?
-            `SLTU_CONTROL:      aluout_simple = src_aE < src_bE; //æ— ç¬¦å·æ¯”è¾?
+            `SLT_CONTROL:       aluout_simple = $signed(src_aE) < $signed(src_bE); 
+            `SLTU_CONTROL:      aluout_simple = src_aE < src_bE; 
 
-            `SLLV_CONTROL:       aluout_simple = src_bE << src_aE[4:0]; //ç§»ä½src a
+            `SLLV_CONTROL:       aluout_simple = src_bE << src_aE[4:0]; 
             `SRLV_CONTROL:       aluout_simple = src_bE >> src_aE[4:0];
             `SRAV_CONTROL:       aluout_simple = $signed(src_bE) >>> src_aE[4:0];
 
-            `SLL_CONTROL:    aluout_simple = src_bE << sa; //ç§»ä½sa
+            `SLL_CONTROL:    aluout_simple = src_bE << sa; 
             `SRL_CONTROL:    aluout_simple = src_bE >> sa;
             `SRA_CONTROL:    aluout_simple = $signed(src_bE) >>> sa;
 
-            `LUI_CONTROL:       aluout_simple = {src_bE[15:0], 16'b0}; //å–é«˜16ä½?
+            `LUI_CONTROL:       aluout_simple = {src_bE[15:0], 16'b0};
             5'b00000: aluout_simple = src_aE;  // do nothing
 
             default:    aluout_simple = 32'b0;

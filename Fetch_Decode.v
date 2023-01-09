@@ -9,12 +9,12 @@ module Fetch_Decode (
     input wire [31:0] pc_plus4F,
 
     input wire [31:0] instrF,
-    input wire [31:0] F_change,
+    input wire F_change ,
 
     output reg [31:0] pcD,
     output reg [31:0] pc_plus4D,
     output reg [31:0] instrD,
-    output reg [31:0] is_in_delayslot_iD
+    output reg is_in_delayslot_iD
     
 );
 
