@@ -39,7 +39,7 @@ module hazard(
     assign stallD =  id_cache_stall| alu_stallE;
     assign stallE =  id_cache_stall| alu_stallE;
     assign stallM =  id_cache_stall;
-    assign stallW =  id_cache_stall;  // 不暂停,会减少jr等指令冲突;
+    assign stallW =  ~flush_exceptionM &id_cache_stall;  // 不暂停,会减少jr等指令冲突;
 
     assign flushF = 1'b0;
     assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); //       //EX: jr(冲突), MEM: lw这种情况时，flush_jump_conflictE会导致暂停在D阶段jr的延迟槽指令消失
