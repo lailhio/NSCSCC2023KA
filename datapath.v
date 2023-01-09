@@ -173,7 +173,7 @@ module datapath(
     assign inst_addrF = pcF; //F阶段地址
     assign pc_errorF = pcF[1:0] == 2'b0 ? 1'b0 : 1'b1; 
     
-    assign inst_enF = ~rst & ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE;
+    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE;
     wire [31:0] instrF_valid;
     assign instrF_valid = inst_enF ? instrF : 32'b0;  //丢掉
     // pc+4
