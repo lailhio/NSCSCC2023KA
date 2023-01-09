@@ -73,7 +73,7 @@ module BranchPredict(
     always @(posedge clk) begin
         if(rst) begin
             for(i = 0; i < (1<<PHT_DEPTH); i=i+1) begin
-                PHT[i] <= Weakly_taken;
+                PHT[i] = 0;
             end
         end
         else begin

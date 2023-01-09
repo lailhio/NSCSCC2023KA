@@ -92,14 +92,14 @@ module mycpu_top(
     wire cache_data_addr_ok;
     wire cache_data_data_ok;
 
-    wire ram_data_req  ;
-    wire [31:0] ram_data_addr ;
-    wire ram_data_wr   ;
-    wire [1:0]  ram_data_size ;
-    wire [31:0] ram_data_wdata;
-    wire [31:0] ram_data_rdata;
-    wire ram_data_addr_ok;
-    wire ram_data_data_ok;
+    wire fast_data_req  ;
+    wire [31:0] fast_data_addr ;
+    wire fast_data_wr   ;
+    wire [1:0]  fast_data_size ;
+    wire [31:0] fast_data_wdata;
+    wire [31:0] fast_data_rdata;
+    wire fast_data_addr_ok;
+    wire fast_data_data_ok;
 
     wire conf_data_req  ;
     wire [31:0] conf_data_addr ;
@@ -157,12 +157,12 @@ bridge_1x2 bridge_1x2 (
     .cpu_data_addr_ok (cpu_data_addr_ok),   .cpu_data_data_ok (cpu_data_data_ok),
 
     //应当前往cache的data请求
-    .ram_data_req     (ram_data_req  ),     .ram_data_wr      (ram_data_wr   ),
-    .ram_data_addr    (ram_data_addr ),     .ram_data_wdata   (ram_data_wdata),
-    .ram_data_size    (ram_data_size ), 
+    .fast_data_req     (fast_data_req  ),     .fast_data_wr      (fast_data_wr   ),
+    .fast_data_addr    (fast_data_addr ),     .fast_data_wdata   (fast_data_wdata),
+    .fast_data_size    (fast_data_size ), 
     //从cache得到的data回复
-    .ram_data_rdata   (ram_data_rdata),
-    .ram_data_addr_ok (ram_data_addr_ok),   .ram_data_data_ok (ram_data_data_ok),
+    .fast_data_rdata   (fast_data_rdata),
+    .fast_data_addr_ok (fast_data_addr_ok),   .fast_data_data_ok (fast_data_data_ok),
 
     //不过cache的data请求
     .conf_data_req     (conf_data_req  ),     .conf_data_wr      (conf_data_wr   ),
@@ -176,12 +176,12 @@ bridge_1x2 bridge_1x2 (
 d_cache_write_through d_cache (
     .clk(clk), .rst(rst),
 
-    .cpu_data_req(ram_data_req),    .cpu_data_wr(ram_data_wr),
-    .cpu_data_size(ram_data_size),  .cpu_data_addr(ram_data_addr),
-    .cpu_data_wdata(ram_data_wdata), 
+    .cpu_data_req(fast_data_req),    .cpu_data_wr(fast_data_wr),
+    .cpu_data_size(fast_data_size),  .cpu_data_addr(fast_data_addr),
+    .cpu_data_wdata(fast_data_wdata), 
 
-    .cpu_data_rdata(ram_data_rdata),
-    .cpu_data_addr_ok(ram_data_addr_ok) ,.cpu_data_data_ok(ram_data_data_ok) ,
+    .cpu_data_rdata(fast_data_rdata),
+    .cpu_data_addr_ok(fast_data_addr_ok) ,.cpu_data_data_ok(fast_data_data_ok) ,
 
     .cache_data_req(cache_data_req),    .cache_data_wr(cache_data_wr),
     .cache_data_size(cache_data_size),  .cache_data_addr(cache_data_addr),
@@ -210,13 +210,13 @@ i_cache_direct_map i_cache(
 );
 bridge_2x1 bridge_2x1(
     .no_dcache(no_dcache),
-    //应当前往cache的data请求
-    .ram_data_req     (ram_data_req  ),     .ram_data_wr      (ram_data_wr   ),
-    .ram_data_addr    (ram_data_addr ),     .ram_data_wdata   (ram_data_wdata),
-    .ram_data_size    (ram_data_size ), 
-    //从cache得到的data回复
-    .ram_data_rdata   (ram_data_rdata),
-    .ram_data_addr_ok (ram_data_addr_ok),   .ram_data_data_ok (ram_data_data_ok),
+    //过cache后的data请求
+    .cache_data_req(cache_data_req),    .cache_data_wr(cache_data_wr),
+    .cache_data_size(cache_data_size),  .cache_data_addr(cache_data_addr),
+    .cache_data_wdata(cache_data_wdata), 
+    //过cache后的data回复
+    .cache_data_rdata(cache_data_rdata),
+    .cache_data_addr_ok(cache_data_addr_ok) ,.cache_data_data_ok(cache_data_data_ok),
 
     //不过cache的data请求
     .conf_data_req     (conf_data_req  ),     .conf_data_wr      (conf_data_wr   ),
@@ -225,11 +225,12 @@ bridge_2x1 bridge_2x1(
     //不过cache得到的data回复
     .conf_data_rdata   (conf_data_rdata),
     .conf_data_addr_ok (conf_data_addr_ok),   .conf_data_data_ok (conf_data_data_ok),
-    //不过cache的data请求
+
+    //合并
     .wrap_data_req     (wrap_data_req  ),     .wrap_data_wr      (wrap_data_wr   ),
     .wrap_data_addr    (wrap_data_addr ),     .wrap_data_wdata   (wrap_data_wdata),
     .wrap_data_size    (wrap_data_size ), 
-    //不过cache得到的data回复
+    //合并
     .wrap_data_rdata   (wrap_data_rdata),
     .wrap_data_addr_ok (wrap_data_addr_ok),   .wrap_data_data_ok (wrap_data_data_ok)
 );
@@ -237,12 +238,12 @@ bridge_2x1 bridge_2x1(
 cpu_axi_interface axi_interface(
     .clk(clk), .resetn(aresetn),
     //input
-    .inst_req(cpu_inst_req),    .inst_wr(cpu_inst_wr),
-    .inst_size(cpu_inst_size),  .inst_addr(cpu_inst_addr),
-    .inst_wdata(cpu_inst_wdata), 
+    .inst_req(cache_inst_req),    .inst_wr(cache_inst_wr),
+    .inst_size(cache_inst_size),  .inst_addr(cache_inst_addr),
+    .inst_wdata(cache_inst_wdata), 
     //output
-    .inst_rdata(cpu_inst_rdata),
-    .inst_addr_ok(cpu_inst_addr_ok) ,.inst_data_ok(cpu_inst_data_ok) ,
+    .inst_rdata(cache_inst_rdata),
+    .inst_addr_ok(cache_inst_addr_ok) ,.inst_data_ok(cache_inst_data_ok) ,
 
     //input
     .data_req     (wrap_data_req  ),     .data_wr      (wrap_data_wr   ),
