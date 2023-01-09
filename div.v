@@ -11,8 +11,7 @@ module div(
 	input wire annul_i,
 	
 	output reg[63:0] result_o,
-	output reg ready_o,
-	output reg div_stall
+	output reg ready_o
 );
 	wire[32:0] div_temp;
 	reg[5:0] cnt;
@@ -32,12 +31,10 @@ module div(
 			state <= `DivFree;
 			ready_o <= `DivResultNotReady;
 			result_o <= {`ZeroWord,`ZeroWord};
-			div_stall <= 0;
 		end else begin
 		  case (state)
 		  	`DivFree:begin               //DivFree״̬
 		  		if(start_i == `DivStart && annul_i == 1'b0) begin
-		  			div_stall <= 1;
 		  			if(opdata2_i == `ZeroWord) begin
 		  				state <= `DivByZero;
 		  			end 
@@ -68,11 +65,9 @@ module div(
 		  	end
 		  	`DivByZero:		begin               //DivByZero״̬
 	         	dividend <= {`ZeroWord,`ZeroWord};
-	          	state <= `DivEnd;
-	          	div_stall <= 1;		 		
+	          	state <= `DivEnd; 		
 		  	end
 		  	`DivOn:	begin               //DivOn״̬
-		  		div_stall <= 1;	
 		  		if(annul_i == 1'b0) begin
 		  			if(cnt != 6'b100000) begin
                 		if(div_temp[32] == 1'b1) begin
@@ -99,7 +94,6 @@ module div(
 		  		end	
 		  	end
 		  	`DivEnd:begin               //DivEnd״̬
-		  		div_stall <= 0;	
         		result_o <= {dividend[64:33], dividend[31:0]};  
           		ready_o <= `DivResultReady;
           		if(start_i == `DivStop) begin

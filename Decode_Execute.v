@@ -19,7 +19,7 @@ module Decode_Execute (
     input wire jumpD,
     input wire [4:0] branch_judge_controlD,
     input wire [1:0]  regdstD,
-    input wire is_immD,regwriteD,hilo_wenD,
+    input wire is_immD,regwriteD,
     input wire mem_readD, mem_writeD,
     input wire memtoregD,         	//result选择 0->aluout, 1->read_data
     input wire hilo_to_regD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
@@ -45,7 +45,7 @@ module Decode_Execute (
     output reg jumpE,
     output reg [4:0] branch_judge_controlE,
     output reg [1:0]  regdstE,
-    output reg is_immE,regwriteE,hilo_wenE,
+    output reg is_immE,regwriteE,
     output reg mem_readE, mem_writeE,
     output reg memtoregE,         	//result选择 0->aluout, 1->read_data
     output reg hilo_to_regE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
@@ -78,7 +78,6 @@ module Decode_Execute (
             regdstE                 <=   0 ;
             is_immE                 <=   0 ;
             regwriteE               <=   0 ;
-            hilo_wenE               <=   0 ;
             mem_readE               <=   0 ;
             mem_writeE              <=   0 ;
             memtoregE               <=   0 ;
@@ -113,7 +112,6 @@ module Decode_Execute (
             regdstE                 <=   regdstD ;
             is_immE                 <=  is_immD ;
             regwriteE                <=  regwriteD ;
-            hilo_wenE                 <=  hilo_wenD ;
             mem_readE               <=   mem_readD ;
             mem_writeE              <=   mem_writeD ;
             memtoregE               <=   memtoregD ;

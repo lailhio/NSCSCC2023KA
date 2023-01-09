@@ -40,12 +40,16 @@ module mips(
     wire inst_sram_en           ;
     wire [31:0] inst_sram_rdata ;
     wire i_stall;
+    wire [31:0] inst_addr;
 
     wire data_sram_en           ;
     wire [31:0] data_sram_rdata ;
     wire [3:0] data_sram_wen    ;
     wire [31:0] data_sram_wdata ;
     wire d_stall;
+    wire longest_stall;
+    wire [31:0] data_addr;
+    
 
     
             
@@ -114,7 +118,7 @@ module mips(
         .longest_stall(longest_stall)
     );
 
-	mmu mmu(.inst_vaddr(virtual_instr_addr),.inst_paddr(physics_inst_addr),
-            .data_vaddr(virtual_data_addr),.data_paddr(physics_data_addr),
+	mmu mmu(.inst_vaddr(inst_addr),.inst_paddr(physics_inst_addr),
+            .data_vaddr(data_addr),.data_paddr(physics_data_addr),
             .no_dcache(no_dcache));
 endmodule

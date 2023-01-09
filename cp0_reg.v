@@ -4,7 +4,7 @@
 module cp0_reg(
 	input wire clk,
 	input wire rst,
-
+	input wire i_cache_stall,
 	input wire we_i,
 	input[4:0] waddr_i,
 	input[4:0] raddr_i,
@@ -39,7 +39,7 @@ module cp0_reg(
 			config_o <= 32'b00000000000000001000000000000000;
 			prid_o <= 32'b00000000010011000000000100000010;
 			timer_int_o <= `InterruptNotAssert;
-		end else begin
+		end else  if (~i_cache_stall)begin
 			count_o <= count_o + 1;
 			cause_o[15:10] <= int_i;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin

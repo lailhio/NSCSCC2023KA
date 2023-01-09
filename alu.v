@@ -3,12 +3,12 @@
 
 `include "defines2.vh"
 module alu(
-    input wire clk, rst,
+    input wire clk, rst,stallE,
     input wire flushE,
-    input wire [31:0] src_aE, src_bE,  //æ“ä½œæ•?
-    input wire [4:0] alucontrolE,  //alu æŽ§åˆ¶ä¿¡å·
-    input wire [4:0] sa, //saå€?
-    input wire [63:0] hilo,  //hiloå€?
+    input wire [31:0] src_aE, src_bE,  
+    input wire [4:0] alucontrolE, 
+    input wire [4:0] sa, 
+    input wire [63:0] hilo,  
     
     output wire hilo_wenE,
     output wire [1:0]hilo_selectE,
@@ -70,7 +70,8 @@ module alu(
     assign hilo_selectE={(~|(alucontrolE[4:2] ^ 3'b111)),(~|(alucontrolE ^ `MTHI_CONTROL))};//高位1表示是mhl指令，0表示是乘除法
                                                                                             //低位1表示是用hi，0表示用lo
     assign hilo_wenE  =  ready|
-                        ((~|(alucontrolE[4:1]^ 4'b1100)) | (~|({alucontrolE[4:2],alucontrolE[0]}^ 4'b1111)));
+                        ((~|(alucontrolE[4:1]^ 4'b1100)) | 
+                        ((~|({alucontrolE[4:2],alucontrolE[0]}^ 4'b1111)) & ~stallE));
 
     assign mul_sign = ~|(alucontrolE ^ `MULT_CONTROL);
     assign mul_valid = ~|(alucontrolE[4:1]^4'b1100);
