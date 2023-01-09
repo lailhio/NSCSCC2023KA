@@ -218,7 +218,7 @@ module datapath(
         .pcD(pcD),
         .pc_plus4D(pc_plus4D),
         .instrD(instrD),
-        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟�?
+        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟
     );
     wire[5:0] functD;
 	assign opD = instrD[31:26];
@@ -462,6 +462,7 @@ module datapath(
         .clk(clk),
         .rst(rst),
         .we_i(cp0_wenM),
+        .i_cache_stall(i_cache_stall),
         .waddr_i(rdM),
         .raddr_i(rdM),
         .data_i(rt_valueM),
