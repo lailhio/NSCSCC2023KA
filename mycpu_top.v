@@ -173,7 +173,7 @@ bridge_1x2 bridge_1x2 (
     .conf_data_addr_ok (conf_data_addr_ok),   .conf_data_data_ok (conf_data_data_ok)
 );
 
-d_cache_write_through d_cache (
+d_cache d_cache (
     .clk(clk), .rst(rst),
 
     .cpu_data_req(fast_data_req),    .cpu_data_wr(fast_data_wr),
@@ -191,7 +191,7 @@ d_cache_write_through d_cache (
     .cache_data_addr_ok(cache_data_addr_ok) ,.cache_data_data_ok(cache_data_data_ok)
 );
 
-i_cache_direct_map i_cache(
+i_cache i_cache(
     .clk(clk), .rst(rst),
     
     .cpu_inst_req(cpu_inst_req),    .cpu_inst_wr(cpu_inst_wr),
