@@ -17,7 +17,7 @@ module Execute_Mem (
     input wire actual_takeE,
     input wire mem_readE, mem_writeE,
     input wire memtoregE,         	//result选择 0->aluout, 1->read_data
-    input wire hilo_to_regE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    input wire hilotoregE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
     input wire riE,
     input wire breakE, syscallE, eretE, 
     input wire cp0_wenE,
@@ -39,7 +39,7 @@ module Execute_Mem (
     output reg actual_takeM,
     output reg mem_readM, mem_writeM,
     output reg memtoregM,         	//result选择 0->aluout, 1->read_data
-    output reg hilo_to_regM,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    output reg hilotoregM,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
     output reg riM,
     output reg breakM, syscallM, eretM, 
     output reg cp0_wenM,
@@ -64,7 +64,7 @@ module Execute_Mem (
             mem_readM               <=              0;
             mem_writeM             <=              0;
             memtoregM               <=              0;
-            hilo_to_regM           <=              0;     
+            hilotoregM           <=              0;     
             riM                     <=              0;
             breakM                  <=              0;
             syscallM                <=              0;  
@@ -90,7 +90,7 @@ module Execute_Mem (
             mem_readM               <=             mem_readE        ;
             mem_writeM             <=              mem_writeE       ;
             memtoregM               <=              memtoregE       ;
-            hilo_to_regM           <=              hilo_to_regE     ;     
+            hilotoregM           <=              hilotoregE     ;     
             riM                     <=              riE             ;
             breakM                  <=              breakE          ;
             syscallM                <=              syscallE        ;  

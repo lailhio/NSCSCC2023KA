@@ -58,7 +58,7 @@ module datapath(
 
 	wire 		mem_readD, mem_writeD;
 	wire 		memtoregD;       	//result选择 0->aluout, 1->read_data
-	wire 		hilo_to_regD;			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+	wire 		hilotoregD;			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
 	wire 		riD;
 	wire 		breakD, syscallD, eretD;
 	wire 		cp0_wenD;
@@ -93,7 +93,7 @@ module datapath(
 	wire        memtoregE, mem_readE, mem_writeE;
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
-	wire        hilo_to_regE;//hilo到寄存器
+	wire        hilotoregE;//hilo到寄存器
     wire        hilo_wenE;  //hilo写使
 	wire        breakE, syscallE;
 	wire        riE,eretE;
@@ -125,7 +125,7 @@ module datapath(
     wire [31:0] mem_ctrl_rdataM;
     wire [31:0] writedataM_temp;
     wire [63:0] hilo_oM;  //hilo输出
-    wire        hilo_to_regM; 
+    wire        hilotoregM; 
 	wire		is_mfcM;
 
     wire [4:0] 	rdM;
@@ -236,7 +236,7 @@ module datapath(
 		regdstD,is_immD,regwriteD,
 		mem_readD, mem_writeD,
 		memtoregD,
-		hilo_to_regD,riD,
+		hilotoregD,riD,
 		breakD, syscallD, eretD, 
 		cp0_wenD,
 		cp0_to_regD,
@@ -305,7 +305,7 @@ module datapath(
 		.regdstD(regdstD),
 		.is_immD(is_immD),.regwriteD(regwriteD),
 		.mem_readD(mem_readD),.mem_writeD(mem_writeD),.memtoregD(memtoregD),
-		.hilo_to_regD(hilo_to_regD),.riD(riD),.breakD(breakD),
+		.hilotoregD(hilotoregD),.riD(riD),.breakD(breakD),
 		.syscallD(syscallD),.eretD(eretD),.cp0_wenD(cp0_wenD),
 		.cp0_to_regD(cp0_to_regD),.is_mfcD(is_mfcD),
 	//Execute stage
@@ -327,7 +327,7 @@ module datapath(
 		.regdstE(regdstE),
 		.is_immE(is_immE),.regwriteE(regwriteE),
 		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
-		.hilo_to_regE(hilo_to_regE),.riE(riE),.breakE(breakE),
+		.hilotoregE(hilotoregE),.riE(riE),.breakE(breakE),
 		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
 		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE)
     );
@@ -402,7 +402,7 @@ module datapath(
         .rdE(rdE),
         .actual_takeE(actual_takeE),
 		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
-		.hilo_to_regE(hilo_to_regE),.riE(riE),.breakE(breakE),
+		.hilotoregE(hilotoregE),.riE(riE),.breakE(breakE),
 		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
 		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE),
 
@@ -420,12 +420,12 @@ module datapath(
         .rdM(rdM),
         .actual_takeM(actual_takeM),
 		.mem_readM(mem_readM),.mem_writeM(mem_writeM),.memtoregM(memtoregM),
-		.hilo_to_regM(hilo_to_regM),.riM(riM),.breakM(breakM),
+		.hilotoregM(hilotoregM),.riM(riM),.breakM(breakM),
 		.syscallM(syscallM),.eretM(eretM),.cp0_wenM(cp0_wenM),
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM)
     );
     assign mem_addrM = aluoutM;     //访存地址
-    assign mem_enM = (mem_readM  |  mem_writeM) ; //读或者写
+    assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
     // mem读写控制
     mem_control mem_control(
         .instrM(instrM),
@@ -484,7 +484,7 @@ module datapath(
 	//---------Write_Back----------------
     //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中写入寄存器的�?
     mux4 #(32) mux4_memtoreg(aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
-                            {hilo_to_regM, memtoregM} | {2{is_mfcM}},
+                            {hilotoregM, memtoregM} | {2{is_mfcM}},
                             resultM);
     //分支预测结果
     assign pre_right = ~(pred_takeM ^ actual_takeM); 

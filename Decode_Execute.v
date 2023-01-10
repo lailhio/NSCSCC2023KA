@@ -22,7 +22,7 @@ module Decode_Execute (
     input wire is_immD,regwriteD,
     input wire mem_readD, mem_writeD,
     input wire memtoregD,         	//result选择 0->aluout, 1->read_data
-    input wire hilo_to_regD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    input wire hilotoregD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
     input wire riD,
     input wire breakD, syscallD, eretD, 
     input wire cp0_wenD,
@@ -48,7 +48,7 @@ module Decode_Execute (
     output reg is_immE,regwriteE,
     output reg mem_readE, mem_writeE,
     output reg memtoregE,         	//result选择 0->aluout, 1->read_data
-    output reg hilo_to_regE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    output reg hilotoregE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
     output reg riE,
     output reg breakE, syscallE, eretE, 
     output reg cp0_wenE,
@@ -81,7 +81,7 @@ module Decode_Execute (
             mem_readE               <=   0 ;
             mem_writeE              <=   0 ;
             memtoregE               <=   0 ;
-            hilo_to_regE            <=   0 ;
+            hilotoregE            <=   0 ;
             riE                     <=   0 ;
             breakE                  <=   0 ;
             syscallE                <=   0 ;
@@ -115,7 +115,7 @@ module Decode_Execute (
             mem_readE               <=   mem_readD ;
             mem_writeE              <=   mem_writeD ;
             memtoregE               <=   memtoregD ;
-            hilo_to_regE            <=  hilo_to_regD ;
+            hilotoregE            <=  hilotoregD ;
             riE                     <=  riD ;
             breakE                  <=  breakD;
             syscallE                <=  syscallD ;

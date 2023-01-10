@@ -13,7 +13,7 @@ module maindec(
 		output reg regwriteD,	//写寄存器堆使�?
 		output reg mem_readD, mem_writeD,
 		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
-		output wire hilo_to_regD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+		output wire hilotoregD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
 		output reg riD,
 		output wire breakD, syscallD, eretD, 
 		output wire cp0_wenD,
@@ -38,7 +38,7 @@ module maindec(
 	// 					& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
 	// 						|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
 
-	assign hilo_to_regD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
+	assign hilotoregD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
 	assign cp0_wenD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
 	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MFC0));
