@@ -13,10 +13,10 @@ module maindec(
 		output reg regwriteD,	//写寄存器堆使能
 		output reg mem_readD, mem_writeD,
 		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
-		output wire hilotoregD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+		output wire hilotoregD,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 		output reg riD,
 		output wire breakD, syscallD, eretD, 
-		output wire cp0_wenD,
+		output wire cp0_writeD,
 		output wire cp0_to_regD,
 		output reg is_mfcD,   //为mfc0
 		output reg [3:0] aluopD,
@@ -36,8 +36,8 @@ module maindec(
 	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
 	assign hilotoregD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
-														// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
-	assign cp0_wenD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
+														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
+	assign cp0_writeD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
 	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MFC0));
 	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `ERET));
 	

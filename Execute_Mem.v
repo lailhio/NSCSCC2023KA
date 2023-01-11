@@ -17,10 +17,10 @@ module Execute_Mem (
     input wire actual_takeE,
     input wire mem_readE, mem_writeE,
     input wire memtoregE,         	//result选择 0->aluout, 1->read_data
-    input wire hilotoregE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    input wire hilotoregE,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
     input wire riE,
     input wire breakE, syscallE, eretE, 
-    input wire cp0_wenE,
+    input wire cp0_writeE,
     input wire cp0_to_regE,
     input wire is_mfcE,   //为mfc0
 
@@ -39,10 +39,10 @@ module Execute_Mem (
     output reg actual_takeM,
     output reg mem_readM, mem_writeM,
     output reg memtoregM,         	//result选择 0->aluout, 1->read_data
-    output reg hilotoregM,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    output reg hilotoregM,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
     output reg riM,
     output reg breakM, syscallM, eretM, 
-    output reg cp0_wenM,
+    output reg cp0_writeM,
     output reg cp0_to_regM,
     output reg is_mfcM   //为mfc0
 );
@@ -69,7 +69,7 @@ module Execute_Mem (
             breakM                  <=              0;
             syscallM                <=              0;  
             eretM                   <=              0;
-            cp0_wenM                <=              0;
+            cp0_writeM                <=              0;
             cp0_to_regM             <=              0;
             is_mfcM                 <=              0;
         end
@@ -95,7 +95,7 @@ module Execute_Mem (
             breakM                  <=              breakE          ;
             syscallM                <=              syscallE        ;  
             eretM                   <=              eretE           ;
-            cp0_wenM                <=              cp0_wenE        ;
+            cp0_writeM                <=              cp0_writeE        ;
             cp0_to_regM             <=              cp0_to_regE     ;
             is_mfcM                 <=              is_mfcE         ;
         end

@@ -7,7 +7,7 @@ module Decode_Execute (
     input wire [31:0] rd1D, rd2D,
     input wire [4:0] rsD, rtD, rdD,
     input wire [31:0] immD,
-    input wire [31:0] pc_plus4D,
+    input wire [31:0] pcplus4D,
     input wire [31:0] instrD,
     input wire [31:0] pc_branchD,
     input wire pred_takeD,
@@ -22,10 +22,10 @@ module Decode_Execute (
     input wire is_immD,regwriteD,
     input wire mem_readD, mem_writeD,
     input wire memtoregD,         	//result选择 0->aluout, 1->read_data
-    input wire hilotoregD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    input wire hilotoregD,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
     input wire riD,
     input wire breakD, syscallD, eretD, 
-    input wire cp0_wenD,
+    input wire cp0_writeD,
     input wire cp0_to_regD,
     input wire is_mfcD,   //为mfc0
 
@@ -33,7 +33,7 @@ module Decode_Execute (
     output reg [31:0] rd1E, rd2E,
     output reg [4:0] rsE, rtE, rdE,
     output reg [31:0] immE,
-    output reg [31:0] pc_plus4E,
+    output reg [31:0] pcplus4E,
     output reg [31:0] instrE,
     output reg [31:0] pc_branchE,
     output reg pred_takeE,
@@ -48,10 +48,10 @@ module Decode_Execute (
     output reg is_immE,regwriteE,
     output reg mem_readE, mem_writeE,
     output reg memtoregE,         	//result选择 0->aluout, 1->read_data
-    output reg hilotoregE,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+    output reg hilotoregE,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
     output reg riE,
     output reg breakE, syscallE, eretE, 
-    output reg cp0_wenE,
+    output reg cp0_writeE,
     output reg cp0_to_regE,
     output reg is_mfcE   //为mfc0
 );
@@ -64,7 +64,7 @@ module Decode_Execute (
             rtE                     <=   0 ;
             rdE                     <=   0 ;
             immE                    <=   0 ;
-            pc_plus4E               <=   0 ;
+            pcplus4E               <=   0 ;
             instrE                  <=   0 ;
             pc_branchE              <=   0 ;
             pred_takeE              <=   0 ;
@@ -86,7 +86,7 @@ module Decode_Execute (
             breakE                  <=   0 ;
             syscallE                <=   0 ;
             eretE                   <=   0 ;
-            cp0_wenE                <=   0 ;
+            cp0_writeE                <=   0 ;
             cp0_to_regE             <=   0 ;
             is_mfcE                 <=   0 ;
         end 
@@ -98,7 +98,7 @@ module Decode_Execute (
             rtE                     <= rtD                  ;
             rdE                     <= rdD                  ;
             immE                    <= immD                 ;
-            pc_plus4E               <= pc_plus4D            ;
+            pcplus4E               <= pcplus4D            ;
             instrE                  <= instrD               ;
             pc_branchE              <= pc_branchD           ;
             pred_takeE              <= pred_takeD           ;
@@ -120,7 +120,7 @@ module Decode_Execute (
             breakE                  <=  breakD;
             syscallE                <=  syscallD ;
             eretE                   <=  eretD;
-            cp0_wenE                <=   cp0_wenD;
+            cp0_writeE                <=   cp0_writeD;
             cp0_to_regE             <=  cp0_to_regD;
             is_mfcE                 <=   is_mfcD;
         end

@@ -9,7 +9,7 @@ module alu(
     input wire [4:0] alucontrolE, 
     input wire [4:0] sa, 
     
-    output wire hilo_wenE,
+    output wire hilo_writeE,
     output wire [1:0]hilo_selectE,
     output wire div_stallE,
     output wire [63:0] aluoutE, 
@@ -69,7 +69,7 @@ module alu(
     end
     assign hilo_selectE={(~|(alucontrolE[4:2] ^ 3'b111)),(~|(alucontrolE ^ `MTHI_CONTROL))};//高位1表示是mhl指令，0表示是乘除法
                                                                                             //低位1表示是用hi，0表示用lo
-    assign hilo_wenE  =  ready|
+    assign hilo_writeE  =  ready|
                         ((~|(alucontrolE[4:1]^ 4'b1100)) | 
                         ((~|({alucontrolE[4:2],alucontrolE[0]}^ 4'b1111)) & ~stallE));
 

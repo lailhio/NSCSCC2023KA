@@ -6,7 +6,7 @@ module mem_control(
 
     input wire [31:0] data_wdataM, //要写的数据
     output wire [31:0] writedataM,  //真正写数据
-    output wire [3:0] mem_wenM,  //选择写哪一位
+    output wire [3:0] mem_write_selectM,  //选择写哪一位
 
     input wire [31:0] mem_rdataM, //内存读出
     output wire [31:0] data_rdataM,  // 实际读出
@@ -45,7 +45,7 @@ module mem_control(
                         | (( instr_lh | instr_lhu ) & ~(addr_W0 | addr_B2));
 
 // wdata  and  byte_wen
-    assign mem_wenM = ( {4{( instr_sw & addr_W0 )}} & 4'b1111)          //写字  
+    assign mem_write_selectM =     ( {4{( instr_sw & addr_W0 )}} & 4'b1111)          //写字  
                         | ( {4{( instr_sh & addr_W0  )}} & 4'b0011)     //写半字 低位
                         | ( {4{( instr_sh & addr_B2  )}} & 4'b1100)     //写半字 高位
                         | ( {4{( instr_sb & addr_W0  )}} & 4'b0001)     //写字节 四个字节

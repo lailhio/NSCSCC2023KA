@@ -37,8 +37,8 @@ module exception(
                                                      32'h00000000 ;   //无异常?
    //interupt pc address
    assign pc_exception =      (~|(except_type ^ 32'h00000000)) ? `ZeroWord:
-                              (eretM)? cp0_epc :
-                              32'hbfc0_0380; //异常处理地址
+                                                      (eretM)  ? cp0_epc :
+                                                            32'hbfc0_0380; //异常处理地址
    assign pc_trap =        |(except_type ^ 32'h00000000); //表示发生异常，需要处理pc
    assign flush_exception =   |(except_type ^ 32'h00000000); //无异常时，为0
    assign badvaddrM =      ({{32{pcError}} & pcM} |{{32{~pcError}} & aluoutM}) ; //出错时的pc 

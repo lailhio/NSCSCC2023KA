@@ -63,7 +63,7 @@ module mips(
         //data
     	.mem_addrM(virtual_data_addr),.mem_enM(data_sram_en),
         .mem_rdataM(data_sram_rdata),
-        .mem_wenM(data_sram_wen),.writedataM(data_sram_wdata),
+        .mem_write_selectM(data_sram_wen),.writedataM(data_sram_wdata),
         .d_cache_stall(d_stall),
         
         .longest_stall(longest_stall),

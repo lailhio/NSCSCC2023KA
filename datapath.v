@@ -18,7 +18,7 @@ module datapath(
     output wire mem_enM,                    
     output wire [31:0] mem_addrM,     //写地址
     input  wire [31:0] mem_rdataM,    //读数据
-    output wire [3 :0] mem_wenM,      //写使能
+    output wire [3 :0] mem_write_selectM,      //写使能
     output wire [31:0] writedataM,    //写数据
     input wire         d_cache_stall,
 
@@ -31,7 +31,7 @@ module datapath(
     );
 	
 	//--------fetch stage----------
-	wire [31:0] pcF, pc_plus4F;    //pc
+	wire [31:0] pcF, pcplus4F;    //pc
     wire [31:0] instrF_4;                   //instrF末尾为2'b00
     
     wire pc_errorF;  // pc错误
@@ -43,7 +43,7 @@ module datapath(
 	wire[4:0] alucontrolD;
 	 wire [31:0] instrD;  //指令
     wire [4 :0] rsD, rtD, rdD, saD;  //rs rt rd 寄存器号
-    wire [31:0] pcD, pc_plus4D;  //pc
+    wire [31:0] pcD, pcplus4D;  //pc
 
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
@@ -58,16 +58,16 @@ module datapath(
 
 	wire 		mem_readD, mem_writeD;
 	wire 		memtoregD;       	//result选择 0->aluout, 1->read_data
-	wire 		hilotoregD;			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
+	wire 		hilotoregD;			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 	wire 		riD;
 	wire 		breakD, syscallD, eretD;
-	wire 		cp0_wenD;
+	wire 		cp0_writeD;
 	wire 		cp0_to_regD;
 	wire		is_mfcD;
     
     wire        is_in_delayslot_iD;//指令是否在延迟槽
 	//-------execute stage----------
-	wire [31:0] pcE, pc_plus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器号 写内存 立即数
+	wire [31:0] pcE, pcplus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器号 写内存 立即数
     wire [4 :0] rsE, rtE, rdE, saE;  //寄存器号
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
@@ -94,10 +94,10 @@ module datapath(
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
 	wire        hilotoregE;//hilo到寄存器
-    wire        hilo_wenE;  //hilo写使
+    wire        hilo_writeE;  //hilo写使
 	wire        breakE, syscallE;
 	wire        riE,eretE;
-	wire        cp0_wenE;
+	wire        cp0_writeE;
 	wire        cp0_to_regE;
 	wire 		is_mfcE;
     wire [1:0]  forward_1E;
@@ -122,9 +122,9 @@ module datapath(
     wire        branchM; // 分支信号
     wire [31:0] pc_branchM; //分支跳转地址
 
-    wire [31:0] mem_ctrl_rdataM;
+    wire [31:0] result_rdataM;
     wire [31:0] writedataM_temp;
-    wire [31:0] hilo_oM;  //hilo输出
+    wire [31:0] hilo_outM;  //hilo输出
     wire        hilotoregM; 
 	wire		is_mfcM;
 
@@ -151,14 +151,14 @@ module datapath(
     wire [31:0] badvaddrM;
     wire        is_in_delayslot_iM;
     wire        cp0_to_regM;
-    wire        cp0_wenM;
+    wire        cp0_writeM;
     
 	//------writeback stage----------
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] aluoutW,resultW;
 	wire [31:0] pcW;
-    wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_data_oW;
+    wire [31:0] cp0_statusW, cp0_causeW, cp0_epcW, cp0_outW;
     //------stall sign---------------
     wire stallF,stallD,stallE,stallM,stallW;
     wire flushF,flushD,flushE,flushM,flushW;
@@ -175,10 +175,10 @@ module datapath(
     
     assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE;
     wire [31:0] instrF_valid;
-    assign instrF_valid = inst_enF ? instrF : 32'b0;  //丢掉
+    assign instrF_valid = {32{inst_enF}}&instrF;  //丢掉无效指令
     // pc+4
-    assign pc_plus4F = pcF + 4;
-    assign is_in_delayslot_iF = branchD | jumpD; //F阶段得到此时d阶段是否为跳转
+    assign pcplus4F = pcF + 4;
+    assign is_in_delayslot_iF = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     // pc reg
     pc_reg pc(
         .clk(clk),
@@ -195,12 +195,12 @@ module datapath(
         .jump_conflictE(jump_conflictE),
 
         .pc_exceptionM(pc_exceptionM),
-        .pc_plus4E(pc_plus4E),
+        .pcplus4E(pcplus4E),
         .pc_branchM(pc_branchM),
         .pc_jumpE(pc_jumpE),
         .pc_jumpD(pc_jumpD),
         .pc_branchD(pc_branchD),
-        .pc_plus4F(pc_plus4F),
+        .pcplus4F(pcplus4F),
 
         .pc(pcF)
     );
@@ -213,12 +213,12 @@ module datapath(
         .flushD(flushD),
 
         .pcF(pcF),
-        .pc_plus4F(pc_plus4F),
+        .pcplus4F(pcplus4F),
         .instrF(instrF_valid),
         .is_in_delayslot_iF(is_in_delayslot_iF), //上一条指令是跳转
         
         .pcD(pcD),
-        .pc_plus4D(pc_plus4D),
+        .pcplus4D(pcplus4D),
         .instrD(instrD),
         .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟
     );
@@ -238,17 +238,19 @@ module datapath(
 		memtoregD,
 		hilotoregD,riD,
 		breakD, syscallD, eretD, 
-		cp0_wenD,
+		cp0_writeD,
 		cp0_to_regD,
-		is_mfcD,   //为mfc0
+		is_mfcD,  
 		aluopD,
         functD,
 		branch_judge_controlD
 		);
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
-	//regfile (operates in decode and writeback)
+	//regfile，decode阶段读出，writeback阶段写入
 	regfile rf(clk,rst,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
+    // 立即数左移2 + pc+4得到分支跳转地址   
+    assign pc_branchD = {immD[29:0], 2'b00} + pcplus4D;
 
 	//分支预测
     BranchPredict branch_predict(
@@ -271,7 +273,7 @@ module datapath(
     // jump指令控制
     jump_control jump_control(
         .instrD(instrD),
-        .pc_plus4D(pc_plus4D),
+        .pcplus4D(pcplus4D),
         .rd1D(rd1D),
         .regwriteE(regwriteE), .regwriteM(regwriteM),
         .writeregE(writeregE), .writeregM(writeregM),
@@ -291,7 +293,7 @@ module datapath(
         .rsD(rsD), .rd1D(rd1D), .rd2D(rd2D),
         .rtD(rtD), .rdD(rdD),
         .immD(immD),
-        .pc_plus4D(pc_plus4D),
+        .pcplus4D(pcplus4D),
         .instrD(instrD),
         .branchD(branchD),.pred_takeD(pred_takeD),
         .pc_branchD(pc_branchD),.jump_conflictD(jump_conflictD),
@@ -304,14 +306,14 @@ module datapath(
 		.is_immD(is_immD),.regwriteD(regwriteD),
 		.mem_readD(mem_readD),.mem_writeD(mem_writeD),.memtoregD(memtoregD),
 		.hilotoregD(hilotoregD),.riD(riD),.breakD(breakD),
-		.syscallD(syscallD),.eretD(eretD),.cp0_wenD(cp0_wenD),
+		.syscallD(syscallD),.eretD(eretD),.cp0_writeD(cp0_writeD),
 		.cp0_to_regD(cp0_to_regD),.is_mfcD(is_mfcD),
 	//Execute stage
         .pcE(pcE),
         .rsE(rsE), .rd1E(rd1E), .rd2E(rd2E),
         .rtE(rtE), .rdE(rdE),
         .immE(immE),
-        .pc_plus4E(pc_plus4E),
+        .pcplus4E(pcplus4E),
         .instrE(instrE),
         .branchE(branchE),.pred_takeE(pred_takeE),
         .pc_branchE(pc_branchE),.jump_conflictE(jump_conflictE),
@@ -324,7 +326,7 @@ module datapath(
 		.is_immE(is_immE),.regwriteE(regwriteE),
 		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
 		.hilotoregE(hilotoregE),.riE(riE),.breakE(breakE),
-		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
+		.syscallE(syscallE),.eretE(eretE),.cp0_writeE(cp0_writeE),
 		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE)
     );
 	//ALU
@@ -336,7 +338,7 @@ module datapath(
         .alucontrolE(alucontrolE),
         .sa(saE),
 
-        .hilo_wenE(hilo_wenE),
+        .hilo_writeE(hilo_writeE),
         .hilo_selectE(hilo_selectE),
         .div_stallE(alu_stallE),
         .aluoutE(aluoutE),
@@ -350,7 +352,7 @@ module datapath(
     );
 
     mux4 #(32) mux4_forward_1E(
-        rd1E,resultM,resultW,pc_plus4D,  
+        rd1E,resultM,resultW,pcplus4D,  
                                              
         {2{jumpE | branchE}} |forward_1E,  
         src_aE
@@ -363,16 +365,14 @@ module datapath(
     mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器
     mux4 #(32) mux4_rt_valueE(rd2E, resultM, resultW, 32'b0, forward_2E, rt_valueE); //数据前推后的rt寄存器
 
-	//计算branch结果 得到真实是否跳转
+	//在execute阶段得到真实branch跳转情况
     branch_check branch_check(
         .branch_judge_controlE(branch_judge_controlE),
         .rs_valueE(rs_valueE),
         .rt_valueE(rt_valueE),
         .actual_takeE(actual_takeE)
     );
-
-    // 分支跳转  立即数左移2 + pc+4   
-    assign pc_branchD = {immD[29:0], 2'b00} + pc_plus4D;
+    
     assign pc_jumpE = rs_valueE; //jr指令 跳转到rs
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Mem----------------------------------------
@@ -392,7 +392,7 @@ module datapath(
         .actual_takeE(actual_takeE),
 		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
 		.hilotoregE(hilotoregE),.riE(riE),.breakE(breakE),
-		.syscallE(syscallE),.eretE(eretE),.cp0_wenE(cp0_wenE),
+		.syscallE(syscallE),.eretE(eretE),.cp0_writeE(cp0_writeE),
 		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE),
 
         .pcM(pcM),
@@ -407,7 +407,7 @@ module datapath(
         .actual_takeM(actual_takeM),
 		.mem_readM(mem_readM),.mem_writeM(mem_writeM),.memtoregM(memtoregM),
 		.hilotoregM(hilotoregM),.riM(riM),.breakM(breakM),
-		.syscallM(syscallM),.eretM(eretM),.cp0_wenM(cp0_wenM),
+		.syscallM(syscallM),.eretM(eretM),.cp0_writeM(cp0_writeM),
 		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM)
     );
     assign mem_addrM = aluoutM;     //访存地址
@@ -419,31 +419,38 @@ module datapath(
     
         .data_wdataM(rt_valueM),    //原始的wdata
         .writedataM(writedataM),    //新的wdata
-        .mem_wenM(mem_wenM),
+        .mem_write_selectM(mem_write_selectM),
 
         .mem_rdataM(mem_rdataM),    
-        .data_rdataM(mem_ctrl_rdataM),
+        .data_rdataM(result_rdataM),
 
         .addr_error_sw(addrErrorSwM),
         .addr_error_lw(addrErrorLwM)  
     );
-    wire hilo_wen_re;
-    assign hilo_wen_re=hilo_wenE&~flush_exceptionM;//防止异常刷新时的错误访存
+    wire hilo_write_re;
+    assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误访存
 
     // hilo寄存器
-    hilo hilo(clk,rst,hilo_selectE,hilo_wen_re,instrM,aluoutE,hilo_oM);
-    
-    assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不为0
-
+    hilo hilo(clk,rst,hilo_selectE,hilo_write_re,instrM,aluoutE,hilo_outM);
+    //后两位不为0
+    assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
+    //在aluoutM, result_rdataM, hilo_outM, cp0_outW 中选择写入寄存器的数据
+    mux4 #(32) mux4_memtoreg(aluoutM, result_rdataM, hilo_outM, cp0_outW, 
+                            {hilotoregM, memtoregM} | {2{is_mfcM}},
+                            resultM);
      //异常处理
     exception exception(
         .rst(rst),
         .ext_int(ext_int),
-        .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
+        //异常信号
+        .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), 
+        .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
+        //异常寄存器
         .cp0_status(cp0_statusW), .cp0_cause(cp0_causeW), .cp0_epc(cp0_epcW),
+        //记录出错地址
         .pcM(pcM),
         .aluoutM(aluoutM),
-
+        //输出异常处理信号
         .except_type(except_typeM),
         .flush_exception(flush_exceptionM),
         .pc_exception(pc_exceptionM),
@@ -454,14 +461,14 @@ module datapath(
     cp0_reg cp0(
         .clk(clk),
         .rst(rst),
-        .we_i(cp0_wenM),
+        .we_i(cp0_writeM),
         .i_cache_stall(i_cache_stall),
         .waddr_i(rdM),
         .raddr_i(rdM),
         .data_i(rt_valueM),
         .int_i(ext_int),
         
-        .data_o(cp0_data_oW),
+        .data_o(cp0_outW),
 
         .excepttype_i(except_typeM),
         .current_inst_addr_i(pcM),
@@ -472,14 +479,11 @@ module datapath(
         .cause_o(cp0_causeW),
         .epc_o(cp0_epcW)
     );
-	//---------Write_Back----------------
-    //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中选择写入寄存器的数据
-    mux4 #(32) mux4_memtoreg(aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
-                            {hilotoregM, memtoregM} | {2{is_mfcM}},
-                            resultM);
     //分支预测结果
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
     assign flush_pred_failedM = ~pre_right;
+	//-------------------------------------Write_Back-------------------------------------------------
+    
 	Mem_WriteBack Me_Wr(
         .clk(clk),
         .rst(rst),
