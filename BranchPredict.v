@@ -1,3 +1,4 @@
+`include "defines2.vh"
 module BranchPredict(
     input wire clk, rst,
     
@@ -13,7 +14,6 @@ module BranchPredict(
     input wire actual_takeM,
 
     output wire branchD,
-    output wire branchL_D,
     output wire pred_takeD
 );
     wire pred_takeF;
@@ -28,8 +28,6 @@ module BranchPredict(
                     | (~|(op_code[5:2] ^ 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
                                                     // 3'b000 -> BLTZ BLTZAL BGEZAL BGEZ
                                                     // 3'b001 -> BGEZALL BGEZL BLTZALL BLTZL
-    assign branchL_D = ( (~|(op_code ^ `REGIMM_INST)) & (~|(instrD[19:17] ^ 3'b001) )) |
-                         (~|(op_code[5:2] ^ 4'b0101)); //beql, bgtzl, blezl, bnel
 
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;

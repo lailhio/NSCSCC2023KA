@@ -169,7 +169,7 @@ module cp0_reg(
 					status_o[1] <= 1'b1;
 					cause_o[6:2] <= 5'b01101;
 				end
-				32'h0000000e:begin // eret异常（准确说不叫异常，但通过这个在跳转到epc的同时清零status的EXL）
+				32'h0000000e:begin // eret异常（准确说不叫异常，但通过这个在跳转到epc的同时清零status的EXL?
 					status_o[1] <= 1'b0;
 				end
 				default : /* default */;

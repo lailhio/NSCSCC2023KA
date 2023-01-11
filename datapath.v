@@ -267,7 +267,6 @@ module datapath(
         .actual_takeM(actual_takeM),
 
         .branchD(branchD),
-        .branchL_D(),
         .pred_takeD(pred_takeD)
     );
     // jump指令控制
