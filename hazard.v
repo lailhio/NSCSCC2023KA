@@ -25,11 +25,11 @@ module hazard(
 );
     wire id_cache_stall;
     // 数据冒险，前推片选信号
-    assign forward_1E = rsE != 0 && regwriteM && (rsE == writeregM) ? 2'b01 :
-                        rsE != 0 && regwriteW && (rsE == writeregW) ? 2'b10 :
+    assign forward_1E = (|(rsE ^ 0)) & regwriteM & (~|(rsE ^ writeregM)) ? 2'b01 :
+                        (|(rsE ^ 0)) & regwriteW & (~|(rsE ^ writeregW)) ? 2'b10 :
                         2'b00;
-    assign forward_2E = regwriteM && (rtE == writeregM) ? 2'b01 :
-                        regwriteW && (rtE == writeregW) ? 2'b10 :
+    assign forward_2E = regwriteM & (~|(rtE ^ writeregM)) ? 2'b01 :
+                        regwriteW & (~|(rtE ^ writeregW)) ? 2'b10 :
                         2'b00;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 

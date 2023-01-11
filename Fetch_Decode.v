@@ -9,7 +9,7 @@ module Fetch_Decode (
     input wire [31:0] pc_plus4F,
 
     input wire [31:0] instrF,
-    input wire F_change ,
+    input wire is_in_delayslot_iF ,
 
     output reg [31:0] pcD,
     output reg [31:0] pc_plus4D,
@@ -29,7 +29,7 @@ module Fetch_Decode (
             pcD                 <= pcF                  ;
             pc_plus4D           <= pc_plus4F            ;
             instrD              <= instrF               ;
-            is_in_delayslot_iD  <= F_change   ;
+            is_in_delayslot_iD  <= is_in_delayslot_iF   ;
         end
     end
 endmodule

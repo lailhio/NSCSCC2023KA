@@ -11,23 +11,25 @@ module hilo(
    output wire [31:0] hilo_out
    );
    // hilo寄存器
-   reg [63:0] hilo;
+   reg [31:0] hilo_hi;
+   reg [31:0] hilo_lo;
 
    // 更新
    always @(posedge clk) begin
       if(rst)
-         hilo <= 0;
-      else if(we)
-         if(~hilo_selectE[1])//高位为0表示是div或者mult指令
-            hilo<=hilo_in;
+         {hilo_hi,hilo_lo} <= 0;
+      else if(we)begin
+         if(~hilo_selectE[1])       //高位为0表示是div或者mult指令
+            {hilo_hi,hilo_lo}<=hilo_in;
          else if(hilo_selectE[0])
-            hilo[63:32]<=hilo_in[63:32];
+            {hilo_hi,hilo_lo}<={hilo_in[63:32],hilo_lo};
          else if(~hilo_selectE[0])
-            hilo[31:0]<=hilo_in[31:0];
+            {hilo_hi,hilo_lo}<={hilo_hi,hilo_in[31:0]};
          else
-            hilo<=hilo;
+            {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
+      end
       else
-         hilo <= hilo;
+         {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
    end
    
 
@@ -37,5 +39,5 @@ module hilo(
    assign mfhi = ~(|(instrM[31:26] ^ `R_TYPE)) & ~(|(instrM[5:0] ^ `MFHI));
    assign mflo = ~(|(instrM[31:26] ^ `R_TYPE)) & ~(|(instrM[5:0] ^ `MFLO));
 
-   assign hilo_out = ({32{mfhi}} & hilo[63:32]) | ({32{mflo}} & hilo[31:0]);
+   assign hilo_out = ({32{mfhi}} & hilo_hi) | ({32{mflo}} & hilo_lo);
 endmodule

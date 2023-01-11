@@ -8,9 +8,9 @@ module maindec(
 
 
 		output wire sign_exD,          //立即数是否为符号扩展
-		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> �?$ra
+		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> ?$ra
 		output reg is_immD,        //alu srcb选择 0->rd2E, 1->immE
-		output reg regwriteD,	//写寄存器堆使�?
+		output reg regwriteD,	//写寄存器堆使能
 		output reg mem_readD, mem_writeD,
 		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
 		output wire hilotoregD,			// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
@@ -33,10 +33,7 @@ module maindec(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
 
-	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符�?
-	// assign hilo_wenD = ~(|( opD^ `R_TYPE )) 		//首先判断是不是R-type
-	// 					& (~(|(functD[5:2] ^ 4'b0110)) 			// div divu mult multu 	
-	// 						|( ~(|(functD[5:2] ^ 4'b0100)) & functD[0]));
+	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
 	assign hilotoregD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--aluoutM; 01--hilo_o; 10 11--rdataM;
@@ -62,7 +59,7 @@ module maindec(
 						{regwriteD, regdstD, is_immD} =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
-					// 乘除hilo、自陷�?�jr不需要使用寄存器和存储器
+					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
 					`SYSCALL, `BREAK : begin
 						aluopD=`R_TYPE_OP;
@@ -71,7 +68,7 @@ module maindec(
 					end
 					`JALR: begin
 						aluopD=`R_TYPE_OP;
-						{regwriteD, regdstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对�?
+						{regwriteD, regdstD, is_immD} =  4'b1100;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
 					default: begin
@@ -155,7 +152,7 @@ module maindec(
 						riD=1'b0;
 						is_mfcD=1'b0;
 						aluopD=`USELESS_OP;
-						{regwriteD, regdstD, is_immD}  =  4'b1100;//�?要写�?31
+						{regwriteD, regdstD, is_immD}  =  4'b1100;//要写31号寄存器
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`BGEZ,`BLTZ: begin

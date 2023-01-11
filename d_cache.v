@@ -142,6 +142,10 @@ module d_cache (
 
                     in_RM <= 1'b1;
                 end
+                default:begin
+                    state <= IDLE;
+                    in_RM <= 1'b0;
+                end
             endcase
         end
     end
