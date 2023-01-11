@@ -31,10 +31,11 @@ module alu(
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
                     | ({64{~mul_valid & ~div_vaild}} & {32'b0, aluout_simple})
-                    | ({64{(alucontrolE == `MTHI_CONTROL)}} & {src_aE, hilo[31:0]})
-                    | ({64{(alucontrolE == `MTLO_CONTROL)}} & {hilo[63:32], src_aE});
+                    | ({64{~|(alucontrolE ^ `MTHI_CONTROL)}} & {src_aE, hilo[31:0]})
+                    | ({64{~|(alucontrolE ^ `MTLO_CONTROL)}} & {hilo[63:32], src_aE});
 
-    assign overflowE = (alucontrolE==`ADD_CONTROL || alucontrolE==`SUB_CONTROL) & (carry_bit ^ aluout_simple[31]);
+    assign overflowE = ((~|(alucontrolE^`ADD_CONTROL)) | (~|(alucontrolE^`SUB_CONTROL))) & 
+                        (carry_bit ^ aluout_simple[31]);
 
    
     always @(*) begin

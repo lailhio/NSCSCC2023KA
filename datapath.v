@@ -16,10 +16,10 @@ module datapath(
 
     //data
     output wire mem_enM,                    
-    output wire [31:0] mem_addrM,     //�?/写地�?
-    input  wire [31:0] mem_rdataM,    //读数�?
-    output wire [3 :0] mem_wenM,      //写使�?
-    output wire [31:0] writedataM,    //写数�?
+    output wire [31:0] mem_addrM,     //�/写地�
+    input  wire [31:0] mem_rdataM,    //读数�
+    output wire [3 :0] mem_wenM,      //写使�
+    output wire [31:0] writedataM,    //写数�
     input wire         d_cache_stall,
 
     output wire        longest_stall,
@@ -32,29 +32,29 @@ module datapath(
 	
 	//--------fetch stage----------
 	wire [31:0] pcF, pc_plus4F;    //pc
-    wire [31:0] instrF_4;                   //instrF末尾�?2'b00
+    wire [31:0] instrF_4;                   //instrF末尾�2'b00
     
     wire pc_errorF;  // pc错误
 
-    wire F_change; // 此时的D阶段（即上一条指令）是否为跳转指�?
+    wire F_change; // 此时的D阶段（即上一条指令）是否为跳转指�
     // wire pcerrorD, pcerrorE, pcerrorM; 
 	//----------decode stage---------
 	wire[3:0] aluopD;
 	wire[4:0] alucontrolD;
 	 wire [31:0] instrD;  //指令
-    wire [4 :0] rsD, rtD, rdD, saD;  //rs rt rd 寄存器标�?
+    wire [4 :0] rsD, rtD, rdD, saD;  //rs rt rd 寄存器标�
     wire [31:0] pcD, pc_plus4D;  //pc
 
-    wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数�? 立即�? pc分支 跳转
-    wire        pred_takeD, branchD, jumpD;  //立即数扩�? 分支预测 branch jump信号
+    wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数� 立即� pc分支 跳转
+    wire        pred_takeD, branchD, jumpD;  //立即数扩� 分支预测 branch jump信号
     wire        flush_pred_failedM;  //分支预测失败
 
     wire        jump_conflictD;  //jump冲突
     wire [2 :0] branch_judge_controlD; //分支判断控制
 	wire 		sign_exD;          //立即数是否为符号扩展
-	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> �?$ra
+	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> �$ra
 	wire 		is_immD;       //alu srcb选择 0->rd2E, 1->immE
-	wire 		regwriteD;//写寄存器堆使?
+	wire 		regwriteD;//写寄存器堆使
 
 	wire 		mem_readD, mem_writeD;
 	wire 		memtoregD;       	//result选择 0->aluout, 1->read_data
@@ -67,16 +67,16 @@ module datapath(
     
     wire        is_in_delayslot_iD;//指令是否在延迟槽
 	//-------execute stage----------
-	wire [31:0] pcE, pc_plus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器�?? 写内存�?? 立即�?
+	wire [31:0] pcE, pc_plus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器� 写内存� 立即�
     wire [4 :0] rsE, rtE, rdE, saE;  //寄存器号
     wire        pred_takeE;  //分支预测
-    wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> �?$ra
+    wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> �$ra
     wire [4 :0] alucontrolE;  //alu控制信号
 
     wire [31:0] src_aE, src_bE; //alu输入（操作数
     wire [63:0] aluoutE; //alu输出
     wire        is_immE;  //alu srcb选择 0->rd2E, 1->immE
-    wire [4 :0] writeregE; //写寄存器�?
+    wire [4 :0] writeregE; //写寄存器�
     wire        branchE; //分支信号
     wire [31:0] pc_branchE;  //分支跳转pc
 
@@ -103,18 +103,18 @@ module datapath(
     wire [1:0]  forward_1E;
     wire [1:0]  forward_2E;
  // 异常处理信号
-    wire        is_in_delayslot_iE; //是否处于延迟�?
+    wire        is_in_delayslot_iE; //是否处于延迟�
     wire        overflowE; //溢出
 	
 	//----------mem stage--------
 	wire [31:0] pcM;  // pc
     wire [31:0] aluoutM; //alu输出
-    wire [4:0] 	writeregM; //写寄存器�?
+    wire [4:0] 	writeregM; //写寄存器号
     wire [31:0] instrM;  //指令
-    wire        mem_readM; //读内�?
-    wire        mem_writeM; //写内�?
+    wire        mem_readM; //读内存
+    wire        mem_writeM; //写内存
     wire        regwriteM;  //寄存器写
-    wire        memtoregM;  //写回寄存器�?�择信号
+    wire        memtoregM;  //写回寄存器��择信号
     wire [31:0] resultM;  // mem out
     wire        actual_takeM;  //分支预测 真实结果
     wire        pre_right;  // 预测正确
@@ -131,7 +131,7 @@ module datapath(
     wire [4:0] 	rdM;
     wire [31:0] rt_valueM;
     //异常处理信号 exception
-    wire        riM;  //指令不存�?
+    wire        riM;  //指令不存在
     wire        breakM; //break指令
     wire        syscallM; //syscall指令
     wire        eretM; //eretM指令
@@ -141,12 +141,12 @@ module datapath(
 
 	// cp0	
     wire [31:0] except_typeM;  // 异常类型
-    wire [31:0] cp0_statusM;  //status�?
-    wire [31:0] cp0_causeM;  //cause�?
-    wire [31:0] cp0_epcM;  //epc�?
+    wire [31:0] cp0_statusM;  //status输出
+    wire [31:0] cp0_causeM;  //cause输出
+    wire [31:0] cp0_epcM;  //epc输出
     wire        flush_exceptionM;  // 发生异常时需要刷新流水线
     wire        flush_exceptionW;  // 发生异常时需要刷新流水线
-    wire [31:0] pc_exceptionM; //异常处理的地�?0xbfc0_0380，若为eret指令 则为返回地址
+    wire [31:0] pc_exceptionM; //异常处理的地址0xbfc0_0380，若为eret指令 则为返回地址
     wire        pc_trapM; // 发生异常时pc特殊处理
     wire [31:0] badvaddrM;
     wire        is_in_delayslot_iM;
@@ -154,7 +154,7 @@ module datapath(
     wire        cp0_wenM;
     
 	//------writeback stage----------
-	wire [4:0] writeregW;//写寄存器�?
+	wire [4:0] writeregW;//写寄存器�
 	wire regwriteW;
 	wire [31:0] aluoutW,resultW;
 	wire [31:0] pcW;
@@ -165,7 +165,7 @@ module datapath(
 //-----------------Data------------------------------------------
 	//--------------------debug---------------------
     assign debug_wb_pc          = pcM;
-    assign debug_wb_rf_wen      = {4{regwriteM & ~stallW & ~flush_exceptionM }};//
+    assign debug_wb_rf_wen      = {4{regwriteM & ~stallW & ~flush_exceptionM }};
     assign debug_wb_rf_wnum     = writeregM;
     assign debug_wb_rf_wdata    = resultM;
 
@@ -245,12 +245,12 @@ module datapath(
         functD,
 		branch_judge_controlD
 		);
-    //扩展立即�?
+    //扩展立即�
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile (operates in decode and writeback)
 	regfile rf(clk,rst,stallW,regwriteW,rsD,rtD,writeregW,resultW,rd1D,rd2D);
 
-	//分支预测�?
+	//分支预测�
     BranchPredict branch_predict0(
         .clk(clk), .rst(rst),
 
@@ -276,9 +276,9 @@ module datapath(
         .regwriteE(regwriteE), .regwriteM(regwriteM),
         .writeregE(writeregE), .writeregM(writeregM),
 
-        .jumpD(jumpD),                      //是jump类指�?(j, jr)
-        .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲�?
-        .pc_jumpD(pc_jumpD)                 //D阶段�?终跳转地�?
+        .jumpD(jumpD),                      //是jump类指�(j, jr)
+        .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲�
+        .pc_jumpD(pc_jumpD)                 //D阶段�终跳转地�
     );
 	//-----------Execute----------------
 	Decode_Execute De_Ex(
@@ -441,9 +441,9 @@ module datapath(
         .addr_error_sw(addrErrorSwM),
         .addr_error_lw(addrErrorLwM)  
     );
-    // hilo寄存�?
+    // hilo寄存�
     hilo hilo(clk,rst,hilo_selectE,hilo_wenE&~flush_exceptionM,instrM,aluoutE,hilo_oM);
-    assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不�?00
+    assign pcErrorM = |(pcM[1:0] ^ 2'b00);  //后两位不�00
      //异常处理
     exception exception(
         .rst(rst),
@@ -459,7 +459,7 @@ module datapath(
         .pc_trap(pc_trapM),
         .badvaddrM(badvaddrM)
     );
-     // cp0寄存?
+     // cp0寄存
     cp0_reg cp0(
         .clk(clk),
         .rst(rst),
@@ -482,7 +482,7 @@ module datapath(
         .epc_o(cp0_epcW)
     );
 	//---------Write_Back----------------
-    //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中写入寄存器的�?
+    //在aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW中写入寄存器的�
     mux4 #(32) mux4_memtoreg(aluoutM, mem_ctrl_rdataM, hilo_oM, cp0_data_oW, 
                             {hilotoregM, memtoregM} | {2{is_mfcM}},
                             resultM);

@@ -50,32 +50,32 @@ module maindec(
 	always @(*) begin
 		case(opD)
 			`R_TYPE:begin
-				is_mfcD<=1'b0;
-				riD<=1'b0;
+				is_mfcD=1'b0;
+				riD=1'b0;
 				case(functD)
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
 					`SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
 					`MFHI, `MFLO : begin
-						aluopD<=`R_TYPE_OP;
+						aluopD=`R_TYPE_OP;
 						{regwriteD, regdstD, is_immD} =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
 					// 乘除hilo、自陷�?�jr不需要使用寄存器和存储器
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
 					`SYSCALL, `BREAK : begin
-						aluopD<=`R_TYPE_OP;
+						aluopD=`R_TYPE_OP;
 						{regwriteD, regdstD, is_immD} =  4'b0;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
 					`JALR: begin
-						aluopD<=`R_TYPE_OP;
+						aluopD=`R_TYPE_OP;
 						{regwriteD, regdstD, is_immD} =  4'b1100;//xxxxxxxx，感觉不太对�?
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
 					default: begin
-						aluopD<=`USELESS_OP;
+						aluopD=`USELESS_OP;
 						riD  =  1'b1;
 						{regwriteD, regdstD, is_immD}  =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
@@ -84,67 +84,67 @@ module maindec(
 			end
 	// ------------------算数\逻辑运算--------------------------------------
 			`ADDI:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`ADDI_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`ADDI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`SLTI:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`SLTI_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`SLTI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`SLTIU:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`SLTIU_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`SLTIU_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ADDIU:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`ADDIU_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`ADDIU_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ANDI:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`ANDI_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`ANDI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`LUI:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`LUI_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`LUI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`XORI:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`XORI_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`XORI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 			`ORI:	begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`ORI_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`ORI_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 	
 
 			`BEQ, `BNE, `BLEZ, `BGTZ: begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`USELESS_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0000;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
@@ -152,58 +152,58 @@ module maindec(
 			`REGIMM_INST: begin
 				case(rtD)
 					`BGEZAL,`BLTZAL: begin
-						riD<=1'b0;
-						is_mfcD<=1'b0;
-						aluopD<=`USELESS_OP;
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b1100;//�?要写�?31
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`BGEZ,`BLTZ: begin
-						riD<=1'b0;
-						is_mfcD<=1'b0;
-						aluopD<=`USELESS_OP;
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					default:begin
-						is_mfcD<=1'b0;
+						is_mfcD=1'b0;
 						riD  =  1'b1;
-						aluopD<=`USELESS_OP;
+						aluopD=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 				endcase
 			end
 			
-	// 访存指令，都是立即数指令�?
+	// 访存指令，都是立即数指令
 			`LW, `LB, `LBU, `LH, `LHU: begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`MEM_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`MEM_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b110;
 			end
 			`SW, `SB, `SH: begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`MEM_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`MEM_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0001;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b001;
 			end
 	
 	//  J type
 			`J: begin
-				riD<=1'b0;
-				aluopD<=`USELESS_OP;
-				is_mfcD<=1'b0;
+				riD=1'b0;
+				aluopD=`USELESS_OP;
+				is_mfcD=1'b0;
 				{regwriteD, regdstD, is_immD}  =  4'b0;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 
 			`JAL: begin
-				riD<=1'b0;
-				is_mfcD<=1'b0;
-				aluopD<=`USELESS_OP;
+				riD=1'b0;
+				is_mfcD=1'b0;
+				aluopD=`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1100;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
@@ -211,22 +211,22 @@ module maindec(
 			`SPECIAL3_INST:begin
 				case(instrD[25:21])
 					`MTC0: begin
-						riD<=1'b0;
-						is_mfcD<=1'b0;
-						aluopD<=`MTC0_OP;
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`MTC0_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					`MFC0: begin
-						riD<=1'b0;
+						riD=1'b0;
 						is_mfcD = 1'b1;
-						aluopD<=`MFC0_OP;
+						aluopD=`MFC0_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b1010;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					default: begin
-						is_mfcD<=1'b0;
-						aluopD<=`USELESS_OP;
+						is_mfcD=1'b0;
+						aluopD=`USELESS_OP;
 						riD  =  |(instrD[25:0] ^ `ERET);
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
@@ -236,7 +236,7 @@ module maindec(
 
 			default: begin
 				riD  =  1;
-				is_mfcD<=1'b0;
+				is_mfcD=1'b0;
 				aluopD =`USELESS_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b0;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
@@ -247,32 +247,32 @@ module maindec(
 	always @(*) begin
 		case(opD)
 			`BEQ: begin
-				branch_judge_controlD<=3'b001;
+				branch_judge_controlD=3'b001;
 			end
 			`BNE: begin
-				branch_judge_controlD<=3'b010;
+				branch_judge_controlD=3'b010;
 			end
 			`BLEZ: begin
-				branch_judge_controlD<=3'b011;
+				branch_judge_controlD=3'b011;
 			end
 			`BGTZ: begin
-				branch_judge_controlD<=3'b100;
+				branch_judge_controlD=3'b100;
 			end
 			`REGIMM_INST: begin
 				case(rtD)
 					`BLTZ,`BLTZAL: begin
-						branch_judge_controlD<=3'b101;
+						branch_judge_controlD=3'b101;
 					end
 					`BGEZ,`BGEZAL: begin
-						branch_judge_controlD<=3'b110;
+						branch_judge_controlD=3'b110;
 					end
 					default:begin
-						branch_judge_controlD<=3'b101;
+						branch_judge_controlD=3'b101;
 					end
 				endcase
 				end
 			default:begin
-						branch_judge_controlD<=3'b000;
+						branch_judge_controlD=3'b000;
 					end
 		endcase
 	end
