@@ -11,7 +11,7 @@ module pc_reg(
     input wire jump_conflictD,
     input wire jump_conflictE,
     input wire [31:0] pc_exceptionM,            //异常的跳转地址
-    input wire [31:0] pcplus4E,              //预测跳，实际不跳 将pc_next指向branch指令的PC+8（注：pcplus4E等价于branch指令的PC+8） //可以保证延迟槽指令不会被flush，故plush_4E存在
+    input wire [31:0] pcplus4E,              //预测跳，实际不跳 将pc_next指向branch指令的PC+8
     input wire [31:0] pc_branchM,              //预测不跳，实际跳转 将pc_next指向pc_branchD传到M阶段的值
     input wire [31:0] pc_jumpE,               //jump冲突，在E阶段 （E阶段rs的值）
     input wire [31:0] pc_jumpD,                 //D阶段jump不冲突跳转的地址（rs寄存器或立即数）
@@ -25,14 +25,14 @@ module pc_reg(
         if(pc_trapM) //发生异常
             pick = 3'b000;
         else 
-        if(branchM & ~pre_right & ~actual_takeM)  //预测跳  实际不挑 pc+8 pick=001
+        if(branchM & ~pre_right & ~actual_takeM)  //预测跳  实际不挑
             pick = 3'b001;
-        else if(branchM & ~pre_right & actual_takeM)   //预测不跳  实际跳 pc_branchM pick=010
+        else if(branchM & ~pre_right & actual_takeM)   //预测不跳  实际跳
             pick = 3'b010;
-        else if(jump_conflictE)  //jump冲突 pc_jumpE pick=011
+        else if(jump_conflictE)  //jump冲突
             pick = 3'b011;
             //next_pc = pc_jumpE;
-        else if(jumpD & ~jump_conflictD) //jump不冲突 pc_jumpD pick=100
+        else if(jumpD & ~jump_conflictD) //jump不冲突
             pick = 3'b100;
         else if(branchD & ~branchM & pred_takeD || branchD & branchM & pre_right & pred_takeD) 
             //采用D阶段预测结果进行跳转
