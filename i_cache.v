@@ -144,19 +144,6 @@ module i_cache (
     assign isRM = state==RM;
     assign read_finish = isRM & cache_inst_data_ok;
 
-    //写内存
-    wire isWM;     // 是不是处于WM状态
-    reg waddr_rcv;      // 处于WM状态，且地址已得到mem的确认
-    wire write_finish;  // 处于WM状态，且已写入mem的数据
-    always @(posedge clk) begin
-        waddr_rcv <= rst ? 1'b0 :
-                     cache_inst_req& isWM & cache_inst_addr_ok ? 1'b1 :
-                     write_finish ? 1'b0 :
-                     waddr_rcv;
-    end
-    assign isWM = state==WM;
-    assign write_finish = isWM & cache_inst_data_ok;
-
 
     //output to mips core
     assign cpu_inst_rdata   = hit ? c_block[c_way] : cache_inst_rdata;
@@ -164,8 +151,8 @@ module i_cache (
     assign cpu_inst_data_ok = cpu_inst_req & hit | isRM & cache_inst_data_ok;
 
     //output to axi interface
-    assign cache_inst_req   = isRM & ~addr_rcv | isWM & ~waddr_rcv;
-    assign cache_inst_wr    = isWM;
+    assign cache_inst_req   = isRM & ~addr_rcv;
+    assign cache_inst_wr    = cpu_inst_wr;
     assign cache_inst_size  = cpu_inst_size;
     assign cache_inst_addr  = cache_inst_wr ? {c_tag[c_way], index, offset}:
                                               cpu_inst_addr;
@@ -181,22 +168,6 @@ module i_cache (
         index_save <= rst ? 0 :
                       cpu_inst_req ? index : index_save;
     end
-    wire [31:0] write_cache_data;
-    wire [3:0] write_mask;
-//根据地址低两位和size，生成写掩码（针对sb，sh等不是写完整一个字的指令），4位对应1个字（4字节）中每个字的写使能
-    assign write_mask = cpu_inst_size==2'b00 ?
-                            (cpu_inst_addr[1] ? (cpu_inst_addr[0] ? 4'b1000 : 4'b0100):
-                                                (cpu_inst_addr[0] ? 4'b0010 : 4'b0001)) :
-                            (cpu_inst_size==2'b01 ? (cpu_inst_addr[1] ? 4'b1100 : 4'b0011) : 4'b1111);
-
-    //掩码的使用：位为1的代表需要更新的。
-    //位拓展：{8{1'b1}} -> 8'b11111111
-    //new_data = old_data & ~mask | write_data & mask
-    wire [31:0] cache_tmp;
-    assign cache_tmp=   (~|(c_way^1'b0)) ?cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH]:
-                                            cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH];
-    assign write_cache_data = cache_tmp & ~{{8{write_mask[3]}}, {8{write_mask[2]}}, {8{write_mask[1]}}, {8{write_mask[0]}}} | 
-                              cpu_inst_wdata & {{8{write_mask[3]}}, {8{write_mask[2]}}, {8{write_mask[1]}}, {8{write_mask[0]}}};
 
     wire isIDLE = state==IDLE;
 
@@ -206,7 +177,6 @@ module i_cache (
             for(t=0; t<CACHE_DEEPTH; t=t+1) begin   //刚开始将Cache初始化为无效，dirty 初始化为 0，//* ru 初始化为0
                 for (y = 0; y<2; y=y+1) begin
                     cache_valid[t][y] = 0;
-                    cache_dirty[t][y] = 0;
                     cache_ru   [t][y] = 0;
                 end
             end
@@ -216,38 +186,15 @@ module i_cache (
                 case(c_way)
                     1'b0: begin
                         cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
-                        cache_dirty[index_save][0] <= 1'b0;  // 读取内存的数据后，一定是clean
                         cache_tag  [index_save][1*TAG_WIDTH-1:0*TAG_WIDTH] <= tag_save;
                         cache_block[index_save][1*DATA_WIDTH-1:0*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
                     end
                     1'b1: begin
                         cache_valid[index_save][1]<= 1'b1;  //将Cache line置为有效
-                        cache_dirty[index_save][1] <= 1'b0;  // 读取内存的数据后，一定是clean
                         cache_tag  [index_save][2*TAG_WIDTH-1:1*TAG_WIDTH] <= tag_save;
                         cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
                     end
                 endcase
-            end
-            else if (store & isIDLE & (hit | in_RM)) begin 
-                // store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将寄存器值的(部分)字节写入cache对应行
-                // 判断条件中加(hit | in_RM)是因为，如果只判断(store & isIDLE)，发生miss时，会在进入WM、RM之前提前进入该条件（本意是从RM回到IDLE的时候，已经读了mem的数据到cache后，再进入该条件，结果是刚进入store分支，就进入了该条件），
-                // 如果提前进入条件的话，此时写入cache的write_cache_data为 {旧cache[:x], 寄存器[x-1:0]}，WM时会把这个错误数据写回mem，导致出错。为解决该问题，额外加了一个信号in_RM，记录之前是不是一直处在RM状态。
-                case(c_way)
-                    1'b0: begin
-                        cache_dirty[index][0]                        <= 1'b1; // 改了数据，变dirty
-                        cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH]<= write_cache_data;  
-                    end
-                    1'b1: begin
-                        cache_dirty[index][1]                        <= 1'b1; // 改了数据，变dirty
-                        cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH]<= write_cache_data;  
-                    end
-                endcase
-            end
-
-            if ((load | store) & isIDLE & (hit | in_RM)) begin
-                //* load 或 store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将最近使用情况更新
-                cache_ru[index][c_way]   <= 1'b1; //* c_way 路最近使用了
-                cache_ru[index][1-c_way] <= 1'b0; //* 1-c_way 路最近未使用
             end
         end
     end
