@@ -28,7 +28,6 @@ module cp0_reg(
 	reg[`RegBus] config_o;
 	reg[`RegBus] prid_o;
 	reg[`RegBus] badvaddr;
-	reg timer_int_o;
 	always @(posedge clk) begin
 		if(rst == `RstEnable) begin
 			count_o <= `ZeroWord;
@@ -38,14 +37,9 @@ module cp0_reg(
 			epc_o <= `ZeroWord;
 			config_o <= 32'b00000000000000001000000000000000;
 			prid_o <= 32'b00000000010011000000000100000010;
-			timer_int_o <= `InterruptNotAssert;
 		end else  if (~i_cache_stall)begin
 			count_o <= count_o + 1;
 			cause_o[15:10] <= int_i;
-			if(compare_o != `ZeroWord && count_o == compare_o) begin
-				/* code */
-				timer_int_o <= `InterruptAssert;
-			end
 			if(we_i == `WriteEnable) begin
 				/* code */
 				case (waddr_i)
@@ -54,7 +48,6 @@ module cp0_reg(
 					end
 					`CP0_REG_COMPARE:begin 
 						compare_o <= data_i;
-						timer_int_o <= `InterruptNotAssert;
 					end
 					`CP0_REG_STATUS:begin 
 						status_o <= data_i;
