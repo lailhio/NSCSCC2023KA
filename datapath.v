@@ -223,11 +223,11 @@ module datapath(
         .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟
     );
     wire[5:0] functD;
-	wire [5:0] opD = instrD[31:26];
-	wire [4:0] rsD = instrD[25:21];
-	wire [4:0] rtD = instrD[20:16];
-	wire [4:0] rdD = instrD[15:11];
-	wire [4:0] saD = instrD[10:6];
+	assign opD = instrD[31:26];
+	assign rsD = instrD[25:21];
+	assign rtD = instrD[20:16];
+	assign rdD = instrD[15:11];
+	assign saD = instrD[10:6];
 	aludec ad(functD,aluopD,alucontrolD);
 	maindec md(
 		instrD,

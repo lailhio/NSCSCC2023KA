@@ -50,9 +50,6 @@ module aludec(
 			`XORI_OP: alucontrol = `XOR_CONTROL;
 			`LUI_OP: 	alucontrol = `LUI_CONTROL;
 			`ORI_OP: alucontrol = `OR_CONTROL;
-				//memory
-			`MEM_OP:
-						alucontrol = `ADDU_CONTROL;
 			default:
 						alucontrol = 5'b0;
 		endcase

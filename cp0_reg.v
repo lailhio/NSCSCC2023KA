@@ -17,18 +17,18 @@ module cp0_reg(
 	input wire is_in_delayslot_i,
 	input wire[`RegBus] bad_addr_i,
 
-	output reg[`RegBus] data_o,
-	output reg[`RegBus] count_o,
-	output reg[`RegBus] compare_o,
+	
 	output reg[`RegBus] status_o,
 	output reg[`RegBus] cause_o,
 	output reg[`RegBus] epc_o,
-	output reg[`RegBus] config_o,
-	output reg[`RegBus] prid_o,
-	output reg[`RegBus] badvaddr,
-	output reg timer_int_o
+	output reg[`RegBus] data_o
     );
-
+	reg[`RegBus] count_o;
+	reg[`RegBus] compare_o;
+	reg[`RegBus] config_o;
+	reg[`RegBus] prid_o;
+	reg[`RegBus] badvaddr;
+	reg timer_int_o;
 	always @(posedge clk) begin
 		if(rst == `RstEnable) begin
 			count_o <= `ZeroWord;
