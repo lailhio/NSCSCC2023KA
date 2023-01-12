@@ -19,32 +19,25 @@ module pc_reg(
     input wire [31:0] pcplus4F,                 //下一条指令的地址
     output reg [31:0] pc
     );
-    wire [31:0] next_pc;
-    reg [2:0] pick;
+    reg [31:0] next_pc;
     always @(*) begin
         if(pc_trapM) //发生异常
-            pick = 3'b000;
+            next_pc = pc_exceptionM;
         else 
         if(branchM & ~pre_right & ~actual_takeM)  //预测跳  实际不挑
-            pick = 3'b001;
+            next_pc = pcplus4E;
         else if(branchM & ~pre_right & actual_takeM)   //预测不跳  实际跳
-            pick = 3'b010;
+            next_pc = pc_branchM;
         else if(jump_conflictE)  //jump冲突
-            pick = 3'b011;
-            //next_pc = pc_jumpE;
+            next_pc = pc_jumpE;
         else if(jumpD & ~jump_conflictD) //jump不冲突
-            pick = 3'b100;
+            next_pc = pc_jumpD;
         else if(branchD & ~branchM & pred_takeD || branchD & branchM & pre_right & pred_takeD) 
             //采用D阶段预测结果进行跳转
-            pick = 3'b101;
+            next_pc = pc_branchD;
         else
-            pick = 3'b110;
+            next_pc = pcplus4F;
     end
-
-    assign next_pc = pick[2] ? (pick[1] ? (pick[0] ? 32'b0 : pcplus4F):        //111:110
-                                           (pick[0]? pc_branchD : pc_jumpD)):   //101:100
-                               (pick[1] ? (pick[0] ? pc_jumpE : pc_branchM):    //011:010
-                                          (pick[0] ? pcplus4E : pc_exceptionM));//001:000 //发生异常时pc跳转至异常处理地址
 
     always @(posedge clk) begin
         if(rst) begin
