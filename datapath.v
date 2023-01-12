@@ -438,7 +438,7 @@ module datapath(
         .addr_error_lw(addrErrorLwM)  
     );
     wire hilo_write_re;
-    assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误访存
+    assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误写入
 
     // hilo寄存器
     hilo hilo(clk,rst,hilo_selectE,hilo_write_re,mfhiM,mfloM,aluoutE,hilo_outM);
