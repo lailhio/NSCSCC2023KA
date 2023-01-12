@@ -35,15 +35,15 @@ module hazard(
 
     assign longest_stall=id_cache_stall|alu_stallE;
 
-    assign stallF = ~flush_exceptionM & (id_cache_stall | alu_stallE);//
+    assign stallF = ~flush_exceptionM & (id_cache_stall | alu_stallE);
     assign stallD =  id_cache_stall| alu_stallE;
     assign stallE =  id_cache_stall| alu_stallE;
     assign stallM =  id_cache_stall;
-    assign stallW =  ~flush_exceptionM &id_cache_stall;  // 不暂停,会减少jr等指令冲突;
+    assign stallW =  ~flush_exceptionM &id_cache_stall;
 
     assign flushF = 1'b0;
-    assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); //       //EX: jr(冲突), MEM: lw这种情况时，flush_jump_conflictE会导致暂停在D阶段jr的延迟槽指令消失
-    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) ;  //EX: div, MEM: beq, beq预测失败，要flush D和E，但由于div暂停在E，因此只需要flushD就可以了
+    assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); 
+    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) ; 
     assign flushM = flush_exceptionM;//控制hilo的写入 
     assign flushW = flush_exceptionM;
 endmodule

@@ -354,20 +354,16 @@ module datapath(
     );
 
     mux4 #(5) mux4_regdst(
-        rdE,rtE,5'd31,5'b0,
-        regdstE, 
+        rdE,rtE,5'd31,5'b0,regdstE, 
         writeregE //选择writeback寄存器
     );
 
     mux4 #(32) mux4_forward_1E(
-        rd1E,resultM,resultW,pcplus4D,  
-                                             
-        {2{jumpE | branchE}} |forward_1E,  
+        rd1E,resultM,resultW,pcplus4D,{2{jumpE | branchE}} |forward_1E,  
         src_aE
     );
     mux4 #(32) mux4_forward_2E(
-        rd2E,resultM,resultW,immE, 
-        {2{is_immE}} | forward_2E,  
+        rd2E,resultM,resultW,immE,{2{is_immE}} | forward_2E,  
         src_bE
     );
     mux4 #(32) mux4_rs_valueE(rd1E, resultM, resultW, 32'b0, forward_1E, rs_valueE); //数据前推后的rs寄存器
