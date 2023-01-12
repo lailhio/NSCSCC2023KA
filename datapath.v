@@ -246,6 +246,7 @@ module datapath(
 		breakD, syscallD, eretD, 
 		cp0_writeD,
 		cp0_to_regD,
+        mfhiD,mfloD,
 		is_mfcD,  
 		aluopD,
         functD,
