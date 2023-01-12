@@ -47,7 +47,7 @@ module d_cache (
     wire                  c_valid[1:0];
     wire                  c_dirty[1:0]; // 是否修改过
     wire                  c_ru   [1:0]; //* recently used
-    wire [TAG_WIDTH-1:0]  c_tag  [1:0];
+    wire [2*TAG_WIDTH-1:0]  c_tag  [1:0];
     wire [2*DATA_WIDTH-1:0]c_block[1:0];
 
     assign c_valid[0] = cache_valid[index][0];
