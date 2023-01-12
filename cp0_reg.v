@@ -23,9 +23,8 @@ module cp0_reg(
 	output reg[`RegBus] epc_o,
 	output reg[`RegBus] data_o,
 	output reg         timer_int_o,
-	output reg[`RegBus] count_o
+	output wire[`RegBus] count_o
     );
-	reg[`RegBus] count_o;
 	reg[`RegBus] compare_o;
 	reg[`RegBus] config_o;
 	reg[`RegBus] prid_o;

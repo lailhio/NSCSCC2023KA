@@ -18,6 +18,9 @@ module maindec(
 		output wire breakD, syscallD, eretD, 
 		output wire cp0_writeD,
 		output wire cp0_to_regD,
+			
+		output wire mfhiD,
+		output wire mfloD,
 		output reg is_mfcD,   //为mfc0
 		output reg [3:0] aluopD,
 		output reg [5:0] funct_to_aluD,
@@ -37,6 +40,8 @@ module maindec(
 
 	assign hilotoregD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
+	assign mfhiD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
+	assign mfloD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
 	assign cp0_writeD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
 	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MFC0));
 	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `ERET));

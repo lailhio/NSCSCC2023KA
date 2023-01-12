@@ -28,6 +28,8 @@ module Decode_Execute (
     input wire cp0_writeD,
     input wire cp0_to_regD,
     input wire is_mfcD,   //为mfc0
+    input wire mfhiD,
+	input wire mfloD,
 
     output reg [31:0] pcE,
     output reg [31:0] rd1E, rd2E,
@@ -53,7 +55,9 @@ module Decode_Execute (
     output reg breakE, syscallE, eretE, 
     output reg cp0_writeE,
     output reg cp0_to_regE,
-    output reg is_mfcE   //为mfc0
+    output reg is_mfcE,   //为mfc0
+    output reg mfhiE,
+	output reg mfloE
 );
     always @(posedge clk) begin
         if(rst | flushE) begin
@@ -89,6 +93,7 @@ module Decode_Execute (
             cp0_writeE                <=   0 ;
             cp0_to_regE             <=   0 ;
             is_mfcE                 <=   0 ;
+            mfhiE<=0;               mfloE<=0;
         end 
         else if(~stallE) begin
             pcE                     <= pcD                  ;
@@ -123,6 +128,7 @@ module Decode_Execute (
             cp0_writeE                <=   cp0_writeD;
             cp0_to_regE             <=  cp0_to_regD;
             is_mfcE                 <=   is_mfcD;
+            mfhiE<=mfhiD;               mfloE<=mfloD;
         end
     end
 endmodule

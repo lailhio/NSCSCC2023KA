@@ -64,7 +64,8 @@ module datapath(
 	wire 		cp0_writeD;
 	wire 		cp0_to_regD;
 	wire		is_mfcD;
-    
+	wire        mfhiD;
+	wire        mfloD;
     wire        is_in_delayslot_iD;//指令是否在延迟槽
 	//-------execute stage----------
 	wire [31:0] pcE, pcplus4E ,rd1E, rd2E, mem_wdataE, immE; //pc pc+4 寄存器号 写内存 立即数
@@ -100,6 +101,8 @@ module datapath(
 	wire        cp0_writeE;
 	wire        cp0_to_regE;
 	wire 		is_mfcE;
+	wire        mfhiE;
+	wire        mfloE;
     wire [1:0]  forward_1E;
     wire [1:0]  forward_2E;
  // 异常处理信号
@@ -127,6 +130,9 @@ module datapath(
     wire [31:0] hilo_outM;  //hilo输出
     wire        hilotoregM; 
 	wire		is_mfcM;
+	wire        mfhiM;
+	wire        mfloM;
+
 
     wire [4:0] 	rdM;
     wire [31:0] rt_valueM;
@@ -307,6 +313,7 @@ module datapath(
 		.hilotoregD(hilotoregD),.riD(riD),.breakD(breakD),
 		.syscallD(syscallD),.eretD(eretD),.cp0_writeD(cp0_writeD),
 		.cp0_to_regD(cp0_to_regD),.is_mfcD(is_mfcD),
+        .mfhiD(mfhiD),.mfloD(mfloD),
 	//Execute stage
         .pcE(pcE),
         .rsE(rsE), .rd1E(rd1E), .rd2E(rd2E),
@@ -326,7 +333,8 @@ module datapath(
 		.mem_readE(mem_readE),.mem_writeE(mem_writeE),.memtoregE(memtoregE),
 		.hilotoregE(hilotoregE),.riE(riE),.breakE(breakE),
 		.syscallE(syscallE),.eretE(eretE),.cp0_writeE(cp0_writeE),
-		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE)
+		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE),
+        .mfhiE(mfhiE),.mfloE(mfloE)
     );
 	//ALU
     alu alu(
@@ -393,6 +401,7 @@ module datapath(
 		.hilotoregE(hilotoregE),.riE(riE),.breakE(breakE),
 		.syscallE(syscallE),.eretE(eretE),.cp0_writeE(cp0_writeE),
 		.cp0_to_regE(cp0_to_regE),.is_mfcE(is_mfcE),
+        .mfhiE(mfhiE),.mfloE(mfloE),
 
         .pcM(pcM),
         .aluoutM(aluoutM),
@@ -407,7 +416,8 @@ module datapath(
 		.mem_readM(mem_readM),.mem_writeM(mem_writeM),.memtoregM(memtoregM),
 		.hilotoregM(hilotoregM),.riM(riM),.breakM(breakM),
 		.syscallM(syscallM),.eretM(eretM),.cp0_writeM(cp0_writeM),
-		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM)
+		.cp0_to_regM(cp0_to_regM),.is_mfcM(is_mfcM),
+        .mfhiM(mfhiM),.mfloM(mfloM)
     );
     assign mem_addrM = aluoutM;     //访存地址
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
@@ -430,7 +440,7 @@ module datapath(
     assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误访存
 
     // hilo寄存器
-    hilo hilo(clk,rst,hilo_selectE,hilo_write_re,instrM,aluoutE,hilo_outM);
+    hilo hilo(clk,rst,hilo_selectE,hilo_write_re,mfhiM,mfloM,aluoutE,hilo_outM);
     //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
     //在aluoutM, result_rdataM, hilo_outM, cp0_outW 中选择写入寄存器的数据

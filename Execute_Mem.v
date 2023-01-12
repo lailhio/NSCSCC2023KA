@@ -23,6 +23,8 @@ module Execute_Mem (
     input wire cp0_writeE,
     input wire cp0_to_regE,
     input wire is_mfcE,   //为mfc0
+    input wire mfhiE,
+	input wire mfloE,
 
     output reg [31:0] pcM,
     output reg [31:0] aluoutM,
@@ -44,7 +46,9 @@ module Execute_Mem (
     output reg breakM, syscallM, eretM, 
     output reg cp0_writeM,
     output reg cp0_to_regM,
-    output reg is_mfcM   //为mfc0
+    output reg is_mfcM,   //为mfc0
+    output reg mfhiM,
+	output reg mfloM
 );
     always @(posedge clk) begin
         if(rst | flushM) begin
@@ -72,6 +76,7 @@ module Execute_Mem (
             cp0_writeM                <=              0;
             cp0_to_regM             <=              0;
             is_mfcM                 <=              0;
+            mfhiM<=0;               mfloM<=0;
         end
         else if(~stallM) begin
             pcM                     <=           pcE                ;
@@ -98,6 +103,7 @@ module Execute_Mem (
             cp0_writeM                <=              cp0_writeE        ;
             cp0_to_regM             <=              cp0_to_regE     ;
             is_mfcM                 <=              is_mfcE         ;
+            mfhiM<=mfhiE;               mfloM<=mfloE;
         end
     end
 endmodule
