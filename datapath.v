@@ -126,7 +126,6 @@ module datapath(
     wire [31:0] pc_branchM; //分支跳转地址
 
     wire [31:0] result_rdataM;
-    wire [31:0] writedataM_temp;
     wire [31:0] hilo_outM;  //hilo输出
     wire        hilotoregM; 
 	wire		is_mfcM;
