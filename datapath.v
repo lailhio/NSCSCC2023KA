@@ -31,7 +31,7 @@ module datapath(
     );
 	
 	//--------fetch stage----------
-	wire [31:0] pcF, pcplus4F;    //pc
+	wire [31:0] pcplus4F;    //pc
     wire [31:0] instrF_4;                   //instrF末尾为2'b00
     
     wire pc_errorF;  // pc错误
@@ -175,14 +175,13 @@ module datapath(
     assign debug_wb_rf_wdata    = resultM;
 
     //--------------------------------------Fetch------------------------------------------------
-    assign inst_addrF = pcF; //F阶段地址
-    assign pc_errorF = (~|(pcF[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
+    assign pc_errorF = (~|(inst_addrF[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
     
     assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE;
     wire [31:0] instrF_valid;
     assign instrF_valid = {32{inst_enF}}&instrF;  //丢掉无效指令
     // pc+4
-    assign pcplus4F = pcF + 4;
+    assign pcplus4F = inst_addrF + 4;
     assign is_in_delayslot_iF = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     // pc reg
     pc_reg pc(
@@ -207,7 +206,7 @@ module datapath(
         .pc_branchD(pc_branchD),
         .pcplus4F(pcplus4F),
 
-        .pc(pcF)
+        .pc(inst_addrF)
     );
 
 	//----------------------------------------Decode------------------------------------------------
@@ -217,7 +216,7 @@ module datapath(
         .stallD(stallD),
         .flushD(flushD),
 
-        .pcF(pcF),
+        .pcF(inst_addrF),
         .pcplus4F(pcplus4F),
         .instrF(instrF_valid),
         .is_in_delayslot_iF(is_in_delayslot_iF), //上一条指令是跳转
@@ -258,7 +257,7 @@ module datapath(
     // 立即数左移2 + pc+4得到分支跳转地址   
     assign pc_branchD = {immD[29:0], 2'b00} + pcplus4D;
 
-	//分支预测
+	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
 
@@ -267,7 +266,7 @@ module datapath(
 
         .instrD(instrD),
         .immD(immD),
-        .pcF(pcF),
+        .pcF(inst_addrF),
         .pcM(pcM),
         .branchM(branchM),
         .actual_takeM(actual_takeM),
@@ -275,7 +274,7 @@ module datapath(
         .branchD(branchD),
         .pred_takeD(pred_takeD)
     );
-    // jump指令控制
+    // jump, assign Logic
     jump_control jump_control(
         .instrD(instrD),
         .pcplus4D(pcplus4D),
@@ -352,10 +351,8 @@ module datapath(
         .overflowE(overflowE)
     );
 
-    mux4 #(5) mux4_regdst(
-        rdE,rtE,5'd31,5'b0,regdstE, 
-        writeregE //选择writeback寄存器
-    );
+//选择writeback寄存器
+    mux4 #(5) mux4_regdst(rdE,rtE,5'd31,5'b0,regdstE,     writeregE);
 
     mux4 #(32) mux4_forward_1E(
         rd1E,resultM,resultW,pcplus4D,{2{jumpE | branchE}} |forward_1E,  
@@ -417,7 +414,7 @@ module datapath(
     );
     assign mem_addrM = aluoutM;     //访存地址
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
-    // mem读写控制
+    // Assign Logical
     mem_control mem_control(
         .instrM(instrM),
         .addr(aluoutM),
@@ -435,7 +432,7 @@ module datapath(
     wire hilo_write_re;
     assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误写入
 
-    // hilo寄存器
+    // hilo, 
     hilo hilo(clk,rst,hilo_selectE,hilo_write_re,mfhiM,mfloM,aluoutE,hilo_outM);
     //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
