@@ -28,11 +28,11 @@ module d_cache (
     
     //Cache存储单元
     //* 两路，所以cache扩大一倍
-    reg [1:0]             cache_valid [CACHE_DEEPTH - 1 : 0];
-    reg [1:0]             cache_dirty [CACHE_DEEPTH - 1 : 0]; // 是否修改过
-    reg [1:0]             cache_ru    [CACHE_DEEPTH - 1 : 0]; //* recently used
-    reg [2*TAG_WIDTH-1:0] cache_tag   [CACHE_DEEPTH - 1 : 0];
-    reg [2*DATA_WIDTH-1:0]cache_block [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [1:0]             cache_valid [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [1:0]             cache_dirty [CACHE_DEEPTH - 1 : 0]; // 是否修改过
+    (*ram_style="block"*) reg [1:0]             cache_ru    [CACHE_DEEPTH - 1 : 0]; //* recently used
+    (*ram_style="block"*) reg [2*TAG_WIDTH-1:0] cache_tag   [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [2*DATA_WIDTH-1:0]cache_block [CACHE_DEEPTH - 1 : 0];
 
     //访问地址分解
     wire [OFFSET_WIDTH-1:0] offset;
@@ -245,53 +245,42 @@ module d_cache (
 
     integer t, y;
     always @(posedge clk) begin
-        if(rst) begin
-            for(t=0; t<CACHE_DEEPTH; t=t+1) begin   //刚开始将Cache初始化为无效，dirty 初始化为 0，//* ru 初始化为0
-                for (y = 0; y<2; y=y+1) begin
-                    cache_valid[t][y] = 0;
-                    cache_dirty[t][y] = 0;
-                    cache_ru   [t][y] = 0;
+        if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
+            case(c_way)
+                1'b0: begin
+                    cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
+                    cache_dirty[index_save][0] <= 1'b0;  // 读取内存的数据后，一定是clean
+                    cache_tag  [index_save][1*TAG_WIDTH-1:0*TAG_WIDTH] <= tag_save;
+                    cache_block[index_save][1*DATA_WIDTH-1:0*DATA_WIDTH] <= cache_data_rdata; //写入Cache line
                 end
-            end
+                1'b1: begin
+                    cache_valid[index_save][1]<= 1'b1;  //将Cache line置为有效
+                    cache_dirty[index_save][1] <= 1'b0;  // 读取内存的数据后，一定是clean
+                    cache_tag  [index_save][2*TAG_WIDTH-1:1*TAG_WIDTH] <= tag_save;
+                    cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_data_rdata; //写入Cache line
+                end
+            endcase
         end
-        else begin
-            if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
-                case(c_way)
-                    1'b0: begin
-                        cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
-                        cache_dirty[index_save][0] <= 1'b0;  // 读取内存的数据后，一定是clean
-                        cache_tag  [index_save][1*TAG_WIDTH-1:0*TAG_WIDTH] <= tag_save;
-                        cache_block[index_save][1*DATA_WIDTH-1:0*DATA_WIDTH] <= cache_data_rdata; //写入Cache line
-                    end
-                    1'b1: begin
-                        cache_valid[index_save][1]<= 1'b1;  //将Cache line置为有效
-                        cache_dirty[index_save][1] <= 1'b0;  // 读取内存的数据后，一定是clean
-                        cache_tag  [index_save][2*TAG_WIDTH-1:1*TAG_WIDTH] <= tag_save;
-                        cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_data_rdata; //写入Cache line
-                    end
-                endcase
-            end
-            else if (store & isIDLE & (hit | in_RM)) begin 
-                // store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将寄存器值的(部分)字节写入cache对应行
-                // 判断条件中加(hit | in_RM)是因为，如果只判断(store & isIDLE)，发生miss时，会在进入WM、RM之前提前进入该条件（本意是从RM回到IDLE的时候，已经读了mem的数据到cache后，再进入该条件，结果是刚进入store分支，就进入了该条件），
-                // 如果提前进入条件的话，此时写入cache的write_cache_data为 {旧cache[:x], 寄存器[x-1:0]}，WM时会把这个错误数据写回mem，导致出错。为解决该问题，额外加了一个信号in_RM，记录之前是不是一直处在RM状态。
-                case(c_way)
-                    1'b0: begin
-                        cache_dirty[index][0]                        <= 1'b1; // 改了数据，变dirty
-                        cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH]<= write_cache_data;  
-                    end
-                    1'b1: begin
-                        cache_dirty[index][1]                        <= 1'b1; // 改了数据，变dirty
-                        cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH]<= write_cache_data;  
-                    end
-                endcase
-            end
+        else if (store & isIDLE & (hit | in_RM)) begin 
+            // store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将寄存器值的(部分)字节写入cache对应行
+            // 判断条件中加(hit | in_RM)是因为，如果只判断(store & isIDLE)，发生miss时，会在进入WM、RM之前提前进入该条件（本意是从RM回到IDLE的时候，已经读了mem的数据到cache后，再进入该条件，结果是刚进入store分支，就进入了该条件），
+            // 如果提前进入条件的话，此时写入cache的write_cache_data为 {旧cache[:x], 寄存器[x-1:0]}，WM时会把这个错误数据写回mem，导致出错。为解决该问题，额外加了一个信号in_RM，记录之前是不是一直处在RM状态。
+            case(c_way)
+                1'b0: begin
+                    cache_dirty[index][0]                        <= 1'b1; // 改了数据，变dirty
+                    cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH]<= write_cache_data;  
+                end
+                1'b1: begin
+                    cache_dirty[index][1]                        <= 1'b1; // 改了数据，变dirty
+                    cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH]<= write_cache_data;  
+                end
+            endcase
+        end
 
-            if ((load | store) & isIDLE & (hit | in_RM)) begin
-                //* load 或 store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将最近使用情况更新
-                cache_ru[index][c_way]   <= 1'b1; //* c_way 路最近使用了
-                cache_ru[index][1-c_way] <= 1'b0; //* 1-c_way 路最近未使用
-            end
+        if ((load | store) & isIDLE & (hit | in_RM)) begin
+            //* load 或 store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将最近使用情况更新
+            cache_ru[index][c_way]   <= 1'b1; //* c_way 路最近使用了
+            cache_ru[index][1-c_way] <= 1'b0; //* 1-c_way 路最近未使用
         end
     end
 endmodule
