@@ -27,11 +27,11 @@ module i_cache (
     localparam DATA_WIDTH   = 32;
 
     //Cache存储单元，四路组相联，所以cache[3:0]
-    reg [1:0]               cache_valid [CACHE_DEEPTH - 1 : 0];
-    reg [1:0]               cache_dirty [CACHE_DEEPTH - 1 : 0]; // 是否被修改了，即是否脏了
-    reg [1:0]               cache_ru    [CACHE_DEEPTH - 1 : 0]; //* recently used    
-    reg [2*TAG_WIDTH-1:0]   cache_tag   [CACHE_DEEPTH - 1 : 0];
-    reg [2*DATA_WIDTH-1:0]  cache_block [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [1:0]               cache_valid [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [1:0]               cache_dirty [CACHE_DEEPTH - 1 : 0]; // 是否被修改了，即是否脏了
+    (*ram_style="block"*) reg [1:0]               cache_ru    [CACHE_DEEPTH - 1 : 0]; //* recently used    
+    (*ram_style="block"*) reg [2*TAG_WIDTH-1:0]   cache_tag   [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [2*DATA_WIDTH-1:0]  cache_block [CACHE_DEEPTH - 1 : 0];
 
     //访问地址分解
     wire [OFFSET_WIDTH-1:0] offset;
@@ -173,29 +173,19 @@ module i_cache (
 
     integer t, y;
     always @(posedge clk) begin
-        if(rst) begin
-            for(t=0; t<CACHE_DEEPTH; t=t+1) begin   //刚开始将Cache初始化为无效，dirty 初始化为 0，//* ru 初始化为0
-                for (y = 0; y<2; y=y+1) begin
-                    cache_valid[t][y] = 0;
-                    cache_ru   [t][y] = 0;
+        if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
+            case(c_way)
+                1'b0: begin
+                    cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
+                    cache_tag  [index_save][1*TAG_WIDTH-1:0*TAG_WIDTH] <= tag_save;
+                    cache_block[index_save][1*DATA_WIDTH-1:0*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
                 end
-            end
-        end
-        else begin
-            if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
-                case(c_way)
-                    1'b0: begin
-                        cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
-                        cache_tag  [index_save][1*TAG_WIDTH-1:0*TAG_WIDTH] <= tag_save;
-                        cache_block[index_save][1*DATA_WIDTH-1:0*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
-                    end
-                    1'b1: begin
-                        cache_valid[index_save][1]<= 1'b1;  //将Cache line置为有效
-                        cache_tag  [index_save][2*TAG_WIDTH-1:1*TAG_WIDTH] <= tag_save;
-                        cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
-                    end
-                endcase
-            end
+                1'b1: begin
+                    cache_valid[index_save][1]<= 1'b1;  //将Cache line置为有效
+                    cache_tag  [index_save][2*TAG_WIDTH-1:1*TAG_WIDTH] <= tag_save;
+                    cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
+                end
+            endcase
         end
     end
 endmodule
