@@ -173,7 +173,7 @@ module datapath(
     //--------------------------------------Fetch------------------------------------------------
     assign pc_errorF = (~|(inst_addrF[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
     
-    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE;
+    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE & ~stallDblank;
     wire [31:0] instrF_valid;
     assign instrF_valid = {32{inst_enF}}&instrF;  //丢掉无效指令
     // pc+4
@@ -305,13 +305,13 @@ module datapath(
 	flopstrc #(32) flopRtvalueE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(rt_valueM));
 	flopstrc #(32) flopInstrE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
-    flopstrc #(10) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+    flopstrc #(10) flopSign1E(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE,hilotoregE}),
         .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM,hilotoregM}));
-    flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+    flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,mfhiE,mfloE,breakE,hilotoregE}),
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,mfhiM,mfloM,breakM,hilotoregM}));
-    flopstrc #(6) flopWriteregE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+    flopstrc #(6) flopWriteregE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
     assign mem_addrM = aluoutM;     //访存地址
@@ -402,7 +402,7 @@ module datapath(
 
         .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
-        .longest_stall(longest_stall),
+        .longest_stall(longest_stall), .stallDblank(stallDblank),
         .forward_1D(forward_1D), .forward_2D(forward_2D)
     );
 	
