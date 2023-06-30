@@ -45,7 +45,7 @@ module hazard(
 
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
-    assign stallDblank= (((~|(forward_2D ^ 2'b11)) | (~|(forward_1D ^ 2'b11))) & (is_mfcE | mem_readE | hilotoregE)) ;
+    assign stallDblank= (((~|(forward_2D ^ 2'b11)) | (~|(forward_1D ^ 2'b11))) & (is_mfcE | mem_readE | hilotoregE)) & (~flush_exceptionM) ;
     assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE))| stallDblank;
     assign stallD =  id_cache_stall| alu_stallE | stallDblank;
     assign stallE =  id_cache_stall| alu_stallE;
