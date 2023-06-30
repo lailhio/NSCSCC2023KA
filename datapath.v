@@ -206,22 +206,12 @@ module datapath(
     );
 
 	//----------------------------------------Decode------------------------------------------------
-
-    Fetch_Decode Fe_De(
-        .clk(clk), .rst(rst),
-        .stallD(stallD),
-        .flushD(flushD),
-
-        .pcF(inst_addrF),
-        .pcplus4F(pcplus4F),
-        .instrF(instrF_valid),
-        .is_in_delayslot_iF(is_in_delayslot_iF), //上一条指令是跳转
-        
-        .pcD(pcD),
-        .pcplus4D(pcplus4D),
-        .instrD(instrD),
-        .is_in_delayslot_iD(is_in_delayslot_iD)  //处于延迟
-    );
+    flopstrc #(32) flopPcplusF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(pcplus4F),.out(pcplus4D));
+    flopstrc #(32) flopPcF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_addrF),.out(pcD));
+    flopstrc #(32) flopInstF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instrF_valid),.out(instrD));
+    flopstrc #(32) flopIsdelayF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
+        .in(is_in_delayslot_iF),.out(is_in_delayslot_iD));
+    //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
 	aludec ad(functD,aluopD,alucontrolD);
 	maindec md(instrD,
@@ -341,7 +331,7 @@ module datapath(
     wire hilo_write_re;
     assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误写入
 
-    // hilo, 
+    // hilo
     hilo hilo(clk,rst,hilo_selectE,hilo_write_re,mfhiM,mfloM,aluoutE,hilo_outM);
     //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
@@ -392,6 +382,7 @@ module datapath(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
         .alu_stallE(alu_stallE),
+        .instrE(instrE),
 
         .flush_jump_conflictE   (flush_jump_conflictE),
         .flush_pred_failedM     (flush_pred_failedM),
@@ -399,11 +390,14 @@ module datapath(
 
         .rsD(instrD[25:21]),
         .rtD(instrD[20:16]),
+        .is_mfcE(is_mfcE),
+        .hilotoregE(hilotoregE),
         .regwriteE(regwriteE),
         .regwriteM(regwriteM),
         .regwriteW(regwriteW),
         .writeregM(writeregM),
         .writeregW(writeregW),
+        .mem_readE(mem_readE),
         .mem_readM(mem_readM),
 
         .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
