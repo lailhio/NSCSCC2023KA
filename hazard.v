@@ -5,7 +5,6 @@ module hazard(
     input wire i_cache_stall,
 	input wire d_cache_stall,
     input wire alu_stallE, 
-    input wire instrE,
 
     input wire flush_jump_conflictE, flush_pred_failedM, flush_exceptionM,
 

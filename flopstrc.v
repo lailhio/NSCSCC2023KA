@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 //flip-flop with enable,rst,clear
 module flopstrc #(parameter WIDTH = 8)(
-	input wire clk,rst,stall,flush
+	input wire clk,rst,stall,flush,
 	input wire[WIDTH-1:0] in,
 	output reg[WIDTH-1:0] out
     );

@@ -209,7 +209,7 @@ module datapath(
     flopstrc #(32) flopPcplusF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(pcplus4F),.out(pcplus4D));
     flopstrc #(32) flopPcF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_addrF),.out(pcD));
     flopstrc #(32) flopInstF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instrF_valid),.out(instrD));
-    flopstrc #(32) flopIsdelayF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
+    flopstrc #(1) flopIsdelayF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
         .in(is_in_delayslot_iF),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
@@ -229,8 +229,8 @@ module datapath(
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
     //前推至ID阶段
-    mux4 #(32) mux4_forward_1E(rd1D,resultM,resultW,aluoutE,forward_1D,  src_a1D);
-    mux4 #(32) mux4_forward_2E(rd2D,resultM,resultW,aluoutE,forward_2D, src_b1D);
+    mux4 #(32) mux4_forward_1E(rd1D,resultM,resultW,aluoutE[31:0],forward_1D,  src_a1D);
+    mux4 #(32) mux4_forward_2E(rd2D,resultM,resultW,aluoutE[31:0],forward_2D, src_b1D);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
@@ -371,7 +371,7 @@ module datapath(
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
     assign flush_pred_failedM = ~pre_right;
 	//-------------------------------------Write_Back-------------------------------------------------
-	flopstrc #(32) flopWriregM(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
+	flopstrc #(6) flopWriregM(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
             .in({writeregM,regwriteM}),
             .out({writeregW,regwriteW}));
 	flopstrc #(32) flopResM(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM),.out(resultW));
@@ -382,7 +382,6 @@ module datapath(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
         .alu_stallE(alu_stallE),
-        .instrE(instrE),
 
         .flush_jump_conflictE   (flush_jump_conflictE),
         .flush_pred_failedM     (flush_pred_failedM),
@@ -395,6 +394,7 @@ module datapath(
         .regwriteE(regwriteE),
         .regwriteM(regwriteM),
         .regwriteW(regwriteW),
+        .writeregE(writeregE),
         .writeregM(writeregM),
         .writeregW(writeregW),
         .mem_readE(mem_readE),
@@ -402,7 +402,7 @@ module datapath(
 
         .stallF(stallF), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
         .flushF(flushF), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
-        .longest_stall(longest_stall),.stallDblank(stallDblank),
+        .longest_stall(longest_stall),
         .forward_1D(forward_1D), .forward_2D(forward_2D)
     );
 	
