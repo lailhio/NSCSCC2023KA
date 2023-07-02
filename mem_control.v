@@ -21,7 +21,7 @@ module mem_control(
     
 
     assign op_code = instrM[31:26];
-    assign data_addrM =  {addr[31:2] , 2'b00};
+    assign data_addrM =  (|mem_write_selectM)? addr : {addr[31:2] , 2'b00};    assign data_addrM =  {addr[31:2] , 2'b00};
     // 根据addr后两位选取读的位置
     assign addr_W0 = ~(|(addr[1:0] ^ 2'b00));
     assign addr_B2 = ~(|(addr[1:0] ^ 2'b10));
