@@ -314,7 +314,6 @@ module datapath(
     flopstrc #(6) flopWriteregE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
-    assign mem_addrM = aluoutM;     //访存地址
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
     // Assign Logical
     mem_control mem_control(
@@ -323,7 +322,7 @@ module datapath(
         .data_wdataM(rt_valueM),    //原始的wdata
         .writedataM(writedataM),    //新的wdata
         .mem_write_selectM(mem_write_selectM),
-
+        .data_addrM(mem_addrM),
         .mem_rdataM(mem_rdataM), .data_rdataM(result_rdataM),
 
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  

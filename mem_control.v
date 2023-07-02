@@ -10,7 +10,7 @@ module mem_control(
 
     input wire [31:0] mem_rdataM, //内存读出
     output wire [31:0] data_rdataM,  // 实际读出
-
+    output wire [31:0] data_addrM,
     output wire addr_error_sw, addr_error_lw
 );
     wire [3:0] mem_byte_wen;
@@ -21,7 +21,7 @@ module mem_control(
     
 
     assign op_code = instrM[31:26];
-
+    assign data_addrM =  {addr[31:2] , 2'b00};
     // 根据addr后两位选取读的位置
     assign addr_W0 = ~(|(addr[1:0] ^ 2'b00));
     assign addr_B2 = ~(|(addr[1:0] ^ 2'b10));

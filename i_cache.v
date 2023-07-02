@@ -28,7 +28,6 @@ module i_cache (
 
     //Cache存储单元，四路组相联，所以cache[3:0]
     (*ram_style="block"*) reg [1:0]               cache_valid [CACHE_DEEPTH - 1 : 0];
-    (*ram_style="block"*) reg [1:0]               cache_dirty [CACHE_DEEPTH - 1 : 0]; // 是否被修改了，即是否脏了
     (*ram_style="block"*) reg [1:0]               cache_ru    [CACHE_DEEPTH - 1 : 0]; //* recently used    
     (*ram_style="block"*) reg [2*TAG_WIDTH-1:0]   cache_tag   [CACHE_DEEPTH - 1 : 0];
     (*ram_style="block"*) reg [2*DATA_WIDTH-1:0]  cache_block [CACHE_DEEPTH - 1 : 0];
@@ -44,16 +43,12 @@ module i_cache (
 
     //访问Cache line
     wire                 c_valid[1:0];
-    wire                 c_dirty[1:0]; // 是否修改过
     wire                 c_ru   [1:0]; //* recently used
     wire [TAG_WIDTH-1:0] c_tag  [1:0];
     wire [31:0]          c_block[1:0];
 
     assign c_valid[0] = cache_valid[index][0];
     assign c_valid[1] = cache_valid[index][1];
-
-    assign c_dirty[0] = cache_dirty[index][0];
-    assign c_dirty[1] = cache_dirty[index][1];
 
     assign c_ru   [0] = cache_ru   [index][0];
     assign c_ru   [1] = cache_ru   [index][1];
@@ -75,15 +70,8 @@ module i_cache (
     assign c_way = hit ? (c_valid[0] & (c_tag[0] == tag) ? 1'b0 : 1'b1) : 
                    c_ru[0] ? 1'b1 : 1'b0; 
 
-    wire load, store;
-    assign store = cpu_inst_wr;
-    assign load = cpu_inst_req & ~store; // 是数据请求，且不是store，那么就是load
-    //* cache当前位置是否dirty
-    wire dirty, clean;
-    assign dirty = c_dirty[c_way];
-    assign clean = ~dirty;
     //FSM
-    parameter IDLE = 2'b00, RM = 2'b01, WM = 2'b11;
+    parameter IDLE = 2'b00, RM = 2'b01;
     reg [1:0] state;
     // store指令，是否是处在RM状态（发生了miss)。当RM结束时(state从RM->IDLE)的上升沿，in_RM读出来仍为1.
     reg in_RM;
@@ -101,18 +89,10 @@ module i_cache (
                     if (cpu_inst_req) begin
                         if (hit) 
                             state <= IDLE;
-                        else if (miss & dirty)
-                            state <= WM;
-                        else if (miss & clean)
+                        else if (miss)
                             state <= RM;
                     end
                     in_RM <= 1'b0;
-                end
-
-                WM: begin
-                    state <= WM;
-                    if (cache_inst_data_ok)
-                        state <= RM;
                 end
 
                 RM: begin
@@ -186,6 +166,11 @@ module i_cache (
                     cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_inst_rdata; //写入Cache line
                 end
             endcase
+        end
+        if (isIDLE & (hit | in_RM)) begin
+            //* load 或 store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将最近使用情况更新
+            cache_ru[index][c_way]   <= 1'b1; //* c_way 路最近使用了
+            cache_ru[index][1-c_way] <= 1'b0; //* 1-c_way 路最近未使用
         end
     end
 endmodule
