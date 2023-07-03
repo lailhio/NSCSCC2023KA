@@ -130,7 +130,7 @@ module datapath(
 	wire        mfhiM;
 	wire        mfloM;
 
-    wire [31:0] rt_valueM;
+    wire [31:0] src_b1M;
     //异常处理信号 exception
     wire        riM;  //指令不存在
     wire        breakM; //break指令
@@ -301,7 +301,7 @@ module datapath(
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
 	flopstrc #(64) flopAluE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
-	flopstrc #(32) flopRtvalueE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(rt_valueM));
+	flopstrc #(32) flopRtvalueE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
     flopstrc #(10) flopSign1E(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
@@ -318,7 +318,7 @@ module datapath(
     mem_control mem_control(
         .instrM(instrM), .addr(aluoutM),
     
-        .data_wdataM(rt_valueM),    //原始的wdata
+        .data_wdataM(src_b1M),    //原始的wdata
         .writedataM(writedataM),    //新的wdata
         .mem_write_selectM(mem_write_selectM),
         .data_addrM(mem_addrM),
@@ -354,7 +354,7 @@ module datapath(
         .clk(clk) , .rst(rst),
         .we_i(cp0_writeM) , .i_cache_stall(i_cache_stall),
         .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
-        .data_i(rt_valueM) , .int_i(ext_int),
+        .data_i(src_b1M) , .int_i(ext_int),
         
         .data_o(cp0_outW),
 

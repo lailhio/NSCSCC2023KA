@@ -19,14 +19,12 @@ module hilo(
       if(rst)
          {hilo_hi,hilo_lo} <= 0;
       else if(we)begin
-         if(~hilo_selectE[1])       //高位为0表示是div或者mult指令
-            {hilo_hi,hilo_lo}<=hilo_in;
-         else if(hilo_selectE[0])
-            {hilo_hi,hilo_lo}<={hilo_in[63:32],hilo_lo};
-         else if(~hilo_selectE[0])
-            {hilo_hi,hilo_lo}<={hilo_hi,hilo_in[31:0]};
-         else
-            {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
+         case(hilo_selectE)
+            01,00: {hilo_hi,hilo_lo}<=hilo_in;
+            10:   {hilo_hi,hilo_lo}<={hilo_in[63:32],hilo_lo};
+            11:    {hilo_hi,hilo_lo}<={hilo_hi,hilo_in[31:0]};
+            default :  {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
+         endcase
       end
       else
          {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
