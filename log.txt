@@ -1,0 +1,12 @@
+Warning: You should better set perf program.
+4671
+18682
+3c554
+25ea8
+d2a5
+21adb
+178cd
+1a161
+ab75
+1ef24
+total ticks = 8591053

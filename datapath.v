@@ -250,8 +250,9 @@ module datapath(
         .instrD(instrD),
         .pcplus4D(pcplus4D),
         .rd1D(rd1D),
-        .regwriteE(regwriteE), .regwriteM(regwriteM),
-        .writeregE(writeregE), .writeregM(writeregM),
+        .regwriteE(regwriteE), .writeregE(writeregE), 
+        .regwriteM(regwriteM), .writeregM(writeregM),
+        .regwriteW(regwriteW), .writeregW(writeregW),
 
         .jumpD(jumpD),                      //是jump类指令(j, jr)
         .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲突
