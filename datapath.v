@@ -43,7 +43,7 @@ module datapath(
 	wire[4:0] alucontrolD;
 	 wire [31:0] instrD;  //指令
     wire [31:0] pcD, pcplus4D;  //pc
-    wire [31:0] src_a1D, src_b1D; //alu输入（操作数
+    wire [31:0] src_a1D, src_b1D,src_aD, src_bD; //alu输入（操作数
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
     wire        flush_pred_failedM;  //分支预测失败
@@ -71,7 +71,7 @@ module datapath(
     wire [1:0]  forward_2D;
     wire        stallDblank;
 	//-------execute stage----------
-	wire [31:0] pcE, pcplus4E , mem_wdataE, immE; //pc pc+4 寄存器号 写内存 立即数
+	wire [31:0] pcE, pcplus4E , mem_wdataE; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
     wire [4 :0] alucontrolE;  //alu控制信号
@@ -79,7 +79,6 @@ module datapath(
     wire [31:0] src_a1E, src_b1E; //alu输入（操作数
     wire [31:0] src_aE, src_bE; //alu输入（操作数
     wire [63:0] aluoutE; //alu输出
-    wire        is_immE;  //alu srcb选择 0->rd2E, 1->immE
     wire [4 :0] writeregE; //写寄存器号
     wire        branchE; //分支信号
     wire [31:0] pc_branchE;  //分支跳转pc
@@ -90,7 +89,6 @@ module datapath(
     wire        regwriteE;	//寄存器写
     wire        alu_stallE;  //alu暂停
     wire        flush_jump_conflictE;  //jump冲突
-    wire        jumpE; //jump信号
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
@@ -231,6 +229,10 @@ module datapath(
     //前推至ID阶段
     mux4 #(32) mux4_forward_1E(rd1D,resultM,resultW,aluoutE[31:0],forward_1D,  src_a1D);
     mux4 #(32) mux4_forward_2E(rd2D,resultM,resultW,aluoutE[31:0],forward_2D, src_b1D);
+    //choose imm
+    mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);
+    //choose jump
+    mux2 #(32) mux2_jump(src_a1D,pcplus4F, jumpD | branchD,src_aD);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
@@ -261,14 +263,15 @@ module datapath(
 	//----------------------------------Execute------------------------------------
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pcD),.out(pcE));
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instrD),.out(instrE));
-    flopstrc #(32) flopSrcbD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
-    flopstrc #(32) flopSrcaD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
-    flopstrc #(32) flopImmD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(immD),.out(immE));
+    flopstrc #(32) flopSrca1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
+    flopstrc #(32) flopSrcb1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
+    flopstrc #(32) flopSrcaD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_aD),.out(src_aE));
+    flopstrc #(32) flopSrcbD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_bD),.out(src_bE));
     flopstrc #(32) flopPcplus4D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pcplus4D),.out(pcplus4E));
     flopstrc #(32) flopPcbranchD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pc_branchD),.out(pc_branchE));
-    flopstrc #(10) flopSign1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
-        .in({branchD,pred_takeD,jumpD,is_in_delayslot_iD,jump_conflictD,is_immD,regwriteD,riD,breakD,hilotoregD}),
-        .out({branchE,pred_takeE,jumpE,is_in_delayslot_iE,jump_conflictE,is_immE,regwriteE,riE,breakE,hilotoregE}));
+    flopstrc #(8) flopSign1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+        .in({branchD,pred_takeD,is_in_delayslot_iD,jump_conflictD,regwriteD,riD,breakD,hilotoregD}),
+        .out({branchE,pred_takeE,is_in_delayslot_iE,jump_conflictE,regwriteE,riE,breakE,hilotoregE}));
     flopstrc #(10) flopSign2D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE}));
@@ -281,15 +284,10 @@ module datapath(
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),
-
         .hilo_writeE(hilo_writeE) , .hilo_selectE(hilo_selectE),.div_stallE(alu_stallE),
         .aluoutE(aluoutE) , .overflowE(overflowE)
     );
-    //choose jump
-    mux2 #(32) mux2_jump(src_a1E,pcplus4D,jumpE | branchE,src_aE);
-    //choose imm
-    mux2 #(32) mux2_imm(src_b1E,immE,is_immE,  src_bE);
-
+    
 	//在execute阶段得到真实branch跳转情况
     branch_check branch_check(
         .branch_judge_controlE(branch_judge_controlE),
@@ -328,11 +326,9 @@ module datapath(
 
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  
     );
-    wire hilo_write_re;
-    assign hilo_write_re=hilo_writeE&~flush_exceptionM;//防止异常刷新时的错误写入
 
     // hilo
-    hilo hilo(clk,rst,hilo_selectE,hilo_write_re,mfhiM,mfloM,aluoutE,hilo_outM);
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiM ,mfloM , aluoutE , hilo_outM );
     //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
     //在aluoutM, result_rdataM, hilo_outM, cp0_outW 中选择写入寄存器的数据

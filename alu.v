@@ -5,7 +5,7 @@
 module alu(
     input wire clk, rst,stallE,
     input wire flushE,
-    input wire [31:0] src_aE, src_bE,  
+    input wire [31:0] src_aE, src_bE,
     input wire [4:0] alucontrolE, 
     input wire [4:0] sa, 
     
@@ -25,7 +25,7 @@ module alu(
     reg [31:0] aluout_simple; 
     reg carry_bit; 
 
-
+    
     //aluout
     assign aluoutE = ({64{div_vaild}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)

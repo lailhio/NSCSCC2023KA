@@ -1,12 +1,11 @@
-Warning: You should better set perf program.
-4671
-18682
-3c554
-25ea8
-d2a5
-21adb
-178cd
-1a161
-ab75
-1ef24
-total ticks = 8591053
+29b19
+edcae
+24eb7e
+17267b
+7b9e1
+127f77
+e0b60
+e8a26
+177df
+102e44
+total ticks = 76233129
