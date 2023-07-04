@@ -281,9 +281,11 @@ module datapath(
     //-----------------------ExFlop---------------------
 	//ALU
     alu alu(
+        //input
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),
+        //output
         .hilo_writeE(hilo_writeE) , .hilo_selectE(hilo_selectE),.alustallE(alu_stallE),
         .aluoutE(aluoutE) , .overflowE(overflowE)
     );
