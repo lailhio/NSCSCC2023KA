@@ -11,7 +11,7 @@ module alu(
     
     output wire hilo_writeE,
     output wire [1:0]hilo_selectE,
-    output wire div_stallE,
+    output wire alustallE,
     output wire [63:0] aluoutE, 
     output wire overflowE
 );
@@ -19,17 +19,20 @@ module alu(
     wire [63:0] aluout_mul;
     wire mul_sign;
     wire mul_valid;  
+    wire mul_stallE;
     wire div_sign; 
-	wire div_vaild; 
-	wire ready;
+	wire div_valid; 
+    wire div_stallE;
+	wire ready_div;
+    wire ready_mul;
     reg [31:0] aluout_simple; 
     reg carry_bit; 
 
     
     //aluout
-    assign aluoutE = ({64{div_vaild}} & aluout_div)
+    assign aluoutE = ({64{div_valid}} & aluout_div)
                     | ({64{mul_valid}} & aluout_mul)
-                    | ({64{~mul_valid & ~div_vaild}} & {32'b0, aluout_simple})
+                    | ({64{~mul_valid & ~div_valid}} & {32'b0, aluout_simple})
                     | ({64{~|(alucontrolE ^ `MTHI_CONTROL)}} & {src_aE, 32'b0})
                     | ({64{~|(alucontrolE ^ `MTLO_CONTROL)}} & {32'b0, src_aE});
 
@@ -69,18 +72,31 @@ module alu(
     end
     assign hilo_selectE={(~|(alucontrolE[4:2] ^ 3'b111)),(~|(alucontrolE ^ `MTHI_CONTROL))};//高位1表示是mhl指令，0表示是乘除法
                                                                                             //低位1表示是用hi，0表示用lo
-    assign hilo_writeE  =  ready|
-                        ((~|(alucontrolE[4:1]^ 4'b1100)) | 
-                        ((~|({alucontrolE[4:2],alucontrolE[0]}^ 4'b1111)) & ~stallE));
+    assign hilo_writeE  =  ready_div | ready_mul |
+                        // ((~|(alucontrolE[4:1]^ 4'b1100)) | 
+                        ((~|({alucontrolE[4:2],alucontrolE[0]}^ 4'b1111)) & ~stallE);
 
     assign mul_sign = ~|(alucontrolE ^ `MULT_CONTROL);
     assign mul_valid = ~|(alucontrolE[4:1]^4'b1100);
-
+    assign mul_stallE= ready_mul ? 0 : mul_valid; 
+    
     assign div_sign = ~|(alucontrolE ^ `DIV_CONTROL);
-    assign div_vaild = ~|(alucontrolE[4:1] ^ 4'b1101);
-    assign div_stallE= ready ? 0 : div_vaild; 
-	mul mul(src_aE,src_bE,mul_sign,aluout_mul);
+    assign div_valid = ~|(alucontrolE[4:1] ^ 4'b1101);
+    assign div_stallE= ready_div ? 0 : div_valid; 
+    assign alustallE = mul_stallE | div_stallE;
 
+    mul mul(
+		.clk(~clk),
+		.rst(rst),
+        .flush(flushE),
+		.opdata1_i(src_aE),  
+		.opdata2_i(src_bE),  
+		.start_i(mul_stallE),
+		.signed_mul_i(mul_sign),   
+
+		.ready_o(ready_mul),
+		.result_o(aluout_mul)
+	);
     
 
 	div div(
@@ -93,8 +109,8 @@ module alu(
         .annul_i(0),
 		.signed_div_i(div_sign),   //1 signed
 
-		// .ready(ready),
-		.ready_o(ready),
+		// .ready_div(ready_div),
+		.ready_o(ready_div),
 		.result_o(aluout_div)
 	);
 
