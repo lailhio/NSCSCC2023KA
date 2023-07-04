@@ -20,9 +20,9 @@ module hilo(
          {hilo_hi,hilo_lo} <= 0;
       else if(we)begin
          case(hilo_selectE)
-            01,00: {hilo_hi,hilo_lo}<=hilo_in;
-            10:   {hilo_hi,hilo_lo}<={hilo_in[63:32],hilo_lo};
-            11:    {hilo_hi,hilo_lo}<={hilo_hi,hilo_in[31:0]};
+            2'b01, 2'b00: {hilo_hi,hilo_lo}<=hilo_in;
+            2'b11:   {hilo_hi,hilo_lo}<={hilo_in[63:32],hilo_lo};
+            2'b10:    {hilo_hi,hilo_lo}<={hilo_hi,hilo_in[31:0]};
             default :  {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
          endcase
       end
