@@ -227,8 +227,8 @@ module datapath(
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
     //前推至ID阶段
-    mux4 #(32) mux4_forward_1E(rd1D,resultM,resultW,aluoutE[31:0],forward_1D,  src_a1D);
-    mux4 #(32) mux4_forward_2E(rd2D,resultM,resultW,aluoutE[31:0],forward_2D, src_b1D);
+    mux4 #(32) mux4_forward_1D(rd1D,resultM,resultW,aluoutE[31:0],forward_1D,  src_a1D);
+    mux4 #(32) mux4_forward_2D(rd2D,resultM,resultW,aluoutE[31:0],forward_2D, src_b1D);
     //choose imm
     mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);
     //choose jump
