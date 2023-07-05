@@ -27,14 +27,11 @@ module alu(
     assign mul_stallE = (~|(alucontrolE[4:1]^4'b1100) & ~ready_mul);
     assign div_stallE = (~|(alucontrolE[4:1]^4'b1101) & ~ready_div);
     assign alustallE=  mul_stallE | div_stallE;
-
-    assign hilo_writeE  =  ready_div | ready_mul |
-                        ((~|(alucontrolE[4:1]^ 4'b1100)) | 
-                        ((~|({alucontrolE[4:2],alucontrolE[0]}^ 4'b1111)) & ~stallE));
    
     always @(*) begin
         hilo_selectE = 2'b00;
         overflowE = 1'b0;
+        hilo_writeE = 1'b0;
         case(alucontrolE)
             `AND_CONTROL:       aluoutE = src_aE & src_bE;
             `OR_CONTROL:        aluoutE = src_aE | src_bE;
@@ -66,27 +63,41 @@ module alu(
             `LUI_CONTROL:       aluoutE = {src_bE[15:0], 16'b0};
             `MULT_CONTROL  : begin
                 mul_sign = 1'b1;
-                if(ready_mul) aluoutE = aluout_mul;
+                if(ready_mul) begin 
+                    aluoutE = aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
             end
             `MULTU_CONTROL  : begin
                 mul_sign = 1'b0;
-                if(ready_mul) aluoutE = aluout_mul;
+                if(ready_mul) begin 
+                    aluoutE = aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
             end
             `DIV_CONTROL :begin
                 div_sign = 1'b1;
-                if(ready_div) aluoutE = aluout_div;
+                if(ready_div) begin 
+                    aluoutE = aluout_div;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
             end
             `DIVU_CONTROL :begin
                 div_sign = 1'b0;
-                if(ready_div) aluoutE = aluout_div;
+                if(ready_div) begin 
+                    aluoutE = aluout_div;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
             end
             `MTHI_CONTROL: begin
                 aluoutE = {src_aE, 32'b0};
                 hilo_selectE = 2'b11;
+                if(~stallE) hilo_writeE = 1'b1;
             end
             `MTLO_CONTROL: begin
                 aluoutE = {32'b0, src_aE};
                 hilo_selectE = 2'b10;
+                if(~stallE) hilo_writeE = 1'b1;
             end
             5'b00000: aluoutE = src_aE;  // do nothing
 
