@@ -11,7 +11,7 @@ module alu(
     
     output reg hilo_writeE,
     output reg [1:0]hilo_selectE,
-    output wire alustallE,
+    output reg alustallE,
     output reg [63:0] aluoutE, 
     output reg overflowE
 );
@@ -21,15 +21,13 @@ module alu(
     reg div_sign; 
 	wire ready_div;
     wire ready_mul;
-    wire mul_stallE;
-    wire div_stallE;
+    reg mul_startE;
+    reg div_startE;
 
-    assign mul_stallE = (~|(alucontrolE[4:1]^4'b1100) & ~ready_mul);
-    assign div_stallE = (~|(alucontrolE[4:1]^4'b1101) & ~ready_div);
-    assign alustallE=  mul_stallE | div_stallE;
    
     always @(*) begin
         hilo_selectE = 2'b00;
+        alustallE = 1'b0;
         overflowE = 1'b0;
         hilo_writeE = 1'b0;
         case(alucontrolE)
@@ -63,28 +61,44 @@ module alu(
             `LUI_CONTROL:       aluoutE = {src_bE[15:0], 16'b0};
             `MULT_CONTROL  : begin
                 mul_sign = 1'b1;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
                 if(ready_mul) begin 
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
                     aluoutE = aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
             end
             `MULTU_CONTROL  : begin
                 mul_sign = 1'b0;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
                 if(ready_mul) begin 
+                    mul_startE = 1'b0;
+                    alustallE = 1'b0;
                     aluoutE = aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
             end
             `DIV_CONTROL :begin
                 div_sign = 1'b1;
+                div_startE = 1'b1;
+                alustallE = 1'b1;
                 if(ready_div) begin 
+                    div_startE = 1'b0;
+                    alustallE = 1'b0;
                     aluoutE = aluout_div;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
             end
             `DIVU_CONTROL :begin
                 div_sign = 1'b0;
+                div_startE = 1'b1;
+                alustallE = 1'b1;
                 if(ready_div) begin 
+                    div_startE = 1'b0;
+                    alustallE = 1'b0;
                     aluoutE = aluout_div;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
@@ -112,7 +126,7 @@ module alu(
         .flush(flushE),
 		.opdata1_i(src_aE),  
 		.opdata2_i(src_bE),  
-		.start_i(mul_stallE),
+		.start_i(mul_startE),
 		.signed_mul_i(mul_sign),   
 
 		.ready_o(ready_mul),
@@ -126,7 +140,7 @@ module alu(
         .flush(flushE),
 		.opdata1_i(src_aE),  //divident
 		.opdata2_i(src_bE),  //divisor
-		.start_i(div_stallE),
+		.start_i(div_startE),
         .annul_i(0),
 		.signed_div_i(div_sign),   //1 signed
 
