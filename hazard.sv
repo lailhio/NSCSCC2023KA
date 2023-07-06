@@ -54,7 +54,7 @@ module hazard(
 
     assign flushF = 1'b0;
     assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); 
-    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) |(~stallE & stallDblank) ; 
+    assign flushE = flush_exceptionM | (flush_pred_failedM & ~alu_stallE) |(~stallE & stallDblank) ; 
     assign flushM = flush_exceptionM;
     assign flushW = flush_exceptionM;
 endmodule

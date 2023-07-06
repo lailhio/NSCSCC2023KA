@@ -121,7 +121,7 @@ module alu(
 
 
     mul mul(
-		.clk(~clk),
+		.clk(clk),
 		.rst(rst),
         .flush(flushE),
 		.opdata1_i(src_aE),  
@@ -135,7 +135,7 @@ module alu(
     
 
 	div div(
-		.clk(~clk),
+		.clk(clk),
 		.rst(rst),
         .flush(flushE),
 		.opdata1_i(src_aE),  //divident

@@ -1,11 +1,8 @@
-29b3c
+Warning: You should better set perf program.
+29b19
 edcae
-25a4ba
-17267b
-7ba13
-127f77
-e0b60
-e8a3a
-177df
-102e44
-total ticks = 76423253
+Error!, 
+reference: PC = 0x9fc02ea8, wb_rf_wnum = 0x0a, wb_rf_wdata = 0x00000003
+mycpu    : PC = 0x9fc02de8, wb_rf_wnum = 0x0f, wb_rf_wdata = 0x00000002
+edcae
+total ticks = 8996351
