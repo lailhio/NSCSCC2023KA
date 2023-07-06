@@ -204,10 +204,10 @@ module datapath(
     );
 
 	//----------------------------------------Decode------------------------------------------------
-    flopstrc #(32) flopPcplusF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(pcplus4F),.out(pcplus4D));
-    flopstrc #(32) flopPcF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_addrF),.out(pcD));
-    flopstrc #(32) flopInstF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instrF_valid),.out(instrD));
-    flopstrc #(1) flopIsdelayF(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
+    flopstrc #(32) flopPcplusD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(pcplus4F),.out(pcplus4D));
+    flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_addrF),.out(pcD));
+    flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instrF_valid),.out(instrD));
+    flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
         .in(is_in_delayslot_iF),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
@@ -261,21 +261,21 @@ module datapath(
         .pc_jumpD(pc_jumpD)                 //D阶段最终跳转地址
     );
 	//----------------------------------Execute------------------------------------
-    flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pcD),.out(pcE));
-    flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instrD),.out(instrE));
-    flopstrc #(32) flopSrca1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
-    flopstrc #(32) flopSrcb1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
-    flopstrc #(32) flopSrcaD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_aD),.out(src_aE));
-    flopstrc #(32) flopSrcbD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_bD),.out(src_bE));
-    flopstrc #(32) flopPcplus4D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pcplus4D),.out(pcplus4E));
-    flopstrc #(32) flopPcbranchD(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pc_branchD),.out(pc_branchE));
-    flopstrc #(8) flopSign1D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+    flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pcD),.out(pcE));
+    flopstrc #(32) flopInstE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instrD),.out(instrE));
+    flopstrc #(32) flopSrca1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
+    flopstrc #(32) flopSrcb1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
+    flopstrc #(32) flopSrcaE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_aD),.out(src_aE));
+    flopstrc #(32) flopSrcbE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_bD),.out(src_bE));
+    flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pcplus4D),.out(pcplus4E));
+    flopstrc #(32) flopPcbranchE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pc_branchD),.out(pc_branchE));
+    flopstrc #(8) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({branchD,pred_takeD,is_in_delayslot_iD,jump_conflictD,regwriteD,riD,breakD,hilotoregD}),
         .out({branchE,pred_takeE,is_in_delayslot_iE,jump_conflictE,regwriteE,riE,breakE,hilotoregE}));
-    flopstrc #(10) flopSign2D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+    flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE}));
-    flopstrc #(15) flopSign3D(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+    flopstrc #(15) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
     //-----------------------ExFlop---------------------
@@ -301,18 +301,18 @@ module datapath(
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Memory----------------------------------------
-	flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
-	flopstrc #(64) flopAluE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
-	flopstrc #(32) flopRtvalueE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
-	flopstrc #(32) flopInstrE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
-	flopstrc #(32) flopPcbE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
-    flopstrc #(10) flopSign1E(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
+	flopstrc #(64) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
+	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
+	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
+	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
+    flopstrc #(10) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE,hilotoregE}),
         .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM,hilotoregM}));
-    flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+    flopstrc #(10) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,mfhiE,mfloE,breakE,hilotoregE}),
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,mfhiM,mfloM,breakM,hilotoregM}));
-    flopstrc #(6) flopWriteregE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+    flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
@@ -369,10 +369,10 @@ module datapath(
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
     assign flush_pred_failedM = ~pre_right;
 	//-------------------------------------Write_Back-------------------------------------------------
-	flopstrc #(6) flopWriregM(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
+	flopstrc #(6) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
             .in({writeregM,regwriteM}),
             .out({writeregW,regwriteW}));
-	flopstrc #(32) flopResM(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM),.out(resultW));
+	flopstrc #(32) flopResW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM),.out(resultW));
 	//------------------Write_Back_Flop--------------------------
 
 	//hazard detection

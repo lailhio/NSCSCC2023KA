@@ -49,8 +49,8 @@ module hazard(
     assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE))| stallDblank;
     assign stallD =  id_cache_stall| alu_stallE | stallDblank;
     assign stallE =  id_cache_stall| alu_stallE;
-    assign stallM =  id_cache_stall;
-    assign stallW =  ~flush_exceptionM &id_cache_stall;
+    assign stallM =  id_cache_stall| alu_stallE;
+    assign stallW =  ~flush_exceptionM &(id_cache_stall | alu_stallE);
 
     assign flushF = 1'b0;
     assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); 
