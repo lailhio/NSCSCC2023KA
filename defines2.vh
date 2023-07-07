@@ -1,3 +1,5 @@
+`ifndef DEF_COMMON
+`define DEF_COMMON
 // global macro definition
 `define RstEnable 		1'b1
 `define RstDisable		1'b0
@@ -193,4 +195,43 @@
 `define CP0_REG_CAUSE    5'b01101       
 `define CP0_REG_EPC    5'b01110          
 `define CP0_REG_PRID    5'b01111         
-`define CP0_REG_CONFIG    5'b10000       
+`define CP0_REG_CONFIG    5'b10000      
+
+// tlb 
+//TLB Config
+`define TLB_LINE_NUM 8
+`define TAG_WIDTH 20
+`define OFFSET_WIDTH 12
+`define LOG2_TLB_LINE_NUM 5
+
+typedef struct packed {
+    logic        G;
+    logic        V0;
+    logic        V1;
+    logic        D0;
+    logic        D1;
+    logic        C0;    // 1 as cacheable
+    logic        C1;    // 1 as cacheable
+    logic [19:0] PFN0;
+    logic [19:0] PFN1;
+    logic [18:0] VPN2;
+    logic  [7:0] ASID;
+} tlb_entry;
+
+typedef struct packed {
+    logic       refill;
+    logic       invalid;
+    logic [31:0]addr;
+    logic [31:0]data;
+} fifo_entry;
+
+typedef struct packed {
+    logic [5:0] F; // for 32 bit PALEN, F is 6 bit.
+    logic [19:0]PFN;
+    logic [2:0] C;
+    logic       D;
+    logic       V;
+    logic       G;
+} cp0_entrylo;
+
+`endif
