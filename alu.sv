@@ -26,10 +26,14 @@ module alu(
 
    
     always @(*) begin
-        hilo_selectE = 2'b00;
+        mul_sign =1'b0;
+        div_sign =1'b0;
+        mul_startE =1'b0;
+        div_startE  =1'b0;
         alustallE = 1'b0;
         overflowE = 1'b0;
         hilo_writeE = 1'b0;
+        hilo_selectE = 2'b00;
         case(alucontrolE)
             `AND_CONTROL:       aluoutE = src_aE & src_bE;
             `OR_CONTROL:        aluoutE = src_aE | src_bE;
