@@ -243,17 +243,16 @@ module d_cache (
 
     wire isIDLE = state==IDLE;
 
+    integer t;
+    initial begin
+        for (t=0;t<CACHE_DEEPTH;t++) cache_valid[t] = 0;
+        for (t=0;t<CACHE_DEEPTH;t++) cache_ru[t] = 0;
+        for (t=0;t<CACHE_DEEPTH;t++) cache_tag[t] = 0;
+        for (t=0;t<CACHE_DEEPTH;t++) cache_block[t] = 0;
+        for (t=0;t<CACHE_DEEPTH;t++) cache_dirty[t] = 0;
+    end
     always @(posedge clk) begin
-        if(rst)begin
-            for (int t=0;t<CACHE_DEEPTH;t++) begin
-                cache_valid[t] = 0;
-                cache_ru[t] = 0;
-                cache_tag[t] = 0;
-                cache_block[t] = 0;
-                cache_dirty[t] = 0;
-            end
-        end
-        else if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
+        if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
             case(c_way)
                 1'b0: begin
                     cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
