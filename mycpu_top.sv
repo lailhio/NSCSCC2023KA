@@ -52,238 +52,212 @@ module mycpu_top(
     output wire[31:0] debug_wb_rf_wdata
 );
     wire rst,clk;
-    wire no_dcache;
+    wire no_cache;
     assign clk=aclk;
     assign rst=~aresetn;
 
-    wire cpu_inst_req  ;
+    //inst
+    wire [31:0]   virtual_instr_addr;  //指令地址
+    wire          cpu_inst_en;  //使能
+    wire  [31:0]  inst_sram_rdata;  //注：instr ram时钟取反
+    wire          i_stall;
+
+    //data
+    wire        cpu_data_en;                    
+    wire [31:0] virtual_data_addr;     //写地址
+    wire [31:0] data_sram_rdata;    //读数据
+    wire [3 :0] data_sram_wen;      //写使能
+    wire         d_stall;
+    //stall 
+    wire        stallF2;
+    wire        stallM2;
+    //cpu
     wire [31:0] cpu_inst_addr ;
     wire cpu_inst_wr   ;
-    wire [1:0]  cpu_inst_size ;
-    wire [31:0] cpu_inst_wdata;
     wire [31:0] cpu_inst_rdata;
-    wire cpu_inst_addr_ok;
-    wire cpu_inst_data_ok;
 
-    wire cpu_data_req  ;
     wire [31:0] cpu_data_addr ;
     wire cpu_data_wr   ;
     wire [1:0]  cpu_data_size ;
     wire [31:0] cpu_data_wdata;
     wire [31:0] cpu_data_rdata;
-    wire cpu_data_addr_ok;
-    wire cpu_data_data_ok;
 
-    wire cache_inst_req  ;
-    wire [31:0] cache_inst_addr ;
-    wire cache_inst_wr   ;
-    wire [1:0]  cache_inst_size ;
-    wire [31:0] cache_inst_wdata;
-    wire [31:0] cache_inst_rdata;
-    wire cache_inst_addr_ok;
-    wire cache_inst_data_ok;
+   //i_cache - arbitrater
+    wire [31:0] i_araddr;
+    wire [7:0]  i_arlen;
+    wire        i_arvalid;
+    wire        i_arready;
+    wire [2:0]  i_arsize;
 
-    wire cache_data_req  ;
-    wire [31:0] cache_data_addr ;
-    wire cache_data_wr   ;
-    wire [1:0]  cache_data_size ;
-    wire [31:0] cache_data_wdata;
-    wire [31:0] cache_data_rdata;
-    wire cache_data_addr_ok;
-    wire cache_data_data_ok;
+    wire [31:0] i_rdata;
+    wire        i_rlast;
+    wire        i_rvalid;
+    wire        i_rready;
 
-    wire fast_data_req  ;
-    wire [31:0] fast_data_addr ;
-    wire fast_data_wr   ;
-    wire [1:0]  fast_data_size ;
-    wire [31:0] fast_data_wdata;
-    wire [31:0] fast_data_rdata;
-    wire fast_data_addr_ok;
-    wire fast_data_data_ok;
+    //d_cache - arbitrater
+    wire [31:0] d_araddr;
+    wire [7:0]  d_arlen;
+    wire [2:0]  d_arsize;
+    wire        d_arvalid;
+    wire        d_arready;
+    wire [6:0]  cacheM;
+    wire [6:0]  cacheE;
 
-    wire conf_data_req  ;
-    wire [31:0] conf_data_addr ;
-    wire conf_data_wr   ;
-    wire [1:0]  conf_data_size ;
-    wire [31:0] conf_data_wdata;
-    wire [31:0] conf_data_rdata;
-    wire conf_data_addr_ok;
-    wire conf_data_data_ok;
+    wire[31:0]  d_rdata;
+    wire        d_rlast;
+    wire        d_rvalid;
+    wire        d_rready;
 
-    wire wrap_data_req  ;
-    wire [31:0] wrap_data_addr ;
-    wire wrap_data_wr   ;
-    wire [1:0]  wrap_data_size ;
-    wire [31:0] wrap_data_wdata;
-    wire [31:0] wrap_data_rdata;
-    wire wrap_data_addr_ok;
-    wire wrap_data_data_ok;
+    wire [31:0] d_awaddr;
+    wire [7:0]  d_awlen;
+    wire [2:0]  d_awsize;
+    wire        d_awvalid;
+    wire        d_awready;
 
+    wire [31:0] d_wdata;
+    wire [3:0]  d_wstrb;
+    wire        d_wlast;
+    wire        d_wvalid;
+    wire        d_wready;
 
-mips mips(
-    .clk(clk), .rst(rst),
-    .ext_int(ext_int),
-    //mips传出的inst请求
-    .inst_req     (cpu_inst_req  ),     .inst_wr      (cpu_inst_wr   ),
-    .physics_inst_addr    (cpu_inst_addr ),     .inst_size    (cpu_inst_size ),
-    .inst_wdata   (cpu_inst_wdata),     
-    //mips得到的inst回复
-    .inst_rdata   (cpu_inst_rdata),
-    .inst_addr_ok (cpu_inst_addr_ok),   .inst_data_ok (cpu_inst_data_ok),
-
-    //mips传出的data请求
-    .data_req     (cpu_data_req  ),     .data_wr      (cpu_data_wr   ),
-    .physics_data_addr    (cpu_data_addr ),     .data_wdata   (cpu_data_wdata),
-    .data_size    (cpu_data_size ), 
-    //mips得到的data回复
-    .data_rdata   (cpu_data_rdata),
-    .data_addr_ok (cpu_data_addr_ok),   .data_data_ok (cpu_data_data_ok),
-
-    .no_dcache(no_dcache),
-
-    .debug_wb_pc(debug_wb_pc),
-    .debug_wb_rf_wen   (debug_wb_rf_wen   ),
-    .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
-    .debug_wb_rf_wdata (debug_wb_rf_wdata )
-);
-bridge_1x2 bridge_1x2 (
-    .no_dcache(no_dcache),
-    //mips传出的data请求
-    .cpu_data_req     (cpu_data_req  ),     .cpu_data_wr      (cpu_data_wr   ),
-    .cpu_data_addr    (cpu_data_addr ),     .cpu_data_wdata   (cpu_data_wdata),
-    .cpu_data_size    (cpu_data_size ), 
-    //传向mips的data回复
-    .cpu_data_rdata   (cpu_data_rdata),
-    .cpu_data_addr_ok (cpu_data_addr_ok),   .cpu_data_data_ok (cpu_data_data_ok),
-
-    //应当前往cache的data请求
-    .fast_data_req     (fast_data_req  ),     .fast_data_wr      (fast_data_wr   ),
-    .fast_data_addr    (fast_data_addr ),     .fast_data_wdata   (fast_data_wdata),
-    .fast_data_size    (fast_data_size ), 
-    //从cache得到的data回复
-    .fast_data_rdata   (fast_data_rdata),
-    .fast_data_addr_ok (fast_data_addr_ok),   .fast_data_data_ok (fast_data_data_ok),
-
-    //不过cache的data请求
-    .conf_data_req     (conf_data_req  ),     .conf_data_wr      (conf_data_wr   ),
-    .conf_data_addr    (conf_data_addr ),     .conf_data_wdata   (conf_data_wdata),
-    .conf_data_size    (conf_data_size ), 
-    //不过cache得到的data回复
-    .conf_data_rdata   (conf_data_rdata),
-    .conf_data_addr_ok (conf_data_addr_ok),   .conf_data_data_ok (conf_data_data_ok)
-);
-
-d_cache d_cache (
-    .clk(clk), .rst(rst),
-
-    .cpu_data_req(fast_data_req),    .cpu_data_wr(fast_data_wr),
-    .cpu_data_size(fast_data_size),  .cpu_data_addr(fast_data_addr),
-    .cpu_data_wdata(fast_data_wdata), 
-
-    .cpu_data_rdata(fast_data_rdata),
-    .cpu_data_addr_ok(fast_data_addr_ok) ,.cpu_data_data_ok(fast_data_data_ok) ,
-
-    .cache_data_req(cache_data_req),    .cache_data_wr(cache_data_wr),
-    .cache_data_size(cache_data_size),  .cache_data_addr(cache_data_addr),
-    .cache_data_wdata(cache_data_wdata), 
-
-    .cache_data_rdata(cache_data_rdata),
-    .cache_data_addr_ok(cache_data_addr_ok) ,.cache_data_data_ok(cache_data_data_ok)
-);
-
-i_cache i_cache(
-    .clk(clk), .rst(rst),
+    wire        d_bvalid;
+    wire        d_bready;
     
-    .cpu_inst_req(cpu_inst_req),    .cpu_inst_wr(cpu_inst_wr),
-    .cpu_inst_size(cpu_inst_size),  .cpu_inst_addr(cpu_inst_addr),
-    .cpu_inst_wdata(cpu_inst_wdata), 
 
-    .cpu_inst_rdata(cpu_inst_rdata),
-    .cpu_inst_addr_ok(cpu_inst_addr_ok) ,.cpu_inst_data_ok(cpu_inst_data_ok) ,
+    datapath DataLine(
+		.clk(clk),.rst(rst),
+		.ext_int(ext_int),
+        //instruction
+    	.PC_IF1(virtual_instr_addr), .inst_enF(cpu_inst_en), 
+        .instrF2(cpu_inst_rdata),
+        .i_cache_stall(i_stall),
+        //data
+    	.mem_addrM(virtual_data_addr),.mem_enM(cpu_data_en),
+        .mem_rdataM2(cpu_data_rdata),
+        .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
+        .d_cache_stall(d_stall),
+        
+        .stallF2(stallF2), .stallM2(stallM2),
+		//debug interface
+		.debug_wb_pc(debug_wb_pc),
+        .debug_wb_rf_wen(debug_wb_rf_wen),
+        .debug_wb_rf_wnum(debug_wb_rf_wnum),
+        .debug_wb_rf_wdata(debug_wb_rf_wdata)
+	);
 
-    .cache_inst_req(cache_inst_req),    .cache_inst_wr(cache_inst_wr),
-    .cache_inst_size(cache_inst_size),  .cache_inst_addr(cache_inst_addr),
-    .cache_inst_wdata(cache_inst_wdata), 
+    mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
+                .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
+                .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
+                .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_cache));
+    
 
-    .cache_inst_rdata(cache_inst_rdata),
-    .cache_inst_addr_ok(cache_inst_addr_ok) ,.cache_inst_data_ok(cache_inst_data_ok)
-);
-bridge_2x1 bridge_2x1(
-    .no_dcache(no_dcache),
-    //过cache后的data请求
-    .cache_data_req(cache_data_req),    .cache_data_wr(cache_data_wr),
-    .cache_data_size(cache_data_size),  .cache_data_addr(cache_data_addr),
-    .cache_data_wdata(cache_data_wdata), 
-    //过cache后的data回复
-    .cache_data_rdata(cache_data_rdata),
-    .cache_data_addr_ok(cache_data_addr_ok) ,.cache_data_data_ok(cache_data_data_ok),
+    d_cache d_cache (
+        //to do
+        .clk(clk), .rst(rst),
+        .no_cache(no_cache), .d_stall(d_stall), .stallM2(stallM2), .i_stall(i_stall),
+        .data_sram_wen(data_sram_wen),
+        .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
+        .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
+        .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),
+        .cpu_NoCache_waddr(cpu_data_addr),
+        //D CACHE
+        .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),
+        .d_arsize          (d_arsize ), .d_arvalid         (d_arvalid),
+        .d_arready         (d_arready),
 
-    //不过cache的data请求
-    .conf_data_req     (conf_data_req  ),     .conf_data_wr      (conf_data_wr   ),
-    .conf_data_addr    (conf_data_addr ),     .conf_data_wdata   (conf_data_wdata),
-    .conf_data_size    (conf_data_size ), 
-    //不过cache得到的data回复
-    .conf_data_rdata   (conf_data_rdata),
-    .conf_data_addr_ok (conf_data_addr_ok),   .conf_data_data_ok (conf_data_data_ok),
+        .d_rdata           (d_rdata ), .d_rlast           (d_rlast ),
+        .d_rvalid          (d_rvalid), .d_rready          (d_rready),
 
-    //合并
-    .wrap_data_req     (wrap_data_req  ),     .wrap_data_wr      (wrap_data_wr   ),
-    .wrap_data_addr    (wrap_data_addr ),     .wrap_data_wdata   (wrap_data_wdata),
-    .wrap_data_size    (wrap_data_size ), 
-    //合并
-    .wrap_data_rdata   (wrap_data_rdata),
-    .wrap_data_addr_ok (wrap_data_addr_ok),   .wrap_data_data_ok (wrap_data_data_ok)
-);
+        .d_awaddr          (d_awaddr ), .d_awlen           (d_awlen  ),
+        .d_awsize          (d_awsize ), .d_awvalid         (d_awvalid),
+        .d_awready         (d_awready),
 
-cpu_axi_interface axi_interface(
-    .clk(clk), .resetn(aresetn),
-    //input
-    .inst_req(cache_inst_req),    .inst_wr(cache_inst_wr),
-    .inst_size(cache_inst_size),  .inst_addr(cache_inst_addr),
-    .inst_wdata(cache_inst_wdata), 
-    //output
-    .inst_rdata(cache_inst_rdata),
-    .inst_addr_ok(cache_inst_addr_ok) ,.inst_data_ok(cache_inst_data_ok) ,
+        .d_wdata           (d_wdata ), .d_wstrb           (d_wstrb ),
+        .d_wlast           (d_wlast ), .d_wvalid          (d_wvalid),
+        .d_wready          (d_wready),
 
-    //input
-    .data_req     (wrap_data_req  ),     .data_wr      (wrap_data_wr   ),
-    .data_addr    (wrap_data_addr ),     .data_wdata   (wrap_data_wdata),
-    .data_size    (wrap_data_size ), 
-    //output
-    .data_rdata   (wrap_data_rdata),
-    .data_addr_ok (wrap_data_addr_ok),   .data_data_ok (wrap_data_data_ok),
+        .d_bvalid          (d_bvalid), .d_bready          (d_bready)
+    );
 
-    //input
-    .arid(arid),            .araddr(araddr),   .arlen(arlen),
-    .arsize(arsize),        .arburst(arburst), .arlock(arlock),
-    .arcache(arcache),      .arprot(arprot),   .arvalid (arvalid),  
-    //output
-    .arready (arready),
+    i_cache i_cache(
+        .clk(clk), .rst(rst),
+        .no_cache(1'b0), .i_stall(i_stall), .stallF2(stallF2), .d_stall(d_stall),
+        
+        .cpu_inst_wr(cpu_inst_wr),      .cpu_inst_en(cpu_inst_en),
+        .cpu_inst_addr(cpu_inst_addr),
+        
+        .cpu_inst_rdata(cpu_inst_rdata),
+        //I CACHE OUTPUT
+        .i_araddr          (i_araddr ), .i_arlen           (i_arlen  ),
+        .i_arsize          (i_arsize ), .i_arvalid         (i_arvalid),
+        .i_arready         (i_arready),
+                    
+        .i_rdata           (i_rdata ),  .i_rlast           (i_rlast ),
+        .i_rvalid          (i_rvalid),  .i_rready          (i_rready)
+    );
 
-    //input
-    .rid(rid),              .rdata(rdata),     .rresp(rresp),
-    .rlast(rlast),          .rvalid (rvalid),  
-    //output
-    .rready (rready),
 
-    //input
-    .awid(awid),            .awaddr(awaddr),   .awlen(awlen),
-    .awsize(awsize),        .awburst(awburst), .awlock(awlock),
-    .awcache(awcache),      .awprot(awprot),   .awvalid (awvalid),  
-    //output
-    .awready (awready),   
 
-    //input
-    .wid(wid),              .wdata(wdata),     .wstrb(wstrb),
-    .wlast(wlast),          .wvalid (wvalid),  
-    //output
-    .wready (wready), 
 
-    //input
-    .bid(bid),              .bresp(bresp),     .bvalid (bvalid),  
-    //output
-    .bready (bready)
-);
+    cpu_axi_interface axi_interface(
+        .clk(clk),          .rst(rst),
+    //I CACHE
+        .i_araddr          (i_araddr ), .i_arlen           (i_arlen  ),
+        .i_arsize          (i_arsize ), .i_arvalid         (i_arvalid),
+        .i_arready         (i_arready),
+                    
+        .i_rdata           (i_rdata ),  .i_rlast           (i_rlast ),
+        .i_rvalid          (i_rvalid),  .i_rready          (i_rready),
+        
+    //D CACHE
+        .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),
+        .d_arsize          (d_arsize ), .d_arvalid         (d_arvalid),
+        .d_arready         (d_arready),
+
+        .d_rdata           (d_rdata ), .d_rlast           (d_rlast ),
+        .d_rvalid          (d_rvalid), .d_rready          (d_rready),
+
+        .d_awaddr          (d_awaddr ), .d_awlen           (d_awlen  ),
+        .d_awsize          (d_awsize ), .d_awvalid         (d_awvalid),
+        .d_awready         (d_awready),
+
+        .d_wdata           (d_wdata ), .d_wstrb           (d_wstrb ),
+        .d_wlast           (d_wlast ), .d_wvalid          (d_wvalid),
+        .d_wready          (d_wready),
+
+        .d_bvalid          (d_bvalid), .d_bready          (d_bready),
+
+        //input
+        .arid(arid),            .araddr(araddr),   .arlen(arlen),
+        .arsize(arsize),        .arburst(arburst), .arlock(arlock),
+        .arcache(arcache),      .arprot(arprot),   .arvalid (arvalid),  
+        //output
+        .arready (arready),
+
+        //input
+        .rid(rid),              .rdata(rdata),     .rresp(rresp),
+        .rlast(rlast),          .rvalid (rvalid),  
+        //output
+        .rready (rready),
+
+        //input
+        .awid(awid),            .awaddr(awaddr),   .awlen(awlen),
+        .awsize(awsize),        .awburst(awburst), .awlock(awlock),
+        .awcache(awcache),      .awprot(awprot),   .awvalid (awvalid),  
+        //output
+        .awready (awready),   
+
+        //input
+        .wid(wid),              .wdata(wdata),     .wstrb(wstrb),
+        .wlast(wlast),          .wvalid (wvalid),  
+        //output
+        .wready (wready), 
+
+        //input
+        .bid(bid),              .bresp(bresp),     .bvalid (bvalid),  
+        //output
+        .bready (bready)
+    );
 
     //ascii
     //use for debug

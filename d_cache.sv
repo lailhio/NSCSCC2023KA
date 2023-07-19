@@ -1,293 +1,505 @@
-module d_cache (
-    input wire clk, rst,
+module d_cache#(
+    parameter LEN_LINE = 5,  // 32 Bytes
+    parameter LEN_INDEX = 7, // 128 lines
+    parameter NR_WAYS = 2
+) (
+    input wire clk, rst, stallM2,no_cache, i_stall,
+    output wire d_stall,
+    input [3:0]   data_sram_wen,
     //mips core
-    input         cpu_data_req     , // 是不是数据请求(load 或 store指令)。一个周期后就清除了
-    input         cpu_data_wr      , // mips->cache, 当前请求是否是写请求(是不是store指令)。一直保持电平状态直到请求成功
-    input  [1 :0] cpu_data_size    , // 结合地址最低两位，确定数据的有效字节（用于sb、sh等指令）
+    input         cpu_data_en     , 
+    input         cpu_data_wr      , // whether is store type
+    input  [1 :0] cpu_data_size    , // from the addr ,write size data 
     input  [31:0] cpu_data_addr    ,
+    input  [31:0] cpu_NoCache_waddr,
     input  [31:0] cpu_data_wdata   ,
     output [31:0] cpu_data_rdata   ,
-    output        cpu_data_addr_ok , // 确认请求的地址已收到，一个周期后清除
-    output        cpu_data_data_ok , // 确认请求的数据已收到，一个周期后清除
 
-    //axi interface
-    output         cache_data_req     , // cache->mem, 是不是数据请求(RM或WM状态)。一个周期后就清除了
-    output         cache_data_wr      , // cache->mem, 当前请求是否是写请求(是不是处于WM状态)。一直保持电平状态直到请求成功
-    output  [1 :0] cache_data_size    ,
-    output  [31:0] cache_data_addr    ,
-    output  [31:0] cache_data_wdata   ,
-    input   [31:0] cache_data_rdata   ,
-    input          cache_data_addr_ok , // 确认请求的地址已收到，一个周期后清除
-    input          cache_data_data_ok   // 确认请求的数据已收到，一个周期后清除
-);
-    //Cache配置
-    parameter  INDEX_WIDTH  = 10, OFFSET_WIDTH = 2;
-    localparam TAG_WIDTH    = 32 - INDEX_WIDTH - OFFSET_WIDTH;
-    localparam CACHE_DEEPTH = 1 << INDEX_WIDTH;
-    localparam DATA_WIDTH   = 32;
+    //D CACHE
+    output reg [31:0] d_araddr,
+    output reg [7:0] d_arlen,
+    output reg [2:0] d_arsize,
+    output reg       d_arvalid,
+    input wire        d_arready,
+
+    input wire [31:0] d_rdata,
+    input wire        d_rlast,
+    input wire        d_rvalid,
+    output reg         d_rready,
+    //write
+    output reg [31:0] d_awaddr,
+    output reg [7:0] d_awlen,
+    output reg [2:0] d_awsize,
+    output reg       d_awvalid,
+    input wire        d_awready,
     
+    output reg [31:0] d_wdata,
+    output reg [3:0] d_wstrb,
+    output reg       d_wlast,
+    output reg       d_wvalid,
+    input wire        d_wready,
+
+    input wire        d_bvalid,
+    output wire       d_bready
+);
+    // defines
+    localparam LEN_PER_WAY = LEN_LINE + LEN_INDEX;
+    localparam LEN_TAG = 32 - LEN_LINE - LEN_INDEX;
+    localparam LEN_BRAM_ADDR = LEN_LINE - 3 + LEN_INDEX;
+    localparam CACHE_DEEPTH = 1 << LEN_INDEX;
+    localparam NR_WORDS = 1 << (LEN_LINE - 2);
+    //Cache
+    localparam DATA_WIDTH   = 32;
+    wire [LEN_LINE-1:0] ZeroBit = 0;
     //Cache存储单元
     //* 两路，所以cache扩大一倍
     (*ram_style="block"*) reg [1:0]             cache_valid [CACHE_DEEPTH - 1 : 0];
     (*ram_style="block"*) reg [1:0]             cache_dirty [CACHE_DEEPTH - 1 : 0]; // 是否修改过
-    (*ram_style="block"*) reg [1:0]             cache_ru    [CACHE_DEEPTH - 1 : 0]; //* recently used
-    (*ram_style="block"*) reg [2*TAG_WIDTH-1:0] cache_tag   [CACHE_DEEPTH - 1 : 0];
-    (*ram_style="block"*) reg [2*DATA_WIDTH-1:0]cache_block [CACHE_DEEPTH - 1 : 0];
+    (*ram_style="block"*) reg [1:0]             cache_lru    [CACHE_DEEPTH - 1 : 0]; //* recently used
 
-    //访问地址分解
-    wire [OFFSET_WIDTH-1:0] offset;
-    wire [INDEX_WIDTH-1:0] index;
-    wire [TAG_WIDTH-1:0] tag;
+
+    // sys 
+    wire data_wr_en;
+    wire no_cache_res;
+    wire data_en;
+    wire [31:0] data_wdata;
+    wire [1:0] data_size;
+    wire [31:0] data_addr;
+    wire [3:0] data_sram_wen_Res;
+    wire [LEN_LINE-1:0] lineLoc_Res;
+    wire [LEN_INDEX-1:0] index_Res;
+    wire [LEN_TAG-1:0] tag_Res;
+    //addr part
+    wire [LEN_LINE-1:0] lineLoc;
+    wire [LEN_INDEX-1:0] index;
+    wire [LEN_TAG-1:0] tag;
     
-    assign offset = cpu_data_addr[OFFSET_WIDTH - 1 : 0];
-    assign index = cpu_data_addr[INDEX_WIDTH + OFFSET_WIDTH - 1 : OFFSET_WIDTH];
-    assign tag = cpu_data_addr[31 : INDEX_WIDTH + OFFSET_WIDTH];
+    reg [LEN_TAG-1:0] tag_M2;
+    reg [LEN_INDEX-1:0] index_M2;
+    reg [LEN_LINE-1:0] lineLoc_M2;
+    // No Cache Should be Execute in M2
+    reg  no_cache_M2;
+    reg [31:0] cpu_NoCache_waddr_M2;
+    reg [3:0] data_sram_wen_M2;
+    reg cpu_data_en_M2;
+    reg cpu_data_wr_M2;
+    reg [31:0] cpu_data_wdata_M2;
+    reg [1:0] cpu_data_size_M2;
+    reg [31:0] cpu_data_addr_M2;
 
-    //访问Cache line
-    wire                  c_valid[1:0];
-    wire                  c_dirty[1:0]; // 是否修改过
-    wire                  c_ru   [1:0]; //* recently used
-    wire [TAG_WIDTH-1:0]  c_tag  [1:0];
-    wire [DATA_WIDTH-1:0]c_block[1:0];
+    reg no_cache_M3;
+    reg [LEN_LINE-1:0] lineLoc_M3;
+    reg [LEN_INDEX-1:0] index_M3;
+    reg [LEN_TAG-1:0] tag_M3;
+    reg [3:0] data_sram_wen_M3;
+    reg cpu_data_en_M3;
+    reg cpu_data_wr_M3;
+    reg [31:0] cpu_data_wdata_M3;
+    reg [1:0] cpu_data_size_M3;
+    reg [31:0] cpu_data_addr_M3;
 
-    assign c_valid[0] = cache_valid[index][0];
-    assign c_valid[1] = cache_valid[index][1];
-    assign c_dirty[0] = cache_dirty[index][0];
-    assign c_dirty[1] = cache_dirty[index][1];
-    assign c_ru   [0] = cache_ru   [index][0];
-    assign c_ru   [1] = cache_ru   [index][1];
 
-    assign c_tag  [0] = cache_tag  [index][1*TAG_WIDTH-1:0*TAG_WIDTH];
-    assign c_tag  [1] = cache_tag  [index][2*TAG_WIDTH-1:1*TAG_WIDTH];
+    assign lineLoc = cpu_data_addr[LEN_LINE - 1 : 0];
+    assign index = cpu_data_addr[LEN_INDEX + LEN_LINE - 1 : LEN_LINE];
+    assign tag = cpu_data_addr[31 : LEN_INDEX + LEN_LINE];
 
-    assign c_block[0] = cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH];
-    assign c_block[1] = cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH];
+    
+    wire [LEN_TAG-1:0]   tag_compare;
+    wire [1:0]           c_valid;
+    wire [LEN_TAG-1:0]   c_tag  [1:0];
+    wire [1:0]           c_dirty;
+    wire [1:0]           c_lru;
+    //Cache line something
+    reg [1:0]                 c_valid_M2;
+    reg [1:0]                 c_dirty_M2; // 是否修改过
+    reg [1:0]                 c_lru_M2   ; //* recently used
+    reg [LEN_TAG-1:0]         c_tag_M2  [1:0];
+    reg [DATA_WIDTH-1:0]      c_block_M2[1:0];
+    wire [1:0]                c_way;
+    wire                      tway;
+
+    reg [1:0]                 c_valid_M3;
+    reg [1:0]                 c_dirty_M3; // 是否修改过
+    reg [1:0]                 c_lru_M3   ; //* recently used
+    reg [LEN_TAG-1:0]         c_tag_M3  [1:0];
+    reg [DATA_WIDTH-1:0]      c_block_M3[1:0];
+    reg                       tway_M3;
 
     //判断是否命中
     wire hit, miss;
-    assign hit = c_valid[0] & (c_tag[0] == tag) | c_valid[1] & (c_tag[1] == tag);  //* cache line有一路中的valid位为1，且tag与地址中tag相等
+    reg cpu_data_ok;
+
+    // judge the right time
+    assign lineLoc_Res = isIDLE ? lineLoc_M2 : lineLoc_M3;
+    assign index_Res = isIDLE ? index_M2 : index_M3;
+    assign tag_compare = isIDLE ? tag_M2 : tag_M3;
+    assign data_sram_wen_Res = isIDLE ? data_sram_wen_M2 : data_sram_wen_M3;
+    assign data_wdata = isIDLE ? cpu_data_wdata_M2 : cpu_data_wdata_M3;
+    assign data_size = isIDLE ? cpu_data_size_M2 : cpu_data_size_M3;
+    assign data_addr = isIDLE ? cpu_data_addr_M2 : cpu_data_addr_M3;
+    assign no_cache_res = isIDLE ? no_cache_M2 : no_cache_M3;
+    assign data_wr_en = isIDLE ? cpu_data_wr_M2: cpu_data_wr_M3;
+    assign data_en = (isIDLE | isSAVERES) ? cpu_data_en_M2 : cpu_data_en_M3;
+    assign c_valid = isIDLE ? c_valid_M2: c_valid_M3;
+    assign c_tag[0] = isIDLE ? c_tag_M2[0] : c_tag_M3[0];
+    assign c_tag[1] = isIDLE ? c_tag_M2[1] : c_tag_M3[1];
+    assign c_lru = isIDLE ?  c_lru_M2 : c_lru_M3;
+    assign c_dirty = isIDLE ?  c_dirty_M2 : c_dirty_M3;
+    // hit and miss
+    assign c_way[0] = c_valid[0] & c_tag[0] == tag_compare;
+    assign c_way[1] = c_valid[1] & c_tag[1] == tag_compare;
+    assign tway = hit ? c_way[1] : c_lru[1];
+    assign hit = |c_way;
     assign miss = ~hit;
 
-    //* 后面的cache处理应访问哪一路
-    wire c_way;
-    //* 1. hit，选hit的那一路
-    //* 2. miss，选不是最近使用的那一路(c_ru[0]==1，0路最近使用 -> c_way=1路)
-    assign c_way = hit ? (c_valid[0] & (c_tag[0] == tag) ? 1'b0 : 1'b1) : 
-                   c_ru[0] ? 1'b1 : 1'b0; 
-
-    // cpu请求是不是读或写请求(是不是load或store指令)
+    // load and store
     wire load, store;
-    assign store = cpu_data_wr;
-    assign load = cpu_data_req & ~store; // 是数据请求，且不是store，那么就是load
+    assign store = data_wr_en;
+    assign load = data_en & ~store;
 
     //* cache当前位置是否dirty
     wire dirty, clean;
-    assign dirty = c_dirty[c_way];
+    assign dirty = c_dirty[tway];
     assign clean = ~dirty;
 
     //FSM
-    parameter IDLE = 2'b00, RM = 2'b01, WM = 2'b11;
-    reg [1:0] state;
-    // store指令，是否是处在RM状态（发生了miss)。当RM结束时(state从RM->IDLE)的上升沿，in_RM读出来仍为1.
-    reg in_RM;
+    parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
+    reg [2:0] state;
+    reg [2:0] pre_state;
+
+
+    // axi cnt
+    logic [LEN_LINE-1:2] axi_cnt;
+    logic [LEN_LINE-1:2] cache_buff_cnt;
+
+    assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
+    reg [31:0] axi_data_rdata;
+    assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : d_rdata;
+
+
+    logic [1:0] wena_tag_ram_way;
+    logic [3:0] wena_data_bank_way [NR_WAYS-1:0]; // 4 bytes
+    logic [31:0] wdata_buffer[NR_WORDS -1 :0];
+    
+    // hit and write
+    wire [1:0] wena_tag_hitway;
+    assign  wena_tag_hitway = hit & store ?
+            {{data_wr_en & tway & ~i_stall}, {data_wr_en & ~tway & ~i_stall}} : wena_tag_ram_way; // 4 bytes
+    wire [3:0] wena_data_hitway [NR_WAYS-1:0];
+    assign  wena_data_hitway = hit & store ?
+            {{data_sram_wen_Res & {4{tway & ~i_stall}}}, {data_sram_wen_Res & {4{~tway & ~i_stall}}}} : wena_data_bank_way; // 4 bytes
+    // write back part
+    wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt};
+    // first : write data come from ram
+    // second : come from cpu
+    wire [31:0] write_cache_data = d_rdata & ~{{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}} | 
+                              data_wdata & {{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}};
+    
+    wire [31:0] data_write = ((axi_cnt == lineLoc_M3[LEN_LINE-1:2] & store) | (store & hit))?  write_cache_data:  d_rdata;
+    
+    wire isCACHE_REPLACE = state==CACHE_REPLACE;
+    wire isCACHE_WRITEBACK = state==CACHE_WRITEBACK;
+    wire isIDLE = state==IDLE;
+    wire isSAVERES = state==SAVE_RES;
+
+    // axi d_bready
+    assign d_bready = 1'b1;
+
+
+    always @(posedge clk) begin
+        if(rst) begin
+            index_M2 <= 0;
+            lineLoc_M2 <= 0;
+            tag_M2 <= 0;
+            cpu_data_wr_M2 <= 0;
+            cpu_data_en_M2 <= 0;
+            //Nocache Process
+            no_cache_M2 <= 0;
+            cpu_NoCache_waddr_M2 <= 0;
+            data_sram_wen_M2 <= 0;
+            cpu_data_wdata_M2 <= 0;
+            cpu_data_size_M2 <= 0;
+            cpu_data_addr_M2 <= 0;
+            
+            c_valid_M2 <= 2'b00;
+            c_dirty_M2 <= 2'b00;
+            c_lru_M2 <= 2'b00;
+        end
+        else if((~stallM2 | d_stall) & ~i_stall)begin
+            lineLoc_M2 <= lineLoc;
+            index_M2 <= index;
+            tag_M2 <= tag;
+            //Nocache Process
+            cpu_data_wr_M2 <= cpu_data_wr;
+            cpu_data_en_M2 <= cpu_data_en;
+            no_cache_M2 <= no_cache;
+            cpu_NoCache_waddr_M2 <= cpu_NoCache_waddr;
+            data_sram_wen_M2 <= data_sram_wen;
+            cpu_data_wdata_M2 <= cpu_data_wdata;
+            cpu_data_size_M2 <= cpu_data_size;
+            cpu_data_addr_M2 <= cpu_data_addr;
+            c_dirty_M2[0] <= cache_dirty[index][0];
+            c_dirty_M2[1] <= cache_dirty[index][1];
+            c_valid_M2[0] <= cache_valid[index][0];
+            c_valid_M2[1] <= cache_valid[index][1];
+            c_lru_M2   [0] <= cache_lru   [index][0];
+            c_lru_M2   [1] <= cache_lru   [index][1];
+        end
+    end
+
 
     always @(posedge clk) begin
         if(rst) begin
             state <= IDLE;
-            in_RM <= 1'b0;
+            pre_state <= IDLE;
+            index_M3 <= 0;
+            lineLoc_M3 <= 0;
+            tag_M3 <= 0;
+            tway_M3 <= 0;
+            no_cache_M3 <= 0;
+            cpu_data_en_M3 <= 0;
+            cpu_data_wr_M3 <= 0;
+            cpu_data_ok <= 0;
+            cpu_data_wdata_M3 <= 0;
+            cpu_data_size_M3 <= 0;
+            cpu_data_addr_M3 <= 0;
+            data_sram_wen_M3 <= 0;
+            c_tag_M3 <= '{default: '0};
+            c_dirty_M3 <=  '{default: '0};
+            c_lru_M3 <=  '{default: '0};
+            c_valid_M3 <= '{default: '0};
+            cache_dirty <= '{default: '0};
+            cache_lru <= '{default: '0};
+            cache_valid <= '{default: '0};
+            axi_data_rdata <= 0;
+            axi_cnt <= 0;
+            cache_buff_cnt <=0;
+            // clear axi
+            d_arlen <= 0;
+            d_arsize <= 0;
+            d_arvalid <= 0;
+            d_rready <= 0;
+            d_awaddr <= 0;
+            d_awlen <= 0;
+            d_awsize <= 0;
+            d_awvalid <= 0;
+            d_wdata <= 0;
+            d_wstrb <= 0;
+            d_wlast <= 0;
+            d_wvalid <= 0;
         end
-        else begin
+        else if(data_en & ((~stallM2 | d_stall) & ~i_stall))begin          
+            pre_state <= state;  
             case(state)
             // 按照状态机编写
                 IDLE: begin
-                    state <= IDLE;
-                    if (cpu_data_req) begin
-                        if (hit) 
-                            state <= IDLE;
-                        else if (miss & dirty)
-                            state <= WM;
-                        else if (miss & clean)
-                            state <= RM;
+                    c_tag_M3 <= c_tag_M2;
+                    c_dirty_M3 <=  c_dirty_M2;
+                    c_lru_M3 <=  c_lru_M2;
+                    c_valid_M3 <= c_valid_M2;
+                    index_M3 <= index_M2;
+                    lineLoc_M3 <= lineLoc_M2;
+                    no_cache_M3 <= no_cache_M2;
+                    tag_M3 <= tag_M2;
+                    tway_M3 <= tway;
+                    cpu_data_ok <= 0;
+                    cpu_data_en_M3 <= cpu_data_en_M2;
+                    cpu_data_wr_M3 <= cpu_data_wr_M2;
+                    cpu_data_wdata_M3 <= cpu_data_wdata_M2;
+                    cpu_data_size_M3 <= cpu_data_size_M2;
+                    cpu_data_addr_M3 <= cpu_data_addr_M2;
+                    data_sram_wen_M3 <= data_sram_wen_M2;
+                    if (no_cache_M2 &  ~(pre_state == NOCACHE & ~no_cache)) begin
+                        if(store) begin
+                            d_wstrb <= data_sram_wen_M2;
+                            d_wlast <= 1'b1;
+                            d_awlen  <= 0;
+                            d_awaddr <= cpu_NoCache_waddr_M2;
+                            d_wdata <= cpu_data_wdata_M2; 
+                            d_awsize <= {1'b0,cpu_data_size_M2};
+                            d_awvalid <= 1'b1;
+                        end
+                        else begin
+                            d_araddr <= cpu_data_addr_M2;
+                            d_arlen  <= 0;
+                            d_arsize <= 3'd2;
+                            d_arvalid <= 1'b1;
+                        end
+                        state <= NOCACHE;
                     end
-                    in_RM <= 1'b0;
-                end
-
-                WM: begin
-                    state <= WM;
-                    if (cache_data_data_ok)
-                        state <= RM;
-                end
-
-                RM: begin
-                    state <= RM;
-                    if (cache_data_data_ok)
+                    else if (hit) begin
                         state <= IDLE;
-
-                    in_RM <= 1'b1;
+                        if(store) begin
+                            cache_dirty[index_M2][tway] <= 1'b1;
+                        end
+                        cache_lru[index_M2][tway] <=1'b0;
+                        cache_lru[index_M2][~tway] <=1'b1;
+                    end
+                    else if(~stallM2 | d_stall)begin
+                        if (miss & dirty)begin
+                            state <= CACHE_WRITEBACK;
+                            d_awaddr <= {tag_M2, index_M2,{LEN_LINE{1'b0}}};
+                            d_awlen <= NR_WORDS - 1;
+                            d_awsize <= 3'd2;
+                            d_awvalid <= 1'b1;
+                        end
+                        else if (miss & clean)begin
+                            state <= CACHE_REPLACE;
+                            d_araddr <= {tag_M2, index_M2,{LEN_LINE{1'b0}}};
+                            d_arlen <= NR_WORDS - 1;
+                            d_arsize <= 3'd2;
+                            d_arvalid <= 1'b1;
+                            wena_data_bank_way[tway] <= 4'hf;// write to instram
+                            wena_data_bank_way[~tway] <= 4'h0;// write to instram
+                            wena_tag_ram_way <= {tway,~tway}; //write to tag
+                        end
+                        cache_valid[index_M2][tway] <= 1'b1;
+                        axi_cnt <= 0;
+                        cache_buff_cnt <=0;
+                    end
                 end
+                CACHE_WRITEBACK: begin              
+                    d_wstrb <= 4'b1111; // 写哪几位
+                    if (d_awvalid & d_awready) begin
+                        // First Time
+                        d_awvalid <= 1'b0;
+                        d_wvalid <=1'b1;
+                        d_wlast <=1'b0;
+                    end
+                    if ((cache_buff_cnt != NR_WORDS - 1) & ~(d_awvalid & d_awready)) begin
+                        // not first time, todo addr
+                        cache_buff_cnt <= cache_buff_cnt + 1;
+                    end
+                    // write to buffer
+                    wdata_buffer[cache_buff_cnt] <= c_block_M2[tway_M3];
+                    if (d_wvalid & d_wready) begin
+                        // write one word every wready 
+                        if (d_wlast) begin
+                            d_wvalid <= 1'b0;
+                            d_wlast <= 1'b0;
+                        end
+                        else begin
+                            d_wdata <=  wdata_buffer[axi_cnt];
+                            axi_cnt <= axi_cnt + 1;
+                            if (axi_cnt  == NR_WORDS - 1) begin
+                                d_wlast <= 1'b1;
+                            end
+                        end
+                    end
+                    if (d_bvalid & d_bready) begin
+                        // write to cache 
+                        d_araddr <= cpu_data_addr;
+                        d_arlen <= NR_WORDS - 1;
+                        d_arsize <= 3'd2;
+                        d_arvalid <= 1'b1;
+                        axi_cnt <= 0 ;
+                        wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
+                        wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
+                        wena_tag_ram_way[tway_M3] <= 1;
+                        cache_dirty[index_M3][tway_M3] <= 0;
+                        state <= CACHE_REPLACE;
+                    end
+                end
+                CACHE_REPLACE: begin
+                    state <= CACHE_REPLACE;
+                    if (d_arvalid) begin
+                        if (d_arready) begin
+                            d_arvalid <= 0;
+                            d_rready <= 1'b1;
+                        end
+                    end
+                    else begin
+                        if (d_rvalid & d_rready) begin
+                            if (!d_rlast) begin
+                                axi_cnt <= axi_cnt + 1;
+                                if(axi_cnt == lineLoc_M3[LEN_LINE-1:2]) 
+                                    axi_data_rdata <= d_rdata;
+                            end
+                            else begin
+                                d_rready <= 0;
+                                wena_data_bank_way[tway_M3] <= 0;
+                                wena_tag_ram_way[tway_M3] <= 0;
+                            end
+                        end
+                        else if (!d_rready) begin // wait the final data write to bram.
+                            state <= IDLE;
+                            cpu_data_ok <= 1;
+                        end
+                    end
+                end
+                NOCACHE: begin
+                    if(store)begin
+                        //No Burst
+                        if(d_awvalid & d_awready)begin
+                            d_awvalid <= 0;
+                            d_wvalid <= 1'b1;
+                        end
+                        if(d_wready & d_wvalid)begin
+                            d_wvalid <= 1'b0;
+                        end
+                        if(d_bvalid & d_bready)begin
+                            d_wlast <= 1'b0;
+                            state <= IDLE;
+                            cpu_data_ok <=1;
+                        end
+
+                    end
+                    else begin
+                        if (d_arvalid) begin
+                            if (d_arready) begin
+                                d_arvalid <= 0;
+                                d_rready <= 1'b1;
+                            end
+                        end
+                        else if (d_rvalid & d_rready) begin
+                            d_rready <= 1'b0;
+                        end
+                        else if (~d_rvalid & ~d_rready)begin
+                            cpu_data_ok <=1;
+                            state <= IDLE;
+                        end
+                    end
+                end
+                // SAVE_RES:begin
+                //     if (~stallM2) 
+                //         state <= IDLE;
+                // end
             endcase
+        end
+        else if(~stallM2 | d_stall) begin
+            cpu_data_ok <= 0;
+            pre_state <= state;
         end
     end
 
-    //读内存
-    //变量 isRM, addr_rcv, read_finish用于构造类sram信号。
-    wire isRM;      //一次完整的读事务，从发出读请求到结束 // 是不是处于RM状态
-    reg addr_rcv;       //地址接收成功(addr_ok)后到结束      // 处于RM状态，且地址已得到mem的确认
-    wire read_finish;   //数据接收成功(data_ok)，即读请求结束 // 处于RM状态，且已得到mem读取的数据
-    always @(posedge clk) begin
-        addr_rcv <= rst ? 1'b0 :
-                    cache_data_req & isRM & cache_data_addr_ok ? 1'b1 :
-                    read_finish ? 1'b0 : 
-                    addr_rcv;
-    end
-    assign isRM = state==RM;
-    assign read_finish = isRM & cache_data_data_ok;
-
-    //写内存
-    wire isWM;     // 是不是处于WM状态
-    reg waddr_rcv;      // 处于WM状态，且地址已得到mem的确认
-    wire write_finish;  // 处于WM状态，且已写入mem的数据
-    always @(posedge clk) begin
-        waddr_rcv <= rst ? 1'b0 :
-                     cache_data_req& isWM & cache_data_addr_ok ? 1'b1 :
-                     write_finish ? 1'b0 :
-                     waddr_rcv;
-    end
-    assign isWM = state==WM;
-    assign write_finish = isWM & cache_data_data_ok;
-
-    //output to mips core
-    //* 输出对应路的cache block
-    assign cpu_data_rdata   = hit ? c_block[c_way] : cache_data_rdata;
-
-    // 确认地址
-    // 如果是写指令store，命中，那么直接确认地址;
-    //                  缺失，请求mem且还未收到地址(cache_data_req)，
-    //                       干净，那么等读mem时(isRM)，mem确认完地址(cache_data_addr_ok)时确认；
-    //                       脏，那么等写完mem后，等到读mem时(isRM)，mem确认完地址(cache_data_addr_ok)时确认；
     
-    // 如果是读指令load ，命中，那么就直接确认地址；
-    //                  缺失，请求mem且还未收到地址(cache_data_req)，
-    //                       干净，那么等读mem时(isRM)，mem确认完地址(cache_data_addr_ok)时确认；
-    //                       脏，那么等写完mem后，等到读mem时(isRM)，mem确认完地址(cache_data_addr_ok)时确认
-    // 综合一下:
-    // if (cpu_data_req & hit){
-    //     return 1'b1;
-    // }else if (cache_data_req & isRM){
-    //     return cache_data_addr_ok;
-    // }
-    // 即 -> cpu_data_req & hit | cache_data_req & isRM & cache_data_addr_ok;
-    assign cpu_data_addr_ok = cpu_data_req & hit | cache_data_req & isRM & cache_data_addr_ok;
-
-    // 确认数据
-    // 如果是写指令store，命中，那么更新cache的同时确认数据；
-    //                  缺失，干净，那么等读mem时(isRM)，mem确认完数据(cache_data_data_ok)后，更新cache的同时确认；
-    //                       脏，那么等写完mem后，等到读mem时(isRM)，mem确认完数据(cache_data_data_ok)后，更新cache的同时确认；
-    // 如果是读指令load，命中，那么更新cache的同时确认数据；
-    //                 缺失，干净，那么等读mem时(isRM)，mem确认完数据(cache_data_data_ok)后，更新cache的同时确认；
-    //                      脏，那么等写完mem后，等到读mem时(isRM)，mem确认完数据(cache_data_data_ok)后，更新cache的同时确认；
-
-    // if (cpu_data_req & hit){
-    //     return 1'b1;
-    // }else if (isRM){
-    //     return cache_data_data_ok;
-    // }
-    // 即 -> cpu_data_req & hit | isRM & cache_data_data_ok;
-    assign cpu_data_data_ok = cpu_data_req & hit | isRM & cache_data_data_ok;
-
-    //output to axi interface
-    // cache->mem
-    // 是不是数据请求(RM或WM状态)，且还没收到地址。一个周期后就清除了
-    assign cache_data_req   = isRM & ~addr_rcv | isWM & ~waddr_rcv;
-    // 当前请求是否是写请求。只要处在WM状态就是写请求，与load还是store指令无关。
-    assign cache_data_wr    = isWM;
-    // 确定数据的有效字节。
-    // 如果是load指令, 有效字节是4B（当前cpu_data_size）;
-    // 如果是store指令，根据sb, sh（当前cpu_data_size）确定不同的有效字节
-    assign cache_data_size  = cpu_data_size;
-    //* 如果要写内存，写回mem的地址为原cache line对应的地址（旧地址）
-    // 如果是读内存，对应mem的地址为cpu_data_addr（新地址）
-    assign cache_data_addr  = cache_data_wr ? {c_tag[c_way], index, offset}:
-                                              cpu_data_addr;
-    //* cache要写回memory的数据是原cache line的数据
-    assign cache_data_wdata = c_block[c_way];
-
-    //写入Cache
-    //保存地址中的tag, index，防止addr发生改变
-    reg [TAG_WIDTH-1:0] tag_save;
-    reg [INDEX_WIDTH-1:0] index_save;
-    always @(posedge clk) begin
-        tag_save   <= rst ? 0 :
-                      cpu_data_req ? tag : tag_save;
-        index_save <= rst ? 0 :
-                      cpu_data_req ? index : index_save;
-    end
-
-    wire [31:0] write_cache_data;
-    wire [3:0] write_mask;
-
-    //根据地址低两位和size，生成写掩码（针对sb，sh等不是写完整一个字的指令），4位对应1个字（4字节）中每个字的写使能
-    assign write_mask = cpu_data_size==2'b00 ?
-                            (cpu_data_addr[1] ? (cpu_data_addr[0] ? 4'b1000 : 4'b0100):
-                                                (cpu_data_addr[0] ? 4'b0010 : 4'b0001)) :
-                            (cpu_data_size==2'b01 ? (cpu_data_addr[1] ? 4'b1100 : 4'b0011) : 4'b1111);
-
-    //掩码的使用：位为1的代表需要更新的。
-    //位拓展：{8{1'b1}} -> 8'b11111111
-    //new_data = old_data & ~mask | write_data & mask
-    wire [31:0] cache_tmp;
-    assign cache_tmp=   (~|(c_way^1'b0)) ?cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH]:
-                                            cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH];
-    assign write_cache_data = cache_tmp & ~{{8{write_mask[3]}}, {8{write_mask[2]}}, {8{write_mask[1]}}, {8{write_mask[0]}}} | 
-                              cpu_data_wdata & {{8{write_mask[3]}}, {8{write_mask[2]}}, {8{write_mask[1]}}, {8{write_mask[0]}}};
-
-    wire isIDLE = state==IDLE;
-
-    integer t;
-    initial begin
-        for (t=0;t<CACHE_DEEPTH;t++) cache_valid[t] = 0;
-        for (t=0;t<CACHE_DEEPTH;t++) cache_ru[t] = 0;
-        for (t=0;t<CACHE_DEEPTH;t++) cache_tag[t] = 0;
-        for (t=0;t<CACHE_DEEPTH;t++) cache_block[t] = 0;
-        for (t=0;t<CACHE_DEEPTH;t++) cache_dirty[t] = 0;
-    end
-    always @(posedge clk) begin
-        if(read_finish) begin // 处于RM状态，且已得到mem读取的数据
-            case(c_way)
-                1'b0: begin
-                    cache_valid[index_save][0]<= 1'b1;  //将Cache line置为有效
-                    cache_dirty[index_save][0] <= 1'b0;  // 读取内存的数据后，一定是clean
-                    cache_tag  [index_save][1*TAG_WIDTH-1:0*TAG_WIDTH] <= tag_save;
-                    cache_block[index_save][1*DATA_WIDTH-1:0*DATA_WIDTH] <= cache_data_rdata; //写入Cache line
-                end
-                1'b1: begin
-                    cache_valid[index_save][1]<= 1'b1;  //将Cache line置为有效
-                    cache_dirty[index_save][1] <= 1'b0;  // 读取内存的数据后，一定是clean
-                    cache_tag  [index_save][2*TAG_WIDTH-1:1*TAG_WIDTH] <= tag_save;
-                    cache_block[index_save][2*DATA_WIDTH-1:1*DATA_WIDTH] <= cache_data_rdata; //写入Cache line
-                end
-            endcase
+    genvar i;
+    generate
+        for (i=0;i<2;i++)begin
+            tag_ram #(.LEN_DATA(LEN_TAG),.LEN_ADDR(LEN_INDEX)) d_tag
+            (
+            .clka   (clk),
+            .clkb   (clk),
+            .ena    (wena_tag_hitway[i]),
+            .enb    ((~stallM2 | d_stall) & ~i_stall),
+            .addra  (index_Res),
+            .dina   (tag_compare),
+            .wea    (wena_tag_hitway[i]),
+            .addrb  (index),
+            .doutb  (c_tag_M2[i])
+            );
+            cache_block_ram #(.LEN_DATA(32),.LEN_ADDR(LEN_PER_WAY-2))d_data
+            (
+            .clka   (clk),
+            .clkb   (clk),
+            .ena    (1'b1),
+            .enb    ((~stallM2 | d_stall) & ~i_stall),
+            .addra  ({index_Res, (hit & store ? lineLoc_Res[LEN_LINE-1:2] : axi_cnt)}),
+            .dina   (data_write),
+            .wea    (wena_data_hitway[i]),
+            .addrb  (isCACHE_WRITEBACK ? writeback_raddr: {index,lineLoc[LEN_LINE-1:2]}),
+            .doutb  (c_block_M2[i])
+            );
         end
-        else if (store & isIDLE & (hit | in_RM)) begin 
-            // store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将寄存器值的(部分)字节写入cache对应行
-            // 判断条件中加(hit | in_RM)是因为，如果只判断(store & isIDLE)，发生miss时，会在进入WM、RM之前提前进入该条件（本意是从RM回到IDLE的时候，已经读了mem的数据到cache后，再进入该条件，结果是刚进入store分支，就进入了该条件），
-            // 如果提前进入条件的话，此时写入cache的write_cache_data为 {旧cache[:x], 寄存器[x-1:0]}，WM时会把这个错误数据写回mem，导致出错。为解决该问题，额外加了一个信号in_RM，记录之前是不是一直处在RM状态。
-            case(c_way)
-                1'b0: begin
-                    cache_dirty[index][0]                        <= 1'b1; // 改了数据，变dirty
-                    cache_block[index][1*DATA_WIDTH-1:0*DATA_WIDTH]<= write_cache_data;  
-                end
-                1'b1: begin
-                    cache_dirty[index][1]                        <= 1'b1; // 改了数据，变dirty
-                    cache_block[index][2*DATA_WIDTH-1:1*DATA_WIDTH]<= write_cache_data;  
-                end
-            endcase
-        end
-
-        if ((load | store) & isIDLE & (hit | in_RM)) begin
-            //* load 或 store指令，hit进入IDLE状态 或 从读内存回到IDLE后，将最近使用情况更新
-            cache_ru[index][c_way]   <= 1'b1; //* c_way 路最近使用了
-            cache_ru[index][1-c_way] <= 1'b0; //* 1-c_way 路最近未使用
-        end
-    end
+    endgenerate
 endmodule

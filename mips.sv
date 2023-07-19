@@ -25,7 +25,7 @@ module mips(
     input wire data_data_ok,
     input wire [31:0] data_rdata,
 
-    output wire no_dcache,
+    output wire no_cache,
 
 	//debug interface
     output wire[31:0] debug_wb_pc,
@@ -53,26 +53,7 @@ module mips(
 
     
             
-	datapath dp(
-		.clk(clk),.rst(rst),
-		.ext_int(ext_int),
-        //instruction
-    	.inst_addrF(virtual_instr_addr), .inst_enF(inst_sram_en),
-        .instrF(inst_sram_rdata),
-        .i_cache_stall(i_stall),
-        //data
-    	.mem_addrM(virtual_data_addr),.mem_enM(data_sram_en),
-        .mem_rdataM(data_sram_rdata),
-        .mem_write_selectM(data_sram_wen),.writedataM(data_sram_wdata),
-        .d_cache_stall(d_stall),
-        
-        .longest_stall(longest_stall),
-		//debug interface
-		.debug_wb_pc(debug_wb_pc),
-        .debug_wb_rf_wen(debug_wb_rf_wen),
-        .debug_wb_rf_wnum(debug_wb_rf_wnum),
-        .debug_wb_rf_wdata(debug_wb_rf_wdata)
-	    );
+	
 
     //inst sram to sram-like
     i_sram_to_sram_like i_sram_to_sram_like(
@@ -118,7 +99,5 @@ module mips(
         .longest_stall(longest_stall)
     );
 
-	mmu mmu(.inst_vaddr(inst_addr),.inst_paddr(physics_inst_addr),
-            .data_vaddr(data_addr),.data_paddr(physics_data_addr),
-            .no_dcache(no_dcache));
+	
 endmodule

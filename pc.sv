@@ -16,7 +16,7 @@ module pc_reg(
     input wire [31:0] pc_jumpE,               //jump冲突，在E阶段 （E阶段rs的值）
     input wire [31:0] pc_jumpD,                 //D阶段jump不冲突跳转的地址（rs寄存器或立即数）
     input wire [31:0] pc_branchD,               //D阶段  预测跳转的跳转地址（PC+offset）
-    input wire [31:0] pcplus4F,                 //下一条指令的地址
+    input wire [31:0] PcPlus4F,                 //下一条指令的地址
     output reg [31:0] pc
     );
     reg [31:0] next_pc;
@@ -36,7 +36,7 @@ module pc_reg(
             //采用D阶段预测结果进行跳转
             next_pc = pc_branchD;
         else
-            next_pc = pcplus4F;
+            next_pc = PcPlus4F;
     end
 
     always @(posedge clk) begin

@@ -1,191 +1,295 @@
-module i_cache (
-    input wire clk, rst,
-    //mips core
-    input         cpu_inst_req     ,
+module i_cache #(
+    parameter LEN_LINE = 5,  // 32 Bytes
+    parameter LEN_INDEX = 7, // 128 lines
+    parameter NR_WAYS = 2
+) (
+    input wire clk, rst, no_cache, stallF2, d_stall,
+    output wire i_stall,
+    //mips core input
     input         cpu_inst_wr      ,
-    input  [1 :0] cpu_inst_size    ,
     input  [31:0] cpu_inst_addr    ,
-    input  [31:0] cpu_inst_wdata   ,
+    input         cpu_inst_en      ,
+    //mips core output
     output [31:0] cpu_inst_rdata   ,
-    output        cpu_inst_addr_ok ,
-    output        cpu_inst_data_ok ,
+    //I CACHE
+    output reg [31:0] i_araddr,
+    output reg [7:0] i_arlen,
+    output reg [2:0] i_arsize,
+    output reg       i_arvalid,
+    input wire        i_arready,
 
-    //axi interface
-    output         cache_inst_req     ,
-    output         cache_inst_wr      ,
-    output  [1 :0] cache_inst_size    ,
-    output  [31:0] cache_inst_addr    ,
-    output  [31:0] cache_inst_wdata   ,
-    input   [31:0] cache_inst_rdata   ,
-    input          cache_inst_addr_ok ,
-    input          cache_inst_data_ok 
+    input wire [31:0] i_rdata,
+    input wire        i_rlast,
+    input wire        i_rvalid,
+    output reg       i_rready
 );
-    //Cache
-    parameter  INDEX_WIDTH  = 10, OFFSET_WIDTH = 2;
-    localparam TAG_WIDTH    = 32 - INDEX_WIDTH - OFFSET_WIDTH;
-    localparam CACHE_DEEPTH = 1 << INDEX_WIDTH;
-    localparam DATA_WIDTH   = 32;
+    // defines
+    localparam LEN_PER_WAY = LEN_LINE + LEN_INDEX;
+    localparam LEN_TAG = 32 - LEN_LINE - LEN_INDEX;
+    localparam LEN_BRAM_ADDR = LEN_LINE - 3 + LEN_INDEX;
+    localparam CACHE_DEEPTH = 1 << LEN_INDEX;
+    localparam NR_WORDS = 1 << (LEN_LINE - 2);
 
     
     (*ram_style="block"*) reg [1:0]               cache_valid [CACHE_DEEPTH - 1 : 0];
-    (*ram_style="block"*) reg [1:0]               cache_ru    [CACHE_DEEPTH - 1 : 0]; 
+    (*ram_style="block"*) reg [1:0]               cache_lru    [CACHE_DEEPTH - 1 : 0]; 
 
     
-    wire [OFFSET_WIDTH-1:0] offset;
-    wire [INDEX_WIDTH-1:0] index;
-    wire [TAG_WIDTH-1:0] tag;
-    wire [1:0] wena_tag_ram_way;
-    wire [1:0] wena_data_bank_way;
-    assign offset = cpu_inst_addr[OFFSET_WIDTH - 1 : 0];
-    assign index = cpu_inst_addr[INDEX_WIDTH + OFFSET_WIDTH - 1 : OFFSET_WIDTH];
-    assign tag = cpu_inst_addr[31 : INDEX_WIDTH + OFFSET_WIDTH];
- 
-    reg                 c_valid[1:0];
-    reg                 c_ru   [1:0]; //* recently used
-    reg [TAG_WIDTH-1:0] c_tag  [1:0];
-    reg [31:0]          c_block[1:0];
-	
-    always @(posedge clk) begin
-        if(rst) begin
-            c_valid[0] <= 0;
-            c_valid[1] <= 0;
-            c_ru[0] <= 0;
-            c_ru[1] <= 0;
-        end
-        else begin
-            c_valid[0] <= cache_valid[index][0];
-            c_valid[1] <= cache_valid[index][1];
-            c_ru   [0] <= cache_ru   [index][0];
-            c_ru   [1] <= cache_ru   [index][1];
-        end
-    end
+    wire [LEN_LINE-1:0] lineLoc;
+    wire [LEN_INDEX-1:0] index;
+    wire [LEN_TAG-1:0] tag;
+    reg [LEN_PER_WAY-1 : 2] icache_raddr;
+
+    reg [LEN_LINE-1:0] lineLoc_IF2;
+    reg [LEN_INDEX-1:0] index_IF2;
+    reg [LEN_TAG-1:0] tag_IF2;
+    reg  no_cache_IF2;
+    wire tway_IF2;
+    reg  cpu_inst_en_IF2;
+
+    reg [LEN_LINE-1:0] lineLoc_IF3;
+    reg [LEN_INDEX-1:0] index_IF3;
+    reg [LEN_TAG-1:0] tag_IF3;
+    reg tway_IF3;
+    reg  cpu_inst_en_IF3;
     
+    logic [1:0] wena_tag_ram_way;
+    logic [3:0] wena_data_bank_way [NR_WAYS-1:0];
+    
+    assign lineLoc = cpu_inst_addr[LEN_LINE - 1 : 0];
+    assign index = cpu_inst_addr[LEN_INDEX + LEN_LINE - 1 : LEN_LINE];
+    assign tag = cpu_inst_addr[31 : LEN_INDEX + LEN_LINE];
+
+    //  Select
+    wire [LEN_TAG-1:0]   tag_compare;
+    wire [1:0]           c_valid;
+    wire [LEN_TAG-1:0]   c_tag  [1:0];
+    wire [1:0]           c_dirty;
+    wire [1:0]           c_lru;
+    wire                 inst_en;
+    //  IF2
+    reg  [1:0]           c_valid_IF2;
+    reg  [1:0]           c_lru_IF2; //* recently used
+    reg [LEN_TAG-1:0]   c_tag_IF2  [1:0];
+    reg [31:0]          c_block_IF2[1:0];
+    wire [1:0]           c_way;
+	
+    reg[1:0]            c_valid_IF3;
+    reg[1:0]            c_lru_IF3 ; //* recently used
+    reg [LEN_TAG-1:0]   c_tag_IF3  [1:0];
+    reg [31:0]          c_block_IF3[1:0];
+
+
+    // hit miss and way
     wire hit, miss;
-    wire [1:0] c_way;
-    wire way;
-    assign way = hit ? c_way[1] : c_ru[1];
+    reg  cpu_instr_ok;
+    // Time Control 
+    assign inst_en = isIDLE ? cpu_inst_en_IF2 : cpu_inst_en_IF3;
+    assign c_valid = isIDLE ? c_valid_IF2 : c_valid_IF3;
+    assign c_tag[0] = isIDLE ? c_tag_IF2[0] : c_tag_IF3[0];
+    assign c_tag[1] = isIDLE  ? c_tag_IF2[1] : c_tag_IF3[1];
+    assign tag_compare = isIDLE ?  tag_IF2 : tag_IF3;
+    assign c_lru = isIDLE ?  c_lru_IF2 : c_lru_IF3;
+
+    // hit Control
+    assign tway_IF2 = hit ? c_way[1] : c_lru[1];
     assign hit = |c_way;  //* cache line
     assign miss = ~hit;
-    //* 1. hit
-    //* 2. miss
-    assign c_way[0] = c_valid[0] & c_tag[0] == tag;
-    assign c_way[1] = c_valid[1] & c_tag[1] == tag;
+
+    assign c_way[0] = c_valid[0] & c_tag[0] == tag_compare;
+    assign c_way[1] = c_valid[1] & c_tag[1] == tag_compare;
+    wire   cache_hit_available = hit  & !no_cache_IF2;
+    assign i_stall = (~isIDLE | (!cache_hit_available & inst_en)) & ~cpu_instr_ok;
+    //output to mips core
+    // first stage is not stall, and the second judge whether to stall
+    reg [31:0] axi_inst_rdata;
+    assign cpu_inst_rdata   = ~no_cache_IF2 ? (pre_state==CACHE_REPLACE ?axi_inst_rdata : c_block_IF2[tway_IF2]) : i_rdata;
+
 
     //FSM
-    parameter IDLE = 2'b00, RM = 2'b01;
+    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
+    reg [1:0] pre_state;
     reg [1:0] state;
-    // store
-    // reg in_RM;
+    wire isIDLE = state==IDLE;
+    wire isReplace = state==CACHE_REPLACE;
+    // axi cnt
+    logic [LEN_LINE-1:2] axi_cnt;
 
     always @(posedge clk) begin
         if(rst) begin
-            state <= IDLE;
-            // in_RM <= 1'b0;
+            index_IF2 <= 0;
+            lineLoc_IF2 <= 0;
+            tag_IF2 <= 0;
+            //Nocache Process
+            cpu_inst_en_IF2 <= 0;
+            no_cache_IF2 <= 0;
+            // valid and lru is not be updated 
+            c_valid_IF2 <= 0;
+            c_lru_IF2 <= 0;
         end
-        else begin
+        else if(~stallF2 | i_stall)begin
+            lineLoc_IF2 <= lineLoc;
+            index_IF2 <= index;
+            tag_IF2 <= tag;
+            cpu_inst_en_IF2 <= cpu_inst_en;
+            no_cache_IF2 <= no_cache;
+            c_valid_IF2 <= cache_valid[index];
+            c_lru_IF2    <= cache_lru[index];
+        end
+    end
+
+    always @(posedge clk) begin
+        if(rst) begin
+            cpu_instr_ok <= 0;
+            state <= IDLE;
+            cpu_inst_en_IF3 <= 0;
+            pre_state <= IDLE;
+            index_IF3 <= 0;
+            lineLoc_IF3 <= 0;
+            tag_IF3 <= 0;
+            axi_inst_rdata <= 0;
+            // clear status
+            wena_data_bank_way <= '{default: '0};
+            wena_tag_ram_way <= '{default: '0};
+            cache_valid <= '{default: '0};
+            cache_lru <= '{default: '0};
+            // Valid and lru should be floped
+            c_tag_IF3 <= '{default: '0};
+            c_valid_IF3 <= '{default: '0};
+            c_lru_IF3 <= '{default: '0};
+            // clear axi output
+            i_araddr <= 0;
+            i_arlen <= 0;
+            i_arsize <= 0;
+            i_arvalid <= 0;
+            i_rready <= 0;
+            // clear axi status
+            axi_cnt <= 0;
+        end
+        else if (inst_en & (~stallF2 | i_stall))begin
+            pre_state <= state;
             case(state)
                 IDLE: begin
-                    state <= IDLE;
-                    if (cpu_inst_req) begin
-                        if (hit) 
-                            state <= IDLE;
-                        else if (miss)
-                            state <= RM;
+                    cpu_instr_ok <= 1'b0;
+                    cpu_inst_en_IF3 <= cpu_inst_en_IF2;
+                    index_IF3 <= index_IF2;
+                    lineLoc_IF3 <= lineLoc_IF2;
+                    tag_IF3 <= tag_IF2;
+                    tway_IF3 <= tway_IF2;
+                    // Valid and lru should be floped
+                    c_valid_IF3 <= c_valid_IF2;
+                    c_lru_IF3 <= c_lru_IF2;
+                    c_tag_IF3 <= c_tag_IF2;
+                    if (no_cache_IF2) begin
+                        i_araddr <= {tag_IF2, index_IF2, lineLoc_IF2};
+                        i_arlen  <= 0;
+                        i_arsize <= 3'd2;
+                        i_arvalid <= 1'b1;
+                        state <= NOCACHE;
                     end
-                    // in_RM <= 1'b0;
+                    else if (!hit) begin
+                        i_araddr <= {tag_IF2, index_IF2,{LEN_LINE{1'b0}}};
+                        i_arlen <= NR_WORDS - 1;
+                        i_arsize <= 3'd2; //4 bytes
+                        i_arvalid <= 1'b1;  //read addr is valid
+                        // Write ena
+                        wena_data_bank_way[tway_IF2] <= 4'hf;// write to instram
+                        wena_data_bank_way[~tway_IF2] <= 4'h0;
+                        wena_tag_ram_way <= {tway_IF2,~tway_IF2}; //write to tag
+                        cache_valid[index_IF2][tway_IF2] <= 1'b1;
+                        axi_cnt <= 0;
+                        state <= CACHE_REPLACE;
+                    end
+                    else if (!stallF2) begin
+                        // Update LRU when icache hit
+                        // Note: If NR_WAYS > 2, we should implement pseudo-LRU or LFSR.
+                        cache_lru[index_IF2][tway_IF2] <=1'b0;
+                        cache_lru[index_IF2][~tway_IF2] <=1'b1;
+                    end
                 end
-
-                RM: begin
-                    state <= RM;
-                    if (cache_inst_data_ok)
-                        state <= IDLE;
-
-                    // in_RM <= 1'b1;
+                NOCACHE: begin
+                    if (i_arvalid) begin
+                        if (i_arready) begin
+                            i_arvalid <= 0;
+                            i_rready <= 1'b1;
+                        end
+                    end
+                    else begin
+                        if (i_rvalid & i_rready) begin
+                            i_rready <= 1'b0;
+                            state <= IDLE;
+                            cpu_instr_ok <= 1'b1;
+                        end
+                    end
                 end
-                default:begin
-                    state <= IDLE;
-                    // in_RM <= 1'b0;
+                CACHE_REPLACE: begin
+                    if (i_arvalid) begin
+                        if (i_arready) begin
+                            i_arvalid <= 0;
+                            i_rready <= 1'b1;
+                        end
+                    end
+                    else begin
+                        if (i_rvalid & i_rready) begin
+                            if (!i_rlast) begin
+                                axi_cnt <= axi_cnt + 1;
+                                if(axi_cnt == lineLoc_IF3[LEN_LINE-1:2]) 
+                                    axi_inst_rdata <= i_rdata;
+                            end
+                            else begin
+                                i_rready <= 0;
+                                wena_data_bank_way[tway_IF3] <= 0;
+                                wena_tag_ram_way[tway_IF3] <= 0;
+                                if(axi_cnt == lineLoc_IF3[LEN_LINE-1:2]) 
+                                    axi_inst_rdata <= i_rdata;
+                            end
+                        end
+                        else if (!i_rready) begin // wait the final data write to bram.
+                            state <= IDLE;
+                            axi_cnt <=0;
+                            cpu_instr_ok <= 1'b1;
+                        end
+                    end
+                        
                 end
+                // default:begin
+                //     state <= IDLE;
+                // end
             endcase
         end
-    end
-
-
-    wire isRM;    
-    reg addr_rcv;       
-    wire read_finish;   
-    always @(posedge clk) begin
-        addr_rcv <= rst ? 1'b0 :
-                    cache_inst_req & isRM & cache_inst_addr_ok ? 1'b1 :
-                    read_finish ? 1'b0 : 
-                    addr_rcv;
-    end
-    assign isRM = state==RM;
-    assign read_finish = isRM & cache_inst_data_ok;
-
-
-    //output to mips core
-    assign cpu_inst_rdata   = hit ? c_block[way] : cache_inst_rdata;
-    assign cpu_inst_addr_ok = cpu_inst_req & hit | cache_inst_req & isRM & cache_inst_addr_ok;
-    assign cpu_inst_data_ok = cpu_inst_req & hit | isRM & cache_inst_data_ok;
-
-    //output to axi interface
-    assign cache_inst_req   = isRM & ~addr_rcv;
-    assign cache_inst_wr    = cpu_inst_wr;
-    assign cache_inst_size  = cpu_inst_size;
-    assign cache_inst_addr  = cache_inst_wr ? {c_tag[way], index, offset}:
-                                              cpu_inst_addr;
-    assign cache_inst_wdata = c_block[way];
-
-    reg [TAG_WIDTH-1:0] tag_save;
-    reg [INDEX_WIDTH-1:0] index_save;
-    always @(posedge clk) begin
-        tag_save   <= rst ? 0 :
-                      cpu_inst_req ? tag : tag_save;
-        index_save <= rst ? 0 :
-                      cpu_inst_req ? index : index_save;
-    end
-
-    wire isIDLE = state==IDLE;
-    assign wena_tag_ram_way = {2{read_finish}} & c_way;
-    wire [1:0] wena_data_bank_way;
-    assign wena_data_bank_way = {2{read_finish}} & c_way;
-    integer t, y;
-    always @(posedge clk) begin
-        if(read_finish) begin 
-            cache_valid[index_save] <= c_way;
-        end
-        if (hit | read_finish) begin
-            cache_ru[index]   <= c_way; //* c_way 
+        else if(~stallF2 | i_stall)begin
+            pre_state <= state;
+            cpu_instr_ok <= 0;
         end
     end
+
     
     genvar i;
     generate
         for (i=0;i<2;i++)begin
-            tag_ram i_tag
+            tag_ram #(.LEN_DATA(LEN_TAG),.LEN_ADDR(LEN_INDEX)) i_tag 
             (
             .clka   (clk),
             .clkb   (clk),
             .ena    (wena_tag_ram_way[i]),
-            .enb    (1'b1),
-            .addra  (index_save),
-            .dina   (tag_save),
+            .enb    (~stallF2 | i_stall),
+            .addra  (index_IF3),
+            .dina   (tag_IF3),
             .wea    (wena_tag_ram_way[i]),
             .addrb  (index),
-            .doutb  (c_tag[i])
+            .doutb  (c_tag_IF2[i])
             );
-            cache_block_ram i_data
+            cache_block_ram #(.LEN_DATA(32),.LEN_ADDR(LEN_PER_WAY-2)) i_data
             (
             .clka   (clk),
             .clkb   (clk),
-            .ena    (wena_data_bank_way[i]),
-            .enb    (1'b1),
-            .addra  (index_save),
-            .dina   (cache_inst_rdata),
+            .ena    (1'b1),
+            .enb    (~stallF2 | i_stall),
+            .addra  ({index_IF3,axi_cnt[LEN_LINE-1:2]}),
+            .dina   (i_rdata),
             .wea    (wena_data_bank_way[i]),
-            .addrb  (index),
-            .doutb  (c_block[i])
+            .addrb  ({index,lineLoc[LEN_LINE-1:2]}),
+            .doutb  (c_block_IF2[i])
             );
         end
     endgenerate
