@@ -77,7 +77,6 @@ module i_cache #(
     reg[1:0]            c_valid_IF3;
     reg[1:0]            c_lru_IF3 ; //* recently used
     reg [LEN_TAG-1:0]   c_tag_IF3  [1:0];
-    reg [31:0]          c_block_IF3[1:0];
 
 
     // hit miss and way

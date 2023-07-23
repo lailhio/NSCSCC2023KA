@@ -69,7 +69,7 @@ module datapath(
     wire [2:0]  forward_1D;
     wire [2:0]  forward_2D;
 	//-------execute stage----------
-	wire [31:0] pcE, pcplus4E , mem_wdataE; //pc pc+4 寄存器号 写内存 立即数
+	wire [31:0] pcE, pcplus4E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
     wire [4 :0] alucontrolE;  //alu控制信号
@@ -140,9 +140,6 @@ module datapath(
 
 	// cp0	
     wire [31:0] except_typeM;  // 异常类型
-    wire [31:0] cp0_statusM;  //status输出
-    wire [31:0] cp0_causeM;  //cause输出
-    wire [31:0] cp0_epcM;  //epc输出
     wire        flush_exceptionM;  // 发生异常时需要刷新流水线
     wire [31:0] pc_exceptionM; //异常处理的地址0xbfc0_0380，若为eret指令 则为返回地址
     wire        pc_trapM; // 发生异常时pc特殊处理

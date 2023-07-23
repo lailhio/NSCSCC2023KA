@@ -68,7 +68,6 @@ module d_cache#(
     wire [3:0] data_sram_wen_Res;
     wire [LEN_LINE-1:0] lineLoc_Res;
     wire [LEN_INDEX-1:0] index_Res;
-    wire [LEN_TAG-1:0] tag_Res;
     //addr part
     wire [LEN_LINE-1:0] lineLoc;
     wire [LEN_INDEX-1:0] index;
@@ -79,7 +78,6 @@ module d_cache#(
     reg [LEN_LINE-1:0] lineLoc_M2;
     // No Cache Should be Execute in M2
     reg  no_cache_M2;
-    reg [31:0] cpu_NoCache_waddr_M2;
     reg [3:0] data_sram_wen_M2;
     reg cpu_data_en_M2;
     reg cpu_data_wr_M2;
@@ -122,7 +120,6 @@ module d_cache#(
     reg [1:0]                 c_dirty_M3; // 是否修改过
     reg [1:0]                 c_lru_M3   ; //* recently used
     reg [LEN_TAG-1:0]         c_tag_M3  [1:0];
-    reg [DATA_WIDTH-1:0]      c_block_M3[1:0];
     reg                       tway_M3;
 
     //判断是否命中
@@ -216,7 +213,6 @@ module d_cache#(
             cpu_data_en_M2 <= 0;
             //Nocache Process
             no_cache_M2 <= 0;
-            cpu_NoCache_waddr_M2 <= 0;
             data_sram_wen_M2 <= 0;
             cpu_data_wdata_M2 <= 0;
             cpu_data_size_M2 <= 0;
@@ -234,7 +230,6 @@ module d_cache#(
             cpu_data_wr_M2 <= cpu_data_wr;
             cpu_data_en_M2 <= cpu_data_en;
             no_cache_M2 <= no_cache;
-            cpu_NoCache_waddr_M2 <= cpu_NoCache_waddr;
             data_sram_wen_M2 <= data_sram_wen;
             cpu_data_wdata_M2 <= cpu_data_wdata;
             cpu_data_size_M2 <= cpu_data_size;
@@ -272,6 +267,9 @@ module d_cache#(
             cache_dirty <= '{default: '0};
             cache_lru <= '{default: '0};
             cache_valid <= '{default: '0};
+            wdata_buffer <= '{default: '0};
+            wena_data_bank_way <= '{default: '0};
+            wena_tag_ram_way <= '{default: '0};
             axi_data_rdata <= 0;
             axi_cnt <= 0;
             cache_buff_cnt <=0;
