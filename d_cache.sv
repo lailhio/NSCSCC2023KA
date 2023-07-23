@@ -107,6 +107,7 @@ module d_cache#(
     wire [LEN_TAG-1:0]   c_tag  [1:0];
     wire [1:0]           c_dirty;
     wire [1:0]           c_lru;
+    reg  [31:0]          NoCache_rdata;
     //Cache line something
     reg [1:0]                 c_valid_M2;
     reg [1:0]                 c_dirty_M2; // 是否修改过
@@ -172,7 +173,7 @@ module d_cache#(
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : d_rdata;
+    assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : NoCache_rdata;
 
 
     logic [1:0] wena_tag_ram_way;
@@ -188,6 +189,7 @@ module d_cache#(
             {{data_sram_wen_Res & {4{tway & ~(i_stall & ~data_wr_en)}}}, {data_sram_wen_Res & {4{~tway & ~(i_stall & ~data_wr_en)}}}} : wena_data_bank_way; // 4 bytes
     // write back part
     wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
+
     // first : write data come from ram
     // second : come from cpu
     wire [31:0] write_cache_data = d_rdata & ~{{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}} | 
@@ -470,6 +472,7 @@ module d_cache#(
                         end
                         else if (d_rvalid & d_rready) begin
                             d_rready <= 1'b0;
+                            NoCache_rdata <= d_rdata;
                         end
                         else if (~d_rvalid & ~d_rready)begin
                             cpu_data_ok <=1;
