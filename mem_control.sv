@@ -47,11 +47,16 @@ module mem_control(
     assign instr_sh = ~(|(op_codeM ^ `SH));
     assign instr_sb = ~(|(op_codeM ^ `SB));
 
+
+    assign instr_lwM = ~(|(op_codeM ^ `LW));
+    assign instr_lhM = ~(|(op_codeM ^ `LH));
+    assign instr_lhuM = ~(|(op_codeM ^ `LHU));
+
     // 地址异常
     assign addr_error_sw = (instr_sw & ~addr_W0M)
                         | (  instr_sh & ~(addr_W0M | addr_B2M));
-    assign addr_error_lw = (instr_lw & ~addr_W0M)
-                        | (( instr_lh | instr_lhu ) & ~(addr_W0M | addr_B2M));
+    assign addr_error_lw = (instr_lwM & ~addr_W0M)
+                        | (( instr_lhM | instr_lhuM ) & ~(addr_W0M | addr_B2M));
 
 // wdata  and  byte_wen
     assign mem_write_selectM =     ( {4{( instr_sw & addr_W0M )}} & 4'b1111)          //写字  

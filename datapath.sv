@@ -170,7 +170,7 @@ module datapath(
 //------------------------------------------Data------------------------------------------
 	//--------------------debug---------------------
     assign debug_wb_pc          = pcW;
-    assign debug_wb_rf_wen      = {4{regwriteW & ~stallW & ~flush_exceptionM }};
+    assign debug_wb_rf_wen      = {4{regwriteW & ~stallW }};
     assign debug_wb_rf_wnum     = writeregW;
     assign debug_wb_rf_wdata    = resultW;
     // Todo : jal wrong
@@ -393,6 +393,7 @@ module datapath(
 	//------------------Write_Back_Flop--------------------------
 
 	//hazard detection
+    wire Blank_SL = (~|(aluoutE[31:2] ^ aluoutM[31:2])) & mem_writeM &  mem_readE;
 	hazard hazard0(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
@@ -402,6 +403,8 @@ module datapath(
         .flush_jump_conflictE   (flush_jump_conflictE),
         .flush_pred_failedM     (flush_pred_failedM),
         .flush_exceptionM       (flush_exceptionM),
+
+        .branchD(branchD), .branchM(branchM), .pre_right(pre_right), .pred_takeD(pred_takeD),
 
         .rsD(instrD[25:21]),
         .rtD(instrD[20:16]),
@@ -417,7 +420,8 @@ module datapath(
         .writeregW(writeregW),
         .mem_readE(mem_readE),
         .mem_readM(mem_readM),
-
+        
+        .Blank_SL(Blank_SL),
         .stallF(stallF), .stallF2(stallF2), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallM2(stallM2), .stallW(stallW),
         .flushF(flushF), .flushF2(flushF2), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushM2(flushM2), .flushW(flushW),
         .longest_stall(longest_stall), .stallDblank(stallDblank),

@@ -7,6 +7,7 @@ module hazard(
     input wire alu_stallE, 
 
     input wire flush_jump_conflictE, flush_pred_failedM, flush_exceptionM, jumpD,
+    input wire branchD, branchM, pre_right, pred_takeD,
 
     input wire is_mfcE, // cp0 read sign
     input wire hilotoregE, //hilo read sign
@@ -24,6 +25,7 @@ module hazard(
     input wire mem_readE,   //Ex's Memread sign, lw lb lhb 
     input wire mem_readM, 
     
+    input wire  Blank_SL,
     output wire stallF, stallF2, stallD, stallE, stallM, stallM2, stallW,
     output wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW,
     output wire longest_stall, stallDblank,
@@ -47,23 +49,25 @@ module hazard(
                         3'b000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
+    assign branch_ok = branchD & ~branchM & pred_takeD || branchD & branchM & pre_right & pred_takeD;
+    
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
     assign stallDblank= ((((~|(forward_2D ^ 3'b100)) | (~|(forward_1D ^ 3'b100))) & (is_mfcE | mem_readE | hilotoregE)) 
-                | (((~|(forward_1D ^ 3'b011))) | ((~|(forward_2D ^ 3'b011)))& (mem_readM))) & (~flush_exceptionM) ;
-    assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank));
-    assign stallF2 = (~flush_exceptionM & (id_cache_stall | alu_stallE| stallDblank));
-    assign stallD =  id_cache_stall| alu_stallE | stallDblank;
-    assign stallE =  id_cache_stall| alu_stallE;
+                | ((((~|(forward_1D ^ 3'b011))) | ((~|(forward_2D ^ 3'b011))))& (mem_readM))) & (~flush_exceptionM) & (~flush_pred_failedM) ;
+    assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank | Blank_SL));
+    assign stallF2 = (~flush_exceptionM & (id_cache_stall | alu_stallE| stallDblank | Blank_SL));
+    assign stallD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
+    assign stallE =  id_cache_stall| alu_stallE | Blank_SL;
     assign stallM =  id_cache_stall| alu_stallE;
     assign stallM2 = id_cache_stall| alu_stallE;
     assign stallW =  ~flush_exceptionM &(id_cache_stall | alu_stallE);
 
     assign flushF = 1'b0;
-    assign flushF2 = flush_exceptionM | flush_pred_failedM | ((flush_jump_conflictE | jumpD) & ~stallF2); 
+    assign flushF2 = flush_exceptionM | flush_pred_failedM | ((flush_jump_conflictE | jumpD | branch_ok) & ~stallF2); 
     assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); 
     assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) |(~stallE & stallDblank) ; 
-    assign flushM = flush_exceptionM;
+    assign flushM = flush_exceptionM |(~stallM & Blank_SL);
     assign flushM2 = flush_exceptionM;
-    assign flushW = flush_exceptionM;
+    assign flushW = 1'b0;
 endmodule
