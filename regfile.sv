@@ -31,7 +31,8 @@ module regfile(
 
 	reg [31:0] rf[31:0];
 	always @(posedge (clk)) begin
-		if(we3 & ~stallW) begin
+		if(rst) rf <= '{default: '0};
+		else if(we3 & ~stallW) begin
 			rf[wa3] <= wd3;
 		end
 	end

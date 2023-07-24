@@ -6,7 +6,6 @@ module i_cache #(
     input wire clk, rst, no_cache, stallF2, d_stall,
     output wire i_stall,
     //mips core input
-    input         cpu_inst_wr      ,
     input  [31:0] cpu_inst_addr    ,
     input         cpu_inst_en      ,
     //mips core output
@@ -38,7 +37,6 @@ module i_cache #(
     wire [LEN_LINE-1:0] lineLoc;
     wire [LEN_INDEX-1:0] index;
     wire [LEN_TAG-1:0] tag;
-    reg [LEN_PER_WAY-1 : 2] icache_raddr;
 
     reg [LEN_LINE-1:0] lineLoc_IF2;
     reg [LEN_INDEX-1:0] index_IF2;

@@ -59,13 +59,11 @@ module mycpu_top(
     //inst
     wire [31:0]   virtual_instr_addr;  //指令地址
     wire          cpu_inst_en;  //使能
-    wire  [31:0]  inst_sram_rdata;  //注：instr ram时钟取反
     wire          i_stall;
 
     //data
     wire        cpu_data_en;                    
     wire [31:0] virtual_data_addr;     //写地址
-    wire [31:0] data_sram_rdata;    //读数据
     wire [3 :0] data_sram_wen;      //写使能
     wire         d_stall;
     //stall 
@@ -73,7 +71,6 @@ module mycpu_top(
     wire        stallM2;
     //cpu
     wire [31:0] cpu_inst_addr ;
-    wire cpu_inst_wr   ;
     wire [31:0] cpu_inst_rdata;
 
     wire [31:0] cpu_data_addr ;
@@ -183,7 +180,7 @@ module mycpu_top(
         .clk(clk), .rst(rst),
         .no_cache(1'b0), .i_stall(i_stall), .stallF2(stallF2), .d_stall(d_stall),
         
-        .cpu_inst_wr(cpu_inst_wr),      .cpu_inst_en(cpu_inst_en),
+        .cpu_inst_en(cpu_inst_en),
         .cpu_inst_addr(cpu_inst_addr),
         
         .cpu_inst_rdata(cpu_inst_rdata),
