@@ -317,7 +317,6 @@ module d_cache#(
                             d_wlast <= 1'b1;
                             d_awlen  <= 0;
                             d_awaddr <= cpu_data_addr_M2;
-                            d_wdata <= cpu_data_wdata_M2; 
                             d_awsize <= {1'b0,cpu_data_size_M2};
                             d_awvalid <= 1'b1;
                         end
@@ -452,6 +451,7 @@ module d_cache#(
                         if(d_awvalid & d_awready)begin
                             d_awvalid <= 0;
                             d_wvalid <= 1'b1;
+                            d_wdata <= cpu_data_wdata_M3; 
                         end
                         if(d_wready & d_wvalid)begin
                             d_wvalid <= 1'b0;
