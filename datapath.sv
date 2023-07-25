@@ -157,6 +157,7 @@ module datapath(
     wire [31:0] instrM2;
     wire [31:0] cp0_statusM2, cp0_causeM2, cp0_epcM2, cp0_outM2;
 	//------writeback stage----------
+    wire [31:0] aluoutW; //alu输出
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
@@ -386,6 +387,7 @@ module datapath(
             .in({writeregM2,regwriteM2}),
             .out({writeregW,regwriteW}));
 	flopstrc #(32) flopPcW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(pcM2),.out(pcW));
+	flopstrc #(32) flopAluoutW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(aluoutM2),.out(aluoutW));
 	flopstrc #(32) flopResW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM2),.out(resultW));
 	//------------------Write_Back_Flop--------------------------
 
