@@ -314,7 +314,6 @@ module d_cache#(
                     if (no_cache_M2 &  ~(pre_state == NOCACHE & ~no_cache)) begin
                         if(store) begin
                             d_wstrb <= data_sram_wen_M2;
-                            d_wlast <= 1'b1;
                             d_awlen  <= 0;
                             d_awaddr <= cpu_data_addr_M2;
                             d_awsize <= {1'b0,cpu_data_size_M2};
@@ -342,7 +341,6 @@ module d_cache#(
                             d_awaddr <= {c_tag_M2[tway], index_M2,{LEN_LINE{1'b0}}};
                             d_awlen <= NR_WORDS - 1;
                             d_awsize <= 3'd2;
-                            d_awvalid <= 1'b1;
                             axi_cnt <= 1;
                         end
                         else if (miss & clean)begin
@@ -366,12 +364,6 @@ module d_cache#(
                 end
                 CACHE_WRITEBACK: begin              
                     d_wstrb <= 4'b1111; // 写哪几位
-                    if (d_awvalid & d_awready) begin
-                        // First Time
-                        d_awvalid <= 1'b0;
-                        d_wvalid <=1'b1;
-                        d_wlast <=1'b0;
-                    end
                     if (cache_buff_cnt != NR_WORDS) begin
                         // not first time, todo addr
                         cache_buff_cnt <= cache_buff_cnt + 1;
@@ -386,6 +378,13 @@ module d_cache#(
                     if (cache_buff_cnt == 1) begin
                         // write to buffer
                         d_wdata <= c_block_M2[tway_M3];
+                        d_awvalid <= 1'b1;
+                    end
+                    if (d_awvalid & d_awready) begin
+                        // First Time
+                        d_awvalid <= 1'b0;
+                        d_wvalid <=1'b1;
+                        d_wlast <=1'b0;
                     end
                     if (d_wvalid & d_wready) begin
                         // write one word every wready 
@@ -451,6 +450,7 @@ module d_cache#(
                         if(d_awvalid & d_awready)begin
                             d_awvalid <= 0;
                             d_wvalid <= 1'b1;
+                            d_wlast <= 1'b1;
                             d_wdata <= cpu_data_wdata_M3; 
                         end
                         if(d_wready & d_wvalid)begin
