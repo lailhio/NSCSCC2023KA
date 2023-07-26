@@ -314,7 +314,6 @@ module d_cache#(
                     if (no_cache_M2 &  ~(pre_state == NOCACHE & ~no_cache)) begin
                         if(store) begin
                             d_wstrb <= data_sram_wen_M2;
-                            d_wlast <= 1'b1;
                             d_awlen  <= 0;
                             d_awaddr <= cpu_data_addr_M2;
                             d_awsize <= {1'b0,cpu_data_size_M2};
@@ -451,13 +450,14 @@ module d_cache#(
                         if(d_awvalid & d_awready)begin
                             d_awvalid <= 0;
                             d_wvalid <= 1'b1;
+                            d_wlast <= 1'b1;
                             d_wdata <= cpu_data_wdata_M3; 
                         end
                         if(d_wready & d_wvalid)begin
+                            d_wlast <= 1'b0;
                             d_wvalid <= 1'b0;
                         end
                         if(d_bvalid & d_bready)begin
-                            d_wlast <= 1'b0;
                             state <= IDLE;
                             cpu_data_ok <=1;
                         end
