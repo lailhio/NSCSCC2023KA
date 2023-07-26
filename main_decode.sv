@@ -1,6 +1,3 @@
-`ifndef DEF_COMMON
-`define DEF_COMMON
-
 // ALU OP 8bit
 `define ALU_NOP 8'b00000000
 `define ALU_ADD 8'b00000001
@@ -388,238 +385,158 @@
 //XORI
 `define XORI_SPECIAL 6'b001110
 
-// global macro definition
-`define RstEnable 		1'b1
-`define RstDisable		1'b0
-`define ZeroWord		32'h00000000
-`define WriteEnable		1'b1
-`define WriteDisable	1'b0
-`define ReadEnable		1'b1
-`define ReadDisable		1'b0
-`define AluOpBus		7:0
-`define AluSelBus		2:0
-`define InstValid		1'b0
-`define InstInvalid		1'b1
-`define Stop 			1'b1
-`define NoStop 			1'b0
-`define InDelaySlot 	1'b1
-`define NotInDelaySlot 	1'b0
-`define Branch 			1'b1
-`define NotBranch 		1'b0
-`define InterruptAssert 1'b1
-`define InterruptNotAssert 1'b0
-`define TrapAssert 		1'b1
-`define TrapNotAssert 	1'b0
-`define True_v			1'b1
-`define False_v			1'b0
-`define ChipEnable		1'b1
-`define ChipDisable		1'b0
-`define AHB_IDLE 2'b00
-`define AHB_BUSY 2'b01
-`define AHB_WAIT_FOR_STALL 2'b11
 
-//specific inst macro definition
+module maindec(
+		input wire[31:0] instrD,
 
-`define NOP			6'b000000
-`define AND 		6'b100100
-`define OR 			6'b100101
-`define XOR 		6'b100110
-`define NOR			6'b100111
-`define ANDI		6'b001100
-`define ORI			6'b001101
-`define XORI		6'b001110
-`define LUI			6'b001111
+		output wire sign_exD,          //立即数是否为符号扩展
+		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> ?$ra
+		output reg is_immD,        //alu srcb选择 0->rd2E, 1->immE
+		output reg regwriteD,	//写寄存器堆使能
+		output reg mem_readD, mem_writeD,
+		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
+		output wire hilotoregD,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
+		output reg riD,
+		output wire breakD, syscallD, eretD, 
+		output wire cp0_writeD,
+		output wire cp0_to_regD,
+		output wire mfhiD,
+		output wire mfloD,
+		output reg is_mfcD,   //为mfc0
+		output reg [7:0] aluopD,
+		// output reg [5:0] funct_to_aluD,
+		output reg [2:0] branch_judge_controlD
+    );
 
-`define SLL			6'b000000
-`define SLLV		6'b000100
-`define SRL 		6'b000010
-`define SRLV 		6'b000110
-`define SRA 		6'b000011
-`define SRAV 		6'b000111
+	//Instruct Divide
+	wire [5:0] opD,functD;
+	wire [4:0] rsD,rtD,rdD;
+	assign opD = instrD[31:26];
+	assign functD = instrD[5:0];
+	assign rsD = instrD[25:21];
+	assign rtD = instrD[20:16];
+	assign rdD = instrD[15:11];
 
-`define MFHI  		6'b010000
-`define MTHI  		6'b010001  
-`define MFLO  		6'b010010
-`define MTLO  		6'b010011
+	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
-`define SLT  6'b101010
-`define SLTU  6'b101011
-`define SLTI  6'b001010
-`define SLTIU  6'b001011   
-`define ADD  6'b100000
-`define ADDU  6'b100001
-`define SUB  6'b100010
-`define SUBU  6'b100011
-`define ADDI  6'b001000
-`define ADDIU  6'b001001
+	assign hilotoregD = ~(|(opD ^ `R_SPECIAL)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
+														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
+	assign mfhiD = ~(|(opD ^ `R_SPECIAL)) & ~(|(functD ^ `MFHI));
+	assign mfloD = ~(|(opD ^ `R_SPECIAL)) & ~(|(functD ^ `MFLO));
+	assign cp0_writeD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
+	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MFC0));
+	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `ERET));
+	
+	assign breakD = ~(|(opD ^ `R_SPECIAL)) & ~(|(functD ^ `BREAK));
+	assign syscallD = ~(|(opD ^ `R_SPECIAL)) & ~(|(functD ^ `SYSCALL));
+    
+    //riD
+    always @(*) begin
+        case(opD)
 
-`define MULT  6'b011000
-`define MULTU  6'b011001
-`define DIV  6'b011010
-`define DIVU  6'b011011
+            default: riD=1'b0;
+        endcase
+    end
+    
+    //is_mfcD
+    always @(*) begin
+        case(opD)
 
-`define J  6'b000010
-`define JAL  6'b000011
-`define JALR  6'b001001
-`define JR  6'b001000
-`define BEQ  6'b000100
-`define BGEZ  5'b00001
-`define BGEZAL  5'b10001
-`define BGTZ  6'b000111
-`define BLEZ  6'b000110
-`define BLTZ  5'b00000
-`define BLTZAL  5'b10000
-`define BNE  6'b000101
-
-`define LB  6'b100000
-`define LBU  6'b100100
-`define LH  6'b100001
-`define LHU  6'b100101
-`define LW  6'b100011
-`define SB  6'b101000
-`define SH  6'b101001
-`define SW  6'b101011
-
-`define SYSCALL 6'b001100
-`define BREAK 6'b001101
-   
-`define ERET 5'b10000
-
-`define R_TYPE 6'b000000
-`define REGIMM_INST 6'b000001
-`define SPECIAL3_INST 6'b010000
-//change the SPECIAL2_INST from 6'b011100 to 6'b010000
-`define MTC0 5'b00100
-`define MFC0 5'b00000
-
-// ALU OP 4bit
-
-`define ANDI_OP 4'b0000
-`define XORI_OP 4'b0001
-`define ORI_OP  4'b0010
-`define LUI_OP  4'b0011
-`define ADDI_OP 4'b0100
-`define ADDIU_OP    4'b0101
-`define SLTI_OP     4'b0110
-`define SLTIU_OP    4'b0111
-
-`define MEM_OP  4'b0100
-
-
-`define R_TYPE_OP 4'b1000
-`define MFC0_OP 4'b1001
-`define MTC0_OP 4'b1010
-`define USELESS_OP 4'b1111
-
-// ALU CONTROL 5bit
-`define AND_CONTROL 5'b00111
-`define OR_CONTROL  5'b00001
-`define XOR_CONTROL 5'b00010
-`define NOR_CONTROL 5'b00011
-`define LUI_CONTROL 5'b00100
-
-`define SLL_CONTROL 5'b01000
-`define SRL_CONTROL 5'b01001
-`define SRA_CONTROL 5'b01010
-`define SLLV_CONTROL    5'b01011
-`define SRLV_CONTROL    5'b01100
-`define SRAV_CONTROL    5'b01101
-
-`define ADD_CONTROL     5'b10000
-`define ADDU_CONTROL    5'b10001
-`define SUB_CONTROL     5'b10010
-`define SUBU_CONTROL    5'b10011
-`define SLT_CONTROL     5'b10100
-`define SLTU_CONTROL    5'b10101
-
-`define MULT_CONTROL    5'b11000
-`define MULTU_CONTROL   5'b11001
-`define DIV_CONTROL     5'b11010
-`define DIVU_CONTROL    5'b11011
-
-`define MFHI_CONTROL  	5'b11100
-`define MTHI_CONTROL  	5'b11101
-`define MFLO_CONTROL  	5'b11110
-`define MTLO_CONTROL  	5'b11111
-
-`define MFC0_CONTROL 	5'b00101
-`define MTC0_CONTROL 	5'b00110
-
-//inst ROM macro definition
-`define InstAddrBus		31:0
-`define InstBus 		31:0
-
-//data RAM
-`define DataAddrBus 31:0
-`define DataBus 31:0
-`define ByteWidth 7:0
-
-//regfiles macro definition
-
-`define RegAddrBus		4:0
-`define RegBus 			31:0
-`define RegWidth		32
-`define DoubleRegWidth	64
-`define DoubleRegBus	63:0
-`define RegNum			32
-`define RegNumLog2		5
-`define NOPRegAddr		5'b00000
-
-//div
-`define DivFree 2'b00
-`define DivByZero 2'b01
-`define DivOn 2'b10
-`define DivEnd 2'b11
-`define DivResultReady 1'b1
-`define DivResultNotReady 1'b0
-`define DivStart 1'b1
-`define DivStop 1'b0
-
-//CP0
-`define CP0_REG_BADVADDR    5'b01000       
-`define CP0_REG_COUNT    5'b01001        
-`define CP0_REG_COMPARE    5'b01011      
-`define CP0_REG_STATUS    5'b01100       
-`define CP0_REG_CAUSE    5'b01101       
-`define CP0_REG_EPC    5'b01110          
-`define CP0_REG_PRID    5'b01111         
-`define CP0_REG_CONFIG    5'b10000      
-
-// tlb 
-//TLB Config
-`define TLB_LINE_NUM 8
-`define TAG_WIDTH 20
-`define OFFSET_WIDTH 12
-`define LOG2_TLB_LINE_NUM 5
-
-typedef struct packed {
-    logic        G;
-    logic        V0;
-    logic        V1;
-    logic        D0;
-    logic        D1;
-    logic        C0;    // 1 as cacheable
-    logic        C1;    // 1 as cacheable
-    logic [19:0] PFN0;
-    logic [19:0] PFN1;
-    logic [18:0] VPN2;
-    logic  [7:0] ASID;
-} tlb_entry;
-
-typedef struct packed {
-    logic       refill;
-    logic       invalid;
-    logic [31:0]addr;
-    logic [31:0]data;
-} fifo_entry;
-
-typedef struct packed {
-    logic [5:0] F; // for 32 bit PALEN, F is 6 bit.
-    logic [19:0]PFN;
-    logic [2:0] C;
-    logic       D;
-    logic       V;
-    logic       G;
-} cp0_entrylo;
-
-`endif
+            default: is_mfcD=1'b0;
+        endcase
+    end
+    
+    //regdstD
+    always @(*) begin
+        case(opD)
+            `R_SPECIAL:begin
+                case(functD)
+                    `JALR_SPECIAL: regdstD=2'b10;
+                    default: regdstD=2'b00;
+                endcase
+            end
+            `ADDI_SPECIAL,`ADDIU_SPECIAL,`ANDI_SPECIAL: regdstD=2'b01;
+            default: regdstD=2'b00;
+        endcase
+    end
+    
+    //is_immD
+    always @(*) begin
+        case(opD)
+            `ADDI_SPECIAL,`ADDIU_SPECIAL,`ANDI_SPECIAL: is_immD=1'b1;
+            default: is_immD=1'b0;
+        endcase
+    end
+    
+    //regwriteD
+    always @(*) begin
+        case(opD)
+            `R_SPECIAL: begin
+                case(functD)
+                    `JR_SPECIAL: regwriteD=1'b0;
+                    default: regwriteD=1'b1;
+                endcase
+            end
+            `ADDI_SPECIAL,`ADDIU_SPECIAL,`ANDI_SPECIAL: regwriteD=1'b1;
+            default: regwriteD=1'b0;
+        endcase
+    end
+    
+    //mem_readD
+    always @(*) begin
+        case(opD)
+            default: mem_readD=1'b0;
+        endcase
+    end
+    
+    //mem_writeD
+    always @(*) begin
+        case(opD)
+            default: mem_writeD=1'b0;
+        endcase
+    end
+    
+    //memtoregD
+    always @(*) begin
+        case(opD)
+            default: memtoregD=1'b0;
+        endcase
+    end
+    
+    //aluopD
+    always @(*) begin
+        case(opD)
+            `R_SPECIAL: begin
+                case(functD)
+                    `ADD_FUNCT: aluopD=`ALU_ADD;
+                    `ADDU_FUNCT: aluopD=`ALU_ADDU;
+                    `AND_FUNCT: aluopD=`ALU_AND;
+                    default: aluopD=`ALU_NOP;
+                endcase
+            end
+            `ADDI_SPECIAL: aluopD=`ALU_ADD;
+            `ADDIU_SPECIAL: aluopD=`ALU_ADDU;
+            `ANDI_SPECIAL: aluopD=`ALU_AND;
+            default: aluopD=`ALU_NOP;
+        endcase
+    end
+    
+    //branch_judge_controlD
+	always @(*) begin
+		case(opD)
+			`BEQ: branch_judge_controlD=3'b001;
+			`BNE: branch_judge_controlD=3'b010;
+			`BLEZ: branch_judge_controlD=3'b011;
+			`BGTZ: branch_judge_controlD=3'b100;
+			`REGIMM_INST: begin
+				case(rtD)
+					`BLTZ,`BLTZAL: branch_judge_controlD=3'b101;
+					`BGEZ,`BGEZAL: branch_judge_controlD=3'b110;
+					default: branch_judge_controlD=3'b101;
+				endcase
+				end
+			default: branch_judge_controlD=3'b000;
+		endcase
+	end
+    
+endmodule
