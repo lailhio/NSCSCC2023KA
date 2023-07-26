@@ -387,7 +387,7 @@ module d_cache#(
                         // write to buffer
                         d_wdata <= c_block_M2[tway_M3];
                     end
-                    if (d_wvalid & d_wready) begin
+                    if (d_wvalid & d_wready & cache_buff_cnt>=2) begin
                         // write one word every wready 
                         if (d_wlast) begin
                             d_wvalid <= 1'b0;
