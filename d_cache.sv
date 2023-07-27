@@ -1,5 +1,5 @@
 module d_cache#(
-    parameter LEN_LINE = 5,  // 32 Bytes
+    parameter LEN_LINE = 6,  // 32 Bytes
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
