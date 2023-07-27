@@ -4,9 +4,9 @@ module cache_block_ram #(
 ) (clka,clkb,ena,enb,wea,addra,addrb,dina,doutb);
     input clka,clkb,ena,enb;
     input [LEN_DATA/8-1:0]wea;
-    input [LEN_ADDR-1:0] addra,addrb;
-    input [LEN_DATA-1:0] dina;
-    output [LEN_DATA-1:0] doutb;
+    (*mark_debug="true"*) input [LEN_ADDR-1:0] addra,addrb;
+    (*mark_debug="true"*) input [LEN_DATA-1:0] dina;
+    (*mark_debug="true"*) output [LEN_DATA-1:0] doutb;
 
     parameter DEPTH = 2**LEN_ADDR;
 

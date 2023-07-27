@@ -27,19 +27,19 @@ module d_cache#(
     input wire        d_rvalid,
     output reg         d_rready,
     //write
-    output reg [31:0] d_awaddr,
+    (*mark_debug="true"*) output reg [31:0] d_awaddr,
     output reg [7:0] d_awlen,
     output reg [2:0] d_awsize,
-    output reg       d_awvalid,
-    input wire        d_awready,
+    (*mark_debug="true"*) output reg       d_awvalid,
+    (*mark_debug="true"*) input wire        d_awready,
     
-    output reg [31:0] d_wdata,
-    output reg [3:0] d_wstrb,
-    output reg       d_wlast,
-    output reg       d_wvalid,
-    input wire        d_wready,
+    (*mark_debug="true"*) output reg [31:0] d_wdata,
+    (*mark_debug="true"*) output reg [3:0] d_wstrb,
+    (*mark_debug="true"*) output reg       d_wlast,
+    (*mark_debug="true"*) output reg       d_wvalid,
+    (*mark_debug="true"*) input wire        d_wready,
 
-    input wire        d_bvalid,
+    (*mark_debug="true"*) input wire        d_bvalid,
     output wire       d_bready
 );
     // defines
@@ -162,18 +162,18 @@ module d_cache#(
 
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
-    reg [2:0] state;
+    (*mark_debug="true"*) reg [2:0] state;
     reg [2:0] pre_state;
 
 
     // axi cnt
-    logic [LEN_LINE-1:2] axi_cnt;
-    logic [LEN_LINE:2] cache_buff_cnt;
+    (*mark_debug="true"*) logic [LEN_LINE-1:2] axi_cnt;
+    (*mark_debug="true"*) logic [LEN_LINE:2] cache_buff_cnt;
     reg buff_last;
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
-    reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : NoCache_rdata;
+    (*mark_debug="true"*) reg [31:0] axi_data_rdata;
+    (*mark_debug="true"*) assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : NoCache_rdata;
 
 
     logic [1:0] wena_tag_ram_way;
@@ -184,18 +184,18 @@ module d_cache#(
     wire [1:0] wena_tag_hitway;
     assign  wena_tag_hitway = hit & store ?
             {{data_wr_en & tway & ~(i_stall & ~data_wr_en)}, {data_wr_en & ~tway & ~(i_stall & ~data_wr_en)}} : wena_tag_ram_way; // 4 bytes
-    wire [3:0] wena_data_hitway [NR_WAYS-1:0];
+    (*mark_debug="true"*) wire [3:0] wena_data_hitway [NR_WAYS-1:0];
     assign  wena_data_hitway = hit & store ?
             {{data_sram_wen_Res & {4{tway & ~(i_stall & ~data_wr_en)}}}, {data_sram_wen_Res & {4{~tway & ~(i_stall & ~data_wr_en)}}}} : wena_data_bank_way; // 4 bytes
     // write back part
-    wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
+    (*mark_debug="true"*) wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
 
     // first : write data come from ram
     // second : come from cpu
     wire [31:0] write_cache_data = d_rdata & ~{{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}} | 
                               data_wdata & {{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}};
-    
-    wire [31:0] data_write = ((axi_cnt == lineLoc_M3[LEN_LINE-1:2] & store) | (store & hit))?  write_cache_data:  d_rdata;
+    // TODO
+    (*mark_debug="true"*) wire [31:0] data_write = ((axi_cnt == lineLoc_M3[LEN_LINE-1:2] & store) | (store & hit))?  write_cache_data:  d_rdata;
     
     wire isCACHE_REPLACE = state==CACHE_REPLACE;
     wire isCACHE_WRITEBACK = state==CACHE_WRITEBACK;
@@ -357,6 +357,8 @@ module d_cache#(
                         if(store) begin
                             cache_dirty[index_M2][tway] <= 1'b1;
                         end
+                        cache_lru[index_M2][tway] <=1'b0;
+                        cache_lru[index_M2][~tway] <=1'b1;
                         cache_valid[index_M2][tway] <= 1'b1;
                         cache_buff_cnt <=0;
                         buff_last <= 0;

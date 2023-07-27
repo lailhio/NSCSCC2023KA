@@ -194,6 +194,8 @@ module i_cache #(
                         wena_data_bank_way[~tway_IF2] <= 4'h0;
                         wena_tag_ram_way <= {tway_IF2,~tway_IF2}; //write to tag
                         cache_valid[index_IF2][tway_IF2] <= 1'b1;
+                        cache_lru[index_IF2][tway_IF2] <=1'b0;
+                        cache_lru[index_IF2][~tway_IF2] <=1'b1;
                         axi_cnt <= 0;
                         state <= CACHE_REPLACE;
                     end
