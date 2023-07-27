@@ -21,6 +21,8 @@ module alu_new(
     wire ready_mul;
     reg mul_startE;
     reg div_startE;
+    integer i;
+    integer j;
 
    
     always @(*) begin
@@ -37,27 +39,35 @@ module alu_new(
                 aluoutE = {src_aE[31], src_aE} + {src_bE[31], src_bE};
                 overflowE= (src_aE[31] == src_bE[31]) & (aluoutE[31] != src_aE[31]);
             end
-            `ALU_ADDU:      aluoutE = src_aE + src_bE;
-            `ALU_AND:       aluoutE = src_aE & src_bE;
-            `ALU_CLO: begin
-                y = 32;
-                for(i=31;i>=0;i--) begin // FIXME: 可以直接写for循环吗
-                    if(!a[i]) begin
-                        y = 31-i;
-                        break;
-                    end
-                end
-                aluoutE = y;
+            `ALU_ADDU: aluoutE = src_aE + src_bE;
+            `ALU_SUB:begin
+                aluoutE= {src_aE[31], src_aE} - {src_bE[31], src_bE};
+                overflowE =(src_aE[31]^src_bE[31]) & (aluoutE[31]==src_bE[31]);;
             end
-            `ALU_CLZ: begin
-                y = 32;
-                for(i=31;i>=0;i--) begin
-                    if(a[i]) begin
-                        y = 31-i;
-                        break;
-                    end
-                end
-                aluoutE = y;
+            `ALU_SUBU: aluoutE = src_aE - src_bE;
+            `ALU_AND: aluoutE = src_aE & src_bE;
+            `ALU_OR: aluoutE = src_aE | src_bE;
+            `ALU_XOR: aluoutE = src_aE ^ src_bE;
+            `ALU_NOR: aluoutE = ~(src_aE | src_bE);
+            `ALU_SLT: aluoutE = $signed(src_aE) < $signed(src_bE); 
+            `ALU_SLTU: aluoutE = src_aE < src_bE; 
+            `ALU_SLL: aluoutE = src_bE << sa; 
+            `ALU_SRL: aluoutE = src_bE >> sa;
+            `ALU_SRA: aluoutE = $signed(src_bE) >>> sa;
+            `ALU_SLLV: aluoutE = src_bE << src_aE[4:0]; 
+            `ALU_SRLV: aluoutE = src_bE >> src_aE[4:0];
+            `ALU_SRAV: aluoutE = $signed(src_bE) >>> src_aE[4:0];
+            `ALU_LUI :aluoutE = {src_bE[15:0], 16'b0};
+
+            `ALU_MTHI: begin
+                aluoutE = {src_aE, 32'b0};
+                hilo_selectE = 2'b11;
+                if(~stallE) hilo_writeE = 1'b1;
+            end
+            `ALU_MTLO: begin
+                aluoutE = {32'b0, src_aE};
+                hilo_selectE = 2'b10;
+                if(~stallE) hilo_writeE = 1'b1;
             end
             `ALU_DIV:begin
                 div_sign = 1'b1;
@@ -81,31 +91,8 @@ module alu_new(
                     if(~stallE) hilo_writeE = 1'b1;
                 end
             end
-
-            `OR_CONTROL:        aluoutE = src_aE | src_bE;
-            `NOR_CONTROL:       aluoutE =~(src_aE | src_bE);
-            `XOR_CONTROL:       aluoutE = src_aE ^ src_bE;
-
-
-            `SUB_CONTROL:begin
-                aluoutE= {src_aE[31], src_aE} - {src_bE[31], src_bE};
-                overflowE =(src_aE[31]^src_bE[31]) & (aluoutE[31]==src_bE[31]);;
-            end
-            `SUBU_CONTROL:      aluoutE = src_aE - src_bE;
-
-            `SLT_CONTROL:       aluoutE = $signed(src_aE) < $signed(src_bE); 
-            `SLTU_CONTROL:      aluoutE = src_aE < src_bE; 
-            //Mov Cmd
-            `SLLV_CONTROL:       aluoutE = src_bE << src_aE[4:0]; 
-            `SRLV_CONTROL:       aluoutE = src_bE >> src_aE[4:0];
-            `SRAV_CONTROL:       aluoutE = $signed(src_bE) >>> src_aE[4:0];
-
-            `SLL_CONTROL:    aluoutE = src_bE << sa; 
-            `SRL_CONTROL:    aluoutE = src_bE >> sa;
-            `SRA_CONTROL:    aluoutE = $signed(src_bE) >>> sa;
-
-            `LUI_CONTROL:       aluoutE = {src_bE[15:0], 16'b0};
-            `MULT_CONTROL  : begin
+            
+            `ALU_MULT: begin
                 mul_sign = 1'b1;
                 mul_startE = 1'b1;
                 alustallE = 1'b1;
@@ -116,7 +103,7 @@ module alu_new(
                     if(~stallE) hilo_writeE = 1'b1;
                 end
             end
-            `MULTU_CONTROL  : begin
+            `ALU_MULTU: begin
                 mul_sign = 1'b0;
                 mul_startE = 1'b1;
                 alustallE = 1'b1;
@@ -127,40 +114,26 @@ module alu_new(
                     if(~stallE) hilo_writeE = 1'b1;
                 end
             end
-            `DIV_CONTROL :begin
-                div_sign = 1'b1;
-                div_startE = 1'b1;
-                alustallE = 1'b1;
-                if(ready_div) begin 
-                    div_startE = 1'b0;
-                    alustallE = 1'b0;
-                    aluoutE = aluout_div;
-                    if(~stallE) hilo_writeE = 1'b1;
+            `ALU_CLO: begin
+                j = 32;
+                for(i=31;i>=0;i--) begin
+                    if(!src_aE[i]) begin
+                        j = 31-i;
+                        break;
+                    end
                 end
+                aluoutE = j;
             end
-            `DIVU_CONTROL :begin
-                div_sign = 1'b0;
-                div_startE = 1'b1;
-                alustallE = 1'b1;
-                if(ready_div) begin 
-                    div_startE = 1'b0;
-                    alustallE = 1'b0;
-                    aluoutE = aluout_div;
-                    if(~stallE) hilo_writeE = 1'b1;
+            `ALU_CLZ: begin
+                j = 32;
+                for(i=31;i>=0;i--) begin
+                    if(src_aE[i]) begin
+                        j = 31-i;
+                        break;
+                    end
                 end
+                aluoutE = j;
             end
-            `MTHI_CONTROL: begin
-                aluoutE = {src_aE, 32'b0};
-                hilo_selectE = 2'b11;
-                if(~stallE) hilo_writeE = 1'b1;
-            end
-            `MTLO_CONTROL: begin
-                aluoutE = {32'b0, src_aE};
-                hilo_selectE = 2'b10;
-                if(~stallE) hilo_writeE = 1'b1;
-            end
-            5'b00000: aluoutE = src_aE;  // do nothing
-
             default:    aluoutE = 32'b0;
         endcase
     end
