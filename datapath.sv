@@ -243,8 +243,8 @@ module datapath(
         .immD(immD),
         .pcF(PC_IF1),
         .pcM(pcM),
-        .branchM(branchM),
-        .actual_takeM(actual_takeM),
+        .branchE(branchE),
+        .actual_takeE(actual_takeE),
 
         .branchD(branchD),
         .pred_takeD(pred_takeD)
