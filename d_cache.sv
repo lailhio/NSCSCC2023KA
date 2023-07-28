@@ -357,6 +357,8 @@ module d_cache#(
                         if(store) begin
                             cache_dirty[index_M2][tway] <= 1'b1;
                         end
+                        cache_lru[index_M2][tway] <=1'b0;
+                        cache_lru[index_M2][~tway] <=1'b1;
                         cache_valid[index_M2][tway] <= 1'b1;
                         cache_buff_cnt <=0;
                         buff_last <= 0;
