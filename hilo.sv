@@ -20,13 +20,10 @@ module hilo(
       else if(we)begin
          case(hilo_selectE)
             2'b01, 2'b00: {hilo_hi,hilo_lo}<=hilo_in;
-            2'b11:   {hilo_hi,hilo_lo}<={hilo_in[63:32],hilo_lo};
-            2'b10:    {hilo_hi,hilo_lo}<={hilo_hi,hilo_in[31:0]};
-            default :  {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
+            2'b11:   hilo_hi<=hilo_in[63:32];
+            2'b10:    hilo_lo<=hilo_in[31:0];
          endcase
       end
-      else
-         {hilo_hi,hilo_lo}<={hilo_hi,hilo_lo};
    end
    
 
