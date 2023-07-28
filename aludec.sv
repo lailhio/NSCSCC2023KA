@@ -40,6 +40,11 @@ module aludec(
 					`MTLO:  	alucontrol = `MTLO_CONTROL;
 					`MFHI:      alucontrol = `MFHI_CONTROL;
 					`MFLO:      alucontrol = `MFLO_CONTROL;
+
+					//conditional move
+					`MOVN:		alucontrol = `MOVN_CONTROL;
+					`MOVZ:		alucontrol = `MOVZ_CONTROL;
+
 					default:    	alucontrol = 8'b00000000;
 				endcase
 			//I type
@@ -58,8 +63,21 @@ module aludec(
 
 			`SEB_OP: 	alucontrol = `SEB_CONTROL;
 			`SEH_OP:	alucontrol = `SEH_CONTROL;
+			`WSBH_OP:	alucontrol = `WSBH_CONTROL;
 
 			`ROTR_OP:	alucontrol = `ROTR_CONTROL;
+			`ROTRV_OP: 	alucontrol = `ROTRV_CONTROL;
+
+			`EXT_OP:	alucontrol = `EXT_CONTROL;
+			`INS_OP:	alucontrol = `INS_CONTROL;
+
+			`MADD_OP:	alucontrol = `MADD_CONTROL;
+			`MADDU_OP:	alucontrol = `MADDU_CONTROL;
+			`MSUB_OP:	alucontrol = `MSUB_CONTROL;
+			`MSUBU_OP:	alucontrol = `MSUBU_CONTROL;
+
+			`MUL_OP:	alucontrol = `MUL_CONTROL;
+
 			default:
 						alucontrol = 8'b0;
 		endcase

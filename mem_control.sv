@@ -7,6 +7,7 @@ module mem_control(
     input wire [31:0] addressM2,  //load address
 
     input wire [31:0] data_wdataM, //要写的数据
+    input wire [31:0] rt_valueM2,   //rt寄存器的值
     output wire [31:0] writedataM,  //真正写数据
     output wire [3:0] mem_write_selectM,  //选择写哪一位
 
@@ -20,6 +21,7 @@ module mem_control(
     wire [5:0] op_codeM2;
 
     wire instr_lw, instr_lh, instr_lb, instr_sw, instr_sh, instr_sb, instr_lhu, instr_lbu;
+    wire instr_lwl, instr_lwr, instr_swl, instr_swr;
     wire addr_W0M, addr_B2M, addr_B1M, addr_B3M;
     wire addr_W0M2, addr_B2M2, addr_B1M2, addr_B3M2;
     
@@ -47,6 +49,12 @@ module mem_control(
     assign instr_sh = ~(|(op_codeM ^ `SH));
     assign instr_sb = ~(|(op_codeM ^ `SB));
 
+    assign instr_lwl = ~(|(op_codeM2 ^ `LWL));
+    assign instr_lwr = ~(|(op_codeM2 ^ `LWR));
+
+    assign instr_swl = ~(|(op_codeM ^ `SWL));
+    assign instr_swr = ~(|(op_codeM ^ `SWR));
+
 
     assign instr_lwM = ~(|(op_codeM ^ `LW));
     assign instr_lhM = ~(|(op_codeM ^ `LH));
@@ -65,13 +73,29 @@ module mem_control(
                         | ( {4{( instr_sb & addr_W0M  )}} & 4'b0001)     //写字节 四个字节
                         | ( {4{( instr_sb & addr_B1M  )}} & 4'b0010)
                         | ( {4{( instr_sb & addr_B2M  )}} & 4'b0100)
-                        | ( {4{( instr_sb & addr_B3M  )}} & 4'b1000);
+                        | ( {4{( instr_sb & addr_B3M  )}} & 4'b1000)
+                        | ( {4{( instr_swl & addr_W0M )}} & 4'b0001)
+                        | ( {4{( instr_swl & addr_B1M )}} & 4'b0011)
+                        | ( {4{( instr_swl & addr_B2M )}} & 4'b0111)
+                        | ( {4{( instr_swl & addr_B3M )}} & 4'b1111)
+                        | ( {4{( instr_swr & addr_W0M )}} & 4'b1111)
+                        | ( {4{( instr_swr & addr_B1M )}} & 4'b1110)
+                        | ( {4{( instr_swr & addr_B2M )}} & 4'b1100)
+                        | ( {4{( instr_swr & addr_B3M )}} & 4'b1000);
 
 
 // data ram 按字寻址
     assign writedataM =   ({ 32{instr_sw}} & data_wdataM)               //
                         | ( {32{instr_sh}}  & {2{data_wdataM[15:0]}  })  // 低位高位均为数据 具体根据操作
-                        | ( {32{instr_sb}}  & {4{data_wdataM[7:0]}  }); //
+                        | ( {32{instr_sb}}  & {4{data_wdataM[7:0]}  })
+                        | ( {32{instr_swl & addr_W0M}} & {4{data_wdataM[31:24]}})
+                        | ( {32{instr_swl & addr_B1M}} & {2{data_wdataM[31:16]}})
+                        | ( {32{instr_swl & addr_B2M}} & {8'b0, data_wdataM[31:8]})
+                        | ( {32{instr_swl & addr_B3M}} & data_wdataM)
+                        | ( {32{instr_swr & addr_W0M}} & data_wdataM)
+                        | ( {32{instr_swr & addr_B1M}} & {data_wdataM[23:0], 8'b0})
+                        | ( {32{instr_swr & addr_B2M}} & {2{data_wdataM[15:0]}})
+                        | ( {32{instr_swr & addr_B3M}} & {4{data_wdataM[7:0]}}); //
 // rdata   
     assign data_rdataM2 =  ( {32{instr_lw}}   & mem_rdataM2)                                                  //lw 直接读取字
                         | ( {32{ instr_lh   & addr_W0M2}}  & { {16{mem_rdataM2[15]}},  mem_rdataM2[15:0]    })  //lh 分别从00 10开始读半字 读取后进行符号扩展
@@ -85,5 +109,13 @@ module mem_control(
                         | ( {32{ instr_lbu  & addr_W0M2}}  & {  24'b0 ,               mem_rdataM2[7:0]     })  //lbu 分别从00 01 10 11开始取bytes 读取后进行0扩展
                         | ( {32{ instr_lbu  & addr_B1M2}}  & {  24'b0 ,               mem_rdataM2[15:8]    })
                         | ( {32{ instr_lbu  & addr_B2M2}}  & {  24'b0 ,               mem_rdataM2[23:16]   })
-                        | ( {32{ instr_lbu  & addr_B3M2}}  & {  24'b0 ,               mem_rdataM2[31:24]   });
+                        | ( {32{ instr_lbu  & addr_B3M2}}  & {  24'b0 ,               mem_rdataM2[31:24]   })
+                        | ( {32{ instr_lwl  & addr_W0M2}}  & {  mem_rdataM2[7:0],           rt_valueM2[23:0]})
+                        | ( {32{ instr_lwl  & addr_B1M2}}  & {  mem_rdataM2[15:0],          rt_valueM2[15:0]})
+                        | ( {32{ instr_lwl  & addr_B2M2}}  & {  mem_rdataM2[23:0],          rt_valueM2[7:0]})
+                        | ( {32{ instr_lwl  & addr_B3M2}}  & mem_rdataM2)
+                        | ( {32{ instr_lwr  & addr_W0M2}}  & mem_rdataM2)
+                        | ( {32{ instr_lwr  & addr_B1M2}}  & {  rt_valueM2[31:24],         mem_rdataM2[31:8]})
+                        | ( {32{ instr_lwr  & addr_B2M2}}  & {  rt_valueM2[31:16],         mem_rdataM2[31:16]})
+                        | ( {32{ instr_lwr  & addr_B3M2}}  & {  rt_valueM2[31:8],          mem_rdataM2[31:24]});
 endmodule

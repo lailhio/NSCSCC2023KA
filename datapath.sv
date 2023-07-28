@@ -151,6 +151,7 @@ module datapath(
     wire [31:0] pcM2;
     wire [31:0] instrM2;
     wire [31:0] cp0_statusM2, cp0_causeM2, cp0_epcM2, cp0_outM2;
+    wire [31:0] src_b1M2;
 	//------writeback stage----------
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
@@ -281,7 +282,7 @@ module datapath(
         //input
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
-        .alucontrolE(alucontrolE),.sa(instrE[10:6]),
+        .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
         .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM),
         //output
         .alustallE(alu_stallE),
@@ -319,6 +320,7 @@ module datapath(
         .instrM(instrM), .instrM2(instrM2), .addressM(aluoutM), .addressM2(aluoutM2),
     
         .data_wdataM(src_b1M),    //原始的wdata
+        .rt_valueM2(src_b1M2),
         .writedataM(writedataM),    //新的wdata
         .mem_write_selectM(mem_write_selectM),
         .data_addrM(mem_addrM),
@@ -373,6 +375,7 @@ module datapath(
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
 	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(pcM),.out(pcM2));
 	flopstrc #(32) flopInstrM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(instrM),.out(instrM2));
+    flopstrc #(32) flopRtvalueM2(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1M),.out(src_b1M2));
 	//------------------Memory2_Flop--------------------------
     mux2 #(32) mux2_memtoreg(resultori_M2,result_rdataM2, memtoregM2,resultM2);
 	//-------------------------------------Write_Back-------------------------------------------------

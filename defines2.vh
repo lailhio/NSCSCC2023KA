@@ -504,7 +504,7 @@
 `define R_TYPE 6'b000000
 `define REGIMM_INST 6'b000001
 // `define SPECIAL3_INST 6'b010000
-`define CP0_INST 6'b010000
+`define COP0_INST 6'b010000
 //change the SPECIAL2_INST from 6'b011100 to 6'b010000
 `define MTC0 5'b00100
 `define MFC0 5'b00000
@@ -518,6 +518,26 @@
 
 `define SEB 5'b10000
 `define SEH 5'b11000 
+
+`define BSHFL 6'b100000
+`define EXT 6'b000000
+`define INS 6'b000100
+
+`define WSBH 5'b00010
+
+`define MOVN 6'b001011
+`define MOVZ 6'b001010
+
+`define MADD    6'b000000 
+`define MADDU   6'b000001
+`define MSUB    6'b000100
+`define MSUBU   6'b000101
+`define MUL     6'b000010
+
+`define LWL     6'b100010
+`define LWR     6'b100110
+`define SWL     6'b101010
+`define SWR     6'b101110
 
 // ALU OP 4bit
 
@@ -564,6 +584,21 @@
 `define SEH_OP      6'b001110
 
 `define ROTR_OP     6'b001111
+`define ROTRV_OP    6'b010000
+
+`define EXT_OP      6'b010001
+`define INS_OP      6'b010010
+
+`define WSBH_OP     6'b010011
+
+`define MOVN_OP     6'b010100
+`define MOVZ_OP     6'b010101
+
+`define MADD_OP     6'b010110
+`define MADDU_OP    6'b010111
+`define MSUB_OP     6'b011000
+`define MSUBU_OP    6'b011001
+`define MUL_OP      6'b011010
 
 // // ALU CONTROL 5bit
 // `define AND_CONTROL 5'b00111
@@ -641,6 +676,21 @@
 `define SEH_CONTROL     8'b00011111
 
 `define ROTR_CONTROL    8'b00100000
+`define ROTRV_CONTROL   8'b00100001
+
+`define EXT_CONTROL     8'b00100010
+`define INS_CONTROL     8'b00100011
+
+`define WSBH_CONTROL    8'b00100100
+
+`define MOVN_CONTROL    8'b00100101
+`define MOVZ_CONTROL    8'b00100110
+
+`define MADD_CONTROL    8'b00100111
+`define MADDU_CONTROL   8'b00101000
+`define MSUB_CONTROL    8'b00101001
+`define MSUBU_CONTROL   8'b00101010
+`define MUL_CONTROL     8'b00101011
 
 //inst ROM macro definition
 `define InstAddrBus		31:0

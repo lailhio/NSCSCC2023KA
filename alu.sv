@@ -4,7 +4,7 @@ module alu(
     input wire clk, rst,stallE,flushE,
     input wire [31:0] src_aE, src_bE,
     input wire [7:0] alucontrolE, 
-    input wire [4:0] sa, 
+    input wire [4:0] sa, msbd,
     input wire mfhiE, mfloE, flush_exceptionM,
     
     output reg alustallE,
@@ -13,7 +13,7 @@ module alu(
 );
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
-    wire [31:0] hilo_outE;
+    wire [63:0] hilo_outE;
     reg mul_sign;
     reg div_sign; 
 	wire ready_div;
@@ -116,7 +116,8 @@ module alu(
                 if(~stallE) hilo_writeE = 1'b1;
             end
             `MFHI_CONTROL, `MFLO_CONTROL:begin
-                aluoutE = {32'b0, hilo_outE};
+                // aluoutE = {32'b0, hilo_outE};
+                aluoutE = {32, ({32{mfhiE}} & hilo_outE[63:32]) | ({32{mfloE}} & hilo_outE[31:0])};
             end
             // CLO & CLZ
             `CLO_CONTROL: begin
@@ -142,8 +143,113 @@ module alu(
             `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
             `SEH_CONTROL:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
 
-            // ROTR
-            // `ROTR_CONTROL:  aluoutE = {src_bE[sa-1:0], src_bE[31:sa]};
+            // `ROTR_CONTROL:  aluoutE = src_bE << (32-sa) + src_bE >> sa;
+            `ROTR_CONTROL:  begin
+                // exception?
+                for(int i = 0;i <= 31;i++) begin
+                    if(i < sa) begin
+                        aluoutE[32-sa+i] = src_bE[i];
+                    end
+                    else begin
+                        aluoutE[i-sa] = src_bE[i]; 
+                    end
+                end
+            end
+            // `ROTRV_CONTROL: aluoutE = src_bE << (32-src_aE[4:0]) + src_bE >> src_aE[4:0];
+            `ROTRV_CONTROL:  begin
+                // exception?
+                for(int i = 0;i <= 31;i++) begin
+                    if(i < src_aE[4:0]) begin
+                        aluoutE[32-src_aE[4:0]+i] = src_bE[i];
+                    end
+                    else begin
+                        aluoutE[i-src_aE[4:0]] = src_bE[i];
+                    end
+                end
+            end
+
+            `EXT_CONTROL:   begin
+                // case: sa + msbd > 31
+                aluoutE = 0;
+                for(int i = sa;i <= sa + msbd;i++) begin
+                    aluoutE[i-sa] = src_aE[i];
+                end
+            end
+            `INS_CONTROL:   begin
+                // case1: lsb > msb
+                // case2: msb > 31
+                aluoutE = src_bE;
+                for(int i = sa;i <= msbd;i++) begin
+                    aluoutE[i] = src_aE[i-sa];
+                end
+            end
+            `WSBH_CONTROL:  begin
+                aluoutE = {src_bE[23:16], src_bE[31:24], src_bE[7:0], src_bE[15:8]};
+            end
+            `MOVN_CONTROL:  begin
+                if(src_bE) begin
+                    aluoutE = src_aE;
+                end
+            end
+            `MOVZ_CONTROL:  begin
+                if(!src_bE) begin
+                    aluoutE = src_aE;
+                end
+            end
+            `MUL_CONTROL:    begin
+                mul_sign = 1'b1;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
+                    aluoutE = aluout_mul[31:0];
+                end
+            end
+            `MADD_CONTROL:  begin
+                mul_sign = 1'b1;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
+                    aluoutE = hilo_outE + aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
+            end
+            `MADDU_CONTROL: begin
+                mul_sign = 1'b0;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
+                    aluoutE = hilo_outE + aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
+            end
+            `MSUB_CONTROL:  begin
+                mul_sign = 1'b1;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
+                    aluoutE = hilo_outE - aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
+            end
+            `MSUBU_CONTROL:  begin
+                mul_sign = 1'b0;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
+                    aluoutE = hilo_outE - aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
+            end
 
             8'b00000: aluoutE = src_aE;  // do nothing
 

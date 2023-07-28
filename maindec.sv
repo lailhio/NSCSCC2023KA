@@ -38,9 +38,9 @@ module maindec(
 														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 	assign mfhiD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
 	assign mfloD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
-	assign cp0_writeD = ~(|(opD ^ `CP0_INST)) & ~(|(rsD ^ `MTC0));
-	assign cp0_to_regD = ~(|(opD ^ `CP0_INST)) & ~(|(rsD ^ `MFC0));
-	assign eretD = ~(|(opD ^ `CP0_INST)) & ~(|(rsD ^ `ERET));
+	assign cp0_writeD = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MTC0));
+	assign cp0_to_regD = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MFC0));
+	assign eretD = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `ERET));
 	
 	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
@@ -54,7 +54,8 @@ module maindec(
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
-					`SLLV, `SLL, `SRAV, `SRA, `SRLV,
+					`SLLV, `SLL, `SRAV, `SRA,
+					`MOVN, `MOVZ,
 					`MFHI, `MFLO : begin
 						aluopD=`R_TYPE_OP;
 						{regwriteD, regdstD, is_immD} =  4'b1000;
@@ -68,6 +69,20 @@ module maindec(
 							{memtoregD, mem_readD, mem_writeD} =  3'b0;
 						end
 						// SRL
+						else begin
+							aluopD = `R_TYPE_OP;
+							{regwriteD, regdstD, is_immD} =  4'b1000;
+							{memtoregD, mem_readD, mem_writeD} =  3'b0;
+						end
+					end
+					`SRLV: begin
+						// ROTRZ
+						if(instrD[6]) begin
+							aluopD = `ROTRV_OP;
+							{regwriteD, regdstD, is_immD} =  4'b1000;
+							{memtoregD, mem_readD, mem_writeD} =  3'b0;
+						end
+						// SRLV
 						else begin
 							aluopD = `R_TYPE_OP;
 							{regwriteD, regdstD, is_immD} =  4'b1000;
@@ -188,14 +203,14 @@ module maindec(
 			end
 			
 	// 访存指令，都是立即数指令
-			`LW, `LB, `LBU, `LH, `LHU: begin
+			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR: begin
 				riD=1'b0;
 				is_mfcD=1'b0;
 				aluopD=`MEM_OP;
 				{regwriteD, regdstD, is_immD}  =  4'b1011;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b110;
 			end
-			`SW, `SB, `SH: begin
+			`SW, `SB, `SH, `SWL, `SWR: begin
 				riD=1'b0;
 				is_mfcD=1'b0;
 				aluopD=`MEM_OP;
@@ -220,7 +235,7 @@ module maindec(
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 
-			`CP0_INST:begin
+			`COP0_INST:begin
 				case(instrD[25:21])
 					`MTC0: begin
 						riD=1'b0;
@@ -262,6 +277,41 @@ module maindec(
 						{regwriteD, regdstD, is_immD}  =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
+					`MUL: begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `MUL_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`MADD:	begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `MADD_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`MADDU:	begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `MADDU_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`MSUB:	begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `MSUB_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`MSUBU:	begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `MSUBU_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
 					default: begin
 						riD  =  1'b1;
 						is_mfcD=1'b0;
@@ -273,19 +323,51 @@ module maindec(
 			end
 
 			`SPECIAL3_INST: begin
-				case(instrD[10:6])
-					`SEB: begin
+				case(functD)
+					`BSHFL: begin
+						case(instrD[10:6])
+							`SEB: begin
+								riD = 1'b0;
+								is_mfcD = 1'b0;
+								aluopD = `SEB_OP;
+								{regwriteD, regdstD, is_immD}  =  4'b1000;
+								{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+							end
+							`SEH: begin
+								riD = 1'b0;
+								is_mfcD = 1'b0;
+								aluopD = `SEH_OP;
+								{regwriteD, regdstD, is_immD}  =  4'b1000;
+								{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+							end
+							`WSBH: begin
+								riD = 1'b0;
+								is_mfcD = 1'b0;
+								aluopD = `WSBH_OP;
+								{regwriteD, regdstD, is_immD}  =  4'b1000;
+								{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+							end
+							default: begin
+								riD  =  1'b1;
+								is_mfcD=1'b0;
+								aluopD=`USELESS_OP;
+								{regwriteD, regdstD, is_immD}  =  4'b0000;
+								{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+							end
+						endcase
+					end
+					`EXT: begin
 						riD = 1'b0;
 						is_mfcD = 1'b0;
-						aluopD = `SEB_OP;
-						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						aluopD = `EXT_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1010;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
-					`SEH: begin
+					`INS: begin
 						riD = 1'b0;
 						is_mfcD = 1'b0;
-						aluopD = `SEH_OP;
-						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						aluopD = `INS_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1010;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 					default: begin
