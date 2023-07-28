@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 module datapath(
 
-	(*mark_debug="true"*) input wire clk,rst,
+	input wire clk,rst,
 	
 	input wire  [5 :0] ext_int, //异常处理
     
@@ -106,15 +106,15 @@ module datapath(
     wire        overflowE; //溢出
 	
 	//----------mem stage--------
-	(*mark_debug="true"*) wire [31:0] pcM;  // pc
+	wire [31:0] pcM;  // pc
     wire [31:0] aluoutM; //alu输出
     wire [4:0] 	writeregM; //写寄存器号
-    (*mark_debug="true"*) wire [31:0] instrM;  //指令
+    wire [31:0] instrM;  //指令
     wire        mem_readM; //读内存
     wire        mem_writeM; //写内存
     wire        regwriteM;  //寄存器写
     wire        memtoregM;  //写回寄存器选择信号
-    (*mark_debug="true"*) wire [31:0] resultM;  // mem out
+    wire [31:0] resultM;  // mem out
     wire        actual_takeM;  //分支预测 真实结果
     wire        pre_right;  // 预测正确
     wire        pred_takeM; // 预测
@@ -151,7 +151,7 @@ module datapath(
 	wire [4:0] writeregM2;//写寄存器号
 	wire regwriteM2,memtoregM2;
 	wire [31:0] resultori_M2;
-	(*mark_debug="true"*) wire [31:0] resultM2;
+	wire [31:0] resultM2;
     wire [31:0] aluoutM2;
     wire [31:0] pcM2;
     wire [31:0] instrM2;

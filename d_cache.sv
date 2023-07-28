@@ -33,13 +33,13 @@ module d_cache#(
     output reg       d_awvalid,
     input wire        d_awready,
     
-    (*mark_debug="true"*) output reg [31:0] d_wdata,
+    output reg [31:0] d_wdata,
     output reg [3:0] d_wstrb,
     output reg       d_wlast,
     output reg       d_wvalid,
     input wire        d_wready,
 
-    (*mark_debug="true"*) input wire        d_bvalid,
+    input wire        d_bvalid,
     output wire       d_bready
 );
     // defines
@@ -162,13 +162,13 @@ module d_cache#(
 
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
-    (*mark_debug="true"*) reg [2:0] state;
+    reg [2:0] state;
     reg [2:0] pre_state;
 
 
     // axi cnt
-    (*mark_debug="true"*) logic [LEN_LINE-1:2] axi_cnt;
-    (*mark_debug="true"*) logic [LEN_LINE:2] cache_buff_cnt;
+    logic [LEN_LINE-1:2] axi_cnt;
+    logic [LEN_LINE:2] cache_buff_cnt;
     reg buff_last;
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
@@ -188,14 +188,14 @@ module d_cache#(
     assign  wena_data_hitway = hit & store ?
             {{data_sram_wen_Res & {4{tway & ~(i_stall & ~data_wr_en)}}}, {data_sram_wen_Res & {4{~tway & ~(i_stall & ~data_wr_en)}}}} : wena_data_bank_way; // 4 bytes
     // write back part
-    (*mark_debug="true"*) wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
+    wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
 
     // first : write data come from ram
     // second : come from cpu
     wire [31:0] write_cache_data = d_rdata & ~{{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}} | 
                               data_wdata & {{8{data_sram_wen_Res[3]}}, {8{data_sram_wen_Res[2]}}, {8{data_sram_wen_Res[1]}}, {8{data_sram_wen_Res[0]}}};
     // TODO
-    (*mark_debug="true"*) wire [31:0] data_write = ((axi_cnt == lineLoc_M3[LEN_LINE-1:2] & store) | (store & hit))?  write_cache_data:  d_rdata;
+    wire [31:0] data_write = ((axi_cnt == lineLoc_M3[LEN_LINE-1:2] & store) | (store & hit))?  write_cache_data:  d_rdata;
     
     wire isCACHE_REPLACE = state==CACHE_REPLACE;
     wire isCACHE_WRITEBACK = state==CACHE_WRITEBACK;
