@@ -71,6 +71,7 @@ module alu(
                     aluoutE = aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MULTU_CONTROL  : begin
                 mul_sign = 1'b0;
@@ -82,6 +83,7 @@ module alu(
                     aluoutE = aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `DIV_CONTROL :begin
                 div_sign = 1'b1;
@@ -93,6 +95,7 @@ module alu(
                     aluoutE = aluout_div;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `DIVU_CONTROL :begin
                 div_sign = 1'b0;
@@ -104,6 +107,7 @@ module alu(
                     aluoutE = aluout_div;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MTHI_CONTROL: begin
                 aluoutE = {src_aE, 32'b0};
