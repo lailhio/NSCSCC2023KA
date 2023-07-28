@@ -1,29 +1,26 @@
-`timescale 1ns / 1ps
-
-
 `include "defines2.vh"
+
 module alu(
-    input wire clk, rst,stallE,
-    input wire flushE,
+    input wire clk, rst,stallE,flushE,
     input wire [31:0] src_aE, src_bE,
-    input wire [4:0] alucontrolE, 
+    input wire [7:0] alucontrolE, 
     input wire [4:0] sa, 
-    
-    output reg hilo_writeE,
-    output reg [1:0]hilo_selectE,
+    input wire mfhiE, mfloE, flush_exceptionM,
     output reg alustallE,
     output reg [63:0] aluoutE, 
     output reg overflowE
 );
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
+    wire [31:0] hilo_outE;
     reg mul_sign;
     reg div_sign; 
 	wire ready_div;
     wire ready_mul;
     reg mul_startE;
     reg div_startE;
-
+    reg [1:0]hilo_selectE;
+    reg hilo_writeE;
    
     always @(*) begin
         mul_sign =1'b0;
@@ -117,7 +114,37 @@ module alu(
                 hilo_selectE = 2'b10;
                 if(~stallE) hilo_writeE = 1'b1;
             end
-            5'b00000: aluoutE = src_aE;  // do nothing
+            `MFHI_CONTROL, `MFLO_CONTROL:begin
+                aluoutE = {32'b0, hilo_outE};
+            end
+            // CLO & CLZ
+            `CLO_CONTROL: begin
+                aluoutE = 32;
+                for(int i = 31;i >= 0;i--) begin
+                    if(!src_aE[i]) begin
+                        aluoutE = 31-i;
+                        break;
+                    end
+                end
+            end
+            `CLZ_CONTROL: begin
+                aluoutE = 32;
+                for(int i = 31;i >= 0;i--) begin
+                    if(src_aE[i]) begin
+                        aluoutE = 31-i;
+                        break;
+                    end
+                end
+            end
+
+            // SEB & SEH
+            `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
+            `SEH_CONTROL:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
+
+            // ROTR
+            // `ROTR_CONTROL:  aluoutE = {src_bE[sa-1:0], src_bE[31:sa]};
+
+            8'b00000: aluoutE = src_aE;  // do nothing
 
             default:    aluoutE = 32'b0;
         endcase
@@ -153,4 +180,6 @@ module alu(
 		.result_o(aluout_div)
 	);
 
+    // hilo
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiE ,mfloE , aluoutE , hilo_outE );
 endmodule

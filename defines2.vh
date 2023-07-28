@@ -503,63 +503,144 @@
 
 `define R_TYPE 6'b000000
 `define REGIMM_INST 6'b000001
-`define SPECIAL3_INST 6'b010000
+// `define SPECIAL3_INST 6'b010000
+`define CP0_INST 6'b010000
 //change the SPECIAL2_INST from 6'b011100 to 6'b010000
 `define MTC0 5'b00100
 `define MFC0 5'b00000
 
+
+`define SPECIAL2_INST 6'b011100
+`define SPECIAL3_INST 6'b011111
+
+`define CLO 6'b100001
+`define CLZ 6'b100000
+
+`define SEB 5'b10000
+`define SEH 5'b11000 
+
 // ALU OP 4bit
 
-`define ANDI_OP 4'b0000
-`define XORI_OP 4'b0001
-`define ORI_OP  4'b0010
-`define LUI_OP  4'b0011
-`define ADDI_OP 4'b0100
-`define ADDIU_OP    4'b0101
-`define SLTI_OP     4'b0110
-`define SLTIU_OP    4'b0111
+// `define ANDI_OP 4'b0000
+// `define XORI_OP 4'b0001
+// `define ORI_OP  4'b0010
+// `define LUI_OP  4'b0011
+// `define ADDI_OP 4'b0100
+// `define ADDIU_OP    4'b0101
+// `define SLTI_OP     4'b0110
+// `define SLTIU_OP    4'b0111
 
-`define MEM_OP  4'b0100
+// `define MEM_OP  4'b0100
 
 
-`define R_TYPE_OP 4'b1000
-`define MFC0_OP 4'b1001
-`define MTC0_OP 4'b1010
-`define USELESS_OP 4'b1111
+// `define R_TYPE_OP 4'b1000
+// `define MFC0_OP 4'b1001
+// `define MTC0_OP 4'b1010
+// `define USELESS_OP 4'b1111
 
-// ALU CONTROL 5bit
-`define AND_CONTROL 5'b00111
-`define OR_CONTROL  5'b00001
-`define XOR_CONTROL 5'b00010
-`define NOR_CONTROL 5'b00011
-`define LUI_CONTROL 5'b00100
+// ALU OP 6bit
 
-`define SLL_CONTROL 5'b01000
-`define SRL_CONTROL 5'b01001
-`define SRA_CONTROL 5'b01010
-`define SLLV_CONTROL    5'b01011
-`define SRLV_CONTROL    5'b01100
-`define SRAV_CONTROL    5'b01101
+`define ANDI_OP     6'b000000
+`define XORI_OP     6'b000001
+`define ORI_OP      6'b000010
+`define LUI_OP      6'b000011
+`define ADDI_OP     6'b000100
+`define ADDIU_OP    6'b000101
+`define SLTI_OP     6'b000110
+`define SLTIU_OP    6'b000111
 
-`define ADD_CONTROL     5'b10000
-`define ADDU_CONTROL    5'b10001
-`define SUB_CONTROL     5'b10010
-`define SUBU_CONTROL    5'b10011
-`define SLT_CONTROL     5'b10100
-`define SLTU_CONTROL    5'b10101
+`define MEM_OP      6'b000100
 
-`define MULT_CONTROL    5'b11000
-`define MULTU_CONTROL   5'b11001
-`define DIV_CONTROL     5'b11010
-`define DIVU_CONTROL    5'b11011
 
-`define MFHI_CONTROL  	5'b11100
-`define MTHI_CONTROL  	5'b11101
-`define MFLO_CONTROL  	5'b11110
-`define MTLO_CONTROL  	5'b11111
+`define R_TYPE_OP   6'b001000
+`define MFC0_OP     6'b001001
+`define MTC0_OP     6'b001010
+`define USELESS_OP  6'b111111
 
-`define MFC0_CONTROL 	5'b00101
-`define MTC0_CONTROL 	5'b00110
+`define CLO_OP      6'b001011
+`define CLZ_OP      6'b001100
+
+`define SEB_OP      6'b001101
+`define SEH_OP      6'b001110
+
+`define ROTR_OP     6'b001111
+
+// // ALU CONTROL 5bit
+// `define AND_CONTROL 5'b00111
+// `define OR_CONTROL  5'b00001
+// `define XOR_CONTROL 5'b00010
+// `define NOR_CONTROL 5'b00011
+// `define LUI_CONTROL 5'b00100
+
+// `define SLL_CONTROL 5'b01000
+// `define SRL_CONTROL 5'b01001
+// `define SRA_CONTROL 5'b01010
+// `define SLLV_CONTROL    5'b01011
+// `define SRLV_CONTROL    5'b01100
+// `define SRAV_CONTROL    5'b01101
+
+// `define ADD_CONTROL     5'b10000
+// `define ADDU_CONTROL    5'b10001
+// `define SUB_CONTROL     5'b10010
+// `define SUBU_CONTROL    5'b10011
+// `define SLT_CONTROL     5'b10100
+// `define SLTU_CONTROL    5'b10101
+
+// `define MULT_CONTROL    5'b11000
+// `define MULTU_CONTROL   5'b11001
+// `define DIV_CONTROL     5'b11010
+// `define DIVU_CONTROL    5'b11011
+
+// `define MFHI_CONTROL  	5'b11100
+// `define MTHI_CONTROL  	5'b11101
+// `define MFLO_CONTROL  	5'b11110
+// `define MTLO_CONTROL  	5'b11111
+
+// `define MFC0_CONTROL 	5'b00101
+// `define MTC0_CONTROL 	5'b00110
+
+// ALU CONTROL 8bit
+
+`define AND_CONTROL     8'b00000001
+`define OR_CONTROL      8'b00000010
+`define XOR_CONTROL     8'b00000011
+`define NOR_CONTROL     8'b00000100
+`define LUI_CONTROL     8'b00000101
+
+`define SLL_CONTROL     8'b00000110
+`define SRL_CONTROL     8'b00000111
+`define SRA_CONTROL     8'b00001000
+`define SLLV_CONTROL    8'b00001001
+`define SRLV_CONTROL    8'b00001010
+`define SRAV_CONTROL    8'b00001011
+
+`define ADD_CONTROL     8'b00001100
+`define ADDU_CONTROL    8'b00001101
+`define SUB_CONTROL     8'b00001110
+`define SUBU_CONTROL    8'b00001111
+`define SLT_CONTROL     8'b00010000
+`define SLTU_CONTROL    8'b00010001
+
+`define MULT_CONTROL    8'b00010010
+`define MULTU_CONTROL   8'b00010011
+`define DIV_CONTROL     8'b00010100
+`define DIVU_CONTROL    8'b00010101
+
+`define MFHI_CONTROL  	8'b00010110
+`define MTHI_CONTROL  	8'b00010111
+`define MFLO_CONTROL  	8'b00011000
+`define MTLO_CONTROL  	8'b00011001
+
+`define MFC0_CONTROL 	8'b00011010
+`define MTC0_CONTROL    8'b00011011
+
+`define CLO_CONTROL     8'b00011100
+`define CLZ_CONTROL     8'b00011101
+
+`define SEB_CONTROL     8'b00011110
+`define SEH_CONTROL     8'b00011111
+
+`define ROTR_CONTROL    8'b00100000
 
 //inst ROM macro definition
 `define InstAddrBus		31:0

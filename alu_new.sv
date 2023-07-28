@@ -24,7 +24,7 @@ module alu_new(
     integer i;
 
    
-    always @(clk,rst,stallE) begin
+    always @(*) begin
         mul_sign =1'b0;
         div_sign =1'b0;
         mul_startE =1'b0;

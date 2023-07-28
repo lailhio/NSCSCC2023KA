@@ -1,11 +1,7 @@
-`timescale 1ns / 1ps
-
 `include "defines2.vh"
-
 
 module maindec(
 		input wire[31:0] instrD,
-
 
 		output wire sign_exD,          //立即数是否为符号扩展
 		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> ?$ra
@@ -22,7 +18,7 @@ module maindec(
 		output wire mfhiD,
 		output wire mfloD,
 		output reg is_mfcD,   //为mfc0
-		output reg [3:0] aluopD,
+		output reg [5:0] aluopD,
 		output reg [5:0] funct_to_aluD,
 		output reg [2:0] branch_judge_controlD
     );
@@ -42,9 +38,9 @@ module maindec(
 														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 	assign mfhiD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
 	assign mfloD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
-	assign cp0_writeD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MTC0));
-	assign cp0_to_regD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `MFC0));
-	assign eretD = ~(|(opD ^ `SPECIAL3_INST)) & ~(|(rsD ^ `ERET));
+	assign cp0_writeD = ~(|(opD ^ `CP0_INST)) & ~(|(rsD ^ `MTC0));
+	assign cp0_to_regD = ~(|(opD ^ `CP0_INST)) & ~(|(rsD ^ `MFC0));
+	assign eretD = ~(|(opD ^ `CP0_INST)) & ~(|(rsD ^ `ERET));
 	
 	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
@@ -58,11 +54,26 @@ module maindec(
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
-					`SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
+					// `SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
+					`SLLV, `SLL, `SRAV, `SRA, `SRLV,
 					`MFHI, `MFLO : begin
 						aluopD=`R_TYPE_OP;
 						{regwriteD, regdstD, is_immD} =  4'b1000;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
+					end
+					`SRL: begin
+						// ROTR
+						if(instrD[21]) begin
+							aluopD = `ROTR_OP;
+							{regwriteD, regdstD, is_immD} =  4'b1000;
+							{memtoregD, mem_readD, mem_writeD} =  3'b0;
+						end
+						// SRL
+						else begin
+							aluopD = `R_TYPE_OP;
+							{regwriteD, regdstD, is_immD} =  4'b1000;
+							{memtoregD, mem_readD, mem_writeD} =  3'b0;
+						end
 					end
 					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
@@ -210,7 +221,7 @@ module maindec(
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 
-			`SPECIAL3_INST:begin
+			`CP0_INST:begin
 				case(instrD[25:21])
 					`MTC0: begin
 						riD=1'b0;
@@ -230,6 +241,58 @@ module maindec(
 						is_mfcD=1'b0;
 						aluopD=`USELESS_OP;
 						riD  =  |(instrD[25:0] ^ `ERET);
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+				endcase
+			end
+
+			`SPECIAL2_INST: begin
+				case(functD)
+					`CLO: begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `CLO_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`CLZ: begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `CLZ_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					default: begin
+						riD  =  1'b1;
+						is_mfcD=1'b0;
+						aluopD=`USELESS_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+				endcase
+			end
+
+			`SPECIAL3_INST: begin
+				case(instrD[10:6])
+					`SEB: begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `SEB_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`SEH: begin
+						riD = 1'b0;
+						is_mfcD = 1'b0;
+						aluopD = `SEH_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b1000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					default: begin
+						riD  =  1'b1;
+						is_mfcD=1'b0;
+						aluopD=`USELESS_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
