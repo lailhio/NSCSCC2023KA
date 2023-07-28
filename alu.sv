@@ -209,6 +209,7 @@ module alu(
                     mul_startE = 1'b0;
                     aluoutE = aluout_mul[31:0];
                 end
+                else aluoutE = 31'b0;
             end
             `MADD_CONTROL:  begin
                 mul_sign = 1'b1;
@@ -220,6 +221,7 @@ module alu(
                     aluoutE = hilo_outE + aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MADDU_CONTROL: begin
                 mul_sign = 1'b0;
@@ -231,6 +233,7 @@ module alu(
                     aluoutE = hilo_outE + aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MSUB_CONTROL:  begin
                 mul_sign = 1'b1;
@@ -242,6 +245,7 @@ module alu(
                     aluoutE = hilo_outE - aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MSUBU_CONTROL:  begin
                 mul_sign = 1'b0;
@@ -253,6 +257,7 @@ module alu(
                     aluoutE = hilo_outE - aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
 
             8'b00000: aluoutE = src_aE;  // do nothing
