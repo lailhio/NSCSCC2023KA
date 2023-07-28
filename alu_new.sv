@@ -22,10 +22,9 @@ module alu_new(
     reg mul_startE;
     reg div_startE;
     integer i;
-    integer j;
 
    
-    always @(*) begin
+    always @(clk,rst,stallE) begin
         mul_sign =1'b0;
         div_sign =1'b0;
         mul_startE =1'b0;
@@ -115,24 +114,22 @@ module alu_new(
                 end
             end
             `ALU_CLO: begin
-                j = 32;
+                aluoutE = 32;
                 for(i=31;i>=0;i--) begin
                     if(!src_aE[i]) begin
-                        j = 31-i;
+                        aluoutE = 31-i;
                         break;
                     end
                 end
-                aluoutE = j;
             end
             `ALU_CLZ: begin
-                j = 32;
+                aluoutE = 32;
                 for(i=31;i>=0;i--) begin
                     if(src_aE[i]) begin
-                        j = 31-i;
+                        aluoutE = 31-i;
                         break;
                     end
                 end
-                aluoutE = j;
             end
             default:    aluoutE = 32'b0;
         endcase

@@ -28,6 +28,7 @@
 `define ALU_DIVU 8'b00010111
 `define ALU_CLO 8'b00011000
 `define ALU_CLZ 8'b00011001
+`define ALU_MFC0 8'b00011010
 
 
 
@@ -396,6 +397,12 @@
 
 //XORI
 `define XORI_SPECIAL 6'b001110
+
+//MTC0
+`define MTC0_SHAMT 5'b00100
+
+//MFC0
+`define MFC0_SHAMT 5'b00000
 
 // global macro definition
 `define RstEnable 		1'b1

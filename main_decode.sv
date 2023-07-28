@@ -19,7 +19,7 @@ module main_decoder(
 		output wire mfhiD,
 		output wire mfloD,
 		output reg is_mfcD,   //为mfc0
-		output reg [7:0] aluopD,
+		output reg [7:0] alucontrolD,
 		output reg [2:0] branch_judge_controlD
     );
 
@@ -46,7 +46,7 @@ module main_decoder(
 	assign syscallD = ~(|(opD ^ `R_SPECIAL)) & ~(|(functD ^ `SYSCALL));
     
     //riD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `REGIMM_SPRCIAL:begin
                 case(rtD)
@@ -55,20 +55,31 @@ module main_decoder(
                     default: riD=1'b1;
                 endcase
             end
+            `COP0_SPECIAL: begin
+                case(rsD)
+                    `MFC0_SHAMT,`MTC0_SHAMT: riD=1'b0;
+                    default: riD=|(instrD[25:0] ^ `ERET);
+                endcase
+            end
             default: riD=1'b0;
         endcase
     end
     
     //is_mfcD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
-
+            `COP0_SPECIAL: begin
+                case(rsD)
+                    `MFC0_SHAMT: is_mfcD=1'b1;
+                    default: is_mfcD=1'b0;
+                endcase
+            end
             default: is_mfcD=1'b0;
         endcase
     end
     
     //regdstD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `R_SPECIAL:begin
                 case(functD)
@@ -94,7 +105,7 @@ module main_decoder(
     end
     
     //is_immD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `ADDI_SPECIAL,`ADDIU_SPECIAL,`ANDI_SPECIAL, 
             `LW_SPECIAL, `LB_SPECIAL, `LBU_SPECIAL, 
@@ -106,19 +117,26 @@ module main_decoder(
     end
     
     //regwriteD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `R_SPECIAL: begin
                 case(functD)
                     `JR_FUNCT, `MULT_FUNCT, `MULTU_FUNCT, 
                     `DIV_FUNCT, `DIVU_FUNCT, `MTHI_FUNCT, 
-                    `MTLO_FUNCT, `SYSCALL_FUNCT, `BREAK_FUNCT : regwriteD=1'b0;
+                    `MTLO_FUNCT, `SYSCALL_FUNCT, `BREAK_FUNCT, 6'b000000 : regwriteD=1'b0;
                     default: regwriteD=1'b1;
                 endcase
             end
             `SPECIAL2:begin
                 case(functD)
-                    default: regwriteD=1'b1;
+                    `CLO_FUNCT, `CLZ_FUNCT: regwriteD=1'b1;
+                    default: regwriteD=1'b0;
+                endcase
+            end
+            `REGIMM_INST: begin
+				case(rtD)
+					`BGEZAL,`BLTZAL: regwriteD=1'b1;
+                    default: regwriteD=1'b0;
                 endcase
             end
             `ADDI_SPECIAL,`ADDIU_SPECIAL,`ANDI_SPECIAL,
@@ -131,7 +149,7 @@ module main_decoder(
     end
     
     //mem_readD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `LW_SPECIAL, `LB_SPECIAL, `LBU_SPECIAL, 
             `LH_SPECIAL, `LHU_SPECIAL: mem_readD=1'b1;
@@ -140,7 +158,7 @@ module main_decoder(
     end
     
     //mem_writeD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `SW_SPECIAL, `SB_SPECIAL, `SH_SPECIAL: mem_writeD=1'b1;
             default: mem_writeD=1'b0;
@@ -148,7 +166,7 @@ module main_decoder(
     end
     
     //memtoregD
-    always @(*) begin
+    always @(instrD) begin
         case(opD)
             `LW_SPECIAL, `LB_SPECIAL, `LBU_SPECIAL, 
             `LH_SPECIAL, `LHU_SPECIAL: memtoregD=1'b1;
@@ -156,63 +174,69 @@ module main_decoder(
         endcase
     end
     
-    //aluopD
-    always @(*) begin
+    //alucontrolD
+    always @(instrD) begin
         case(opD)
             `R_SPECIAL: begin
                 case(functD)
-                    `ADD_FUNCT: aluopD=`ALU_ADD;
-                    `ADDU_FUNCT: aluopD=`ALU_ADDU;
-                    `SUB_FUNCT: aluopD=`ALU_SUB;
-                    `SUBU_FUNCT: aluopD=`ALU_SUBU;
-                    `SLTU_FUNCT: aluopD=`ALU_SLTU;
-                    `SLT_FUNCT: aluopD=`ALU_SLT;
-					`AND_FUNCT: aluopD=`ALU_AND;
-                    `NOR_FUNCT: aluopD=`ALU_NOR;
-                    `OR_FUNCT: aluopD=`ALU_OR;
-                    `XOR_FUNCT: aluopD=`ALU_XOR;
-					`SLLV_FUNCT: aluopD=`ALU_SLLV;
-                    `SLL_FUNCT: aluopD=`ALU_SLL;
-                    `SRAV_FUNCT: aluopD=`ALU_SRAV;
-                    `SRA_FUNCT: aluopD=`ALU_SRA;
-                    `SRLV_FUNCT: aluopD=`ALU_SRLV;
-                    `SRL_FUNCT: aluopD=`ALU_SRL;
-                    `DIV_FUNCT: aluopD=`ALU_DIV;
-                    `DIVU_FUNCT: aluopD=`ALU_DIVU;
-					`MULT_FUNCT: aluopD=`ALU_MULT;
-                    `MULTU_FUNCT: aluopD=`ALU_MULTU;
-                    `MTHI_FUNCT: aluopD=`ALU_MTHI;
-                    `MTLO_FUNCT: aluopD=`ALU_MTLO;
-                    default: aluopD=`ALU_NOP;
+                    `ADD_FUNCT: alucontrolD=`ALU_ADD;
+                    `ADDU_FUNCT: alucontrolD=`ALU_ADDU;
+                    `SUB_FUNCT: alucontrolD=`ALU_SUB;
+                    `SUBU_FUNCT: alucontrolD=`ALU_SUBU;
+                    `SLTU_FUNCT: alucontrolD=`ALU_SLTU;
+                    `SLT_FUNCT: alucontrolD=`ALU_SLT;
+					`AND_FUNCT: alucontrolD=`ALU_AND;
+                    `NOR_FUNCT: alucontrolD=`ALU_NOR;
+                    `OR_FUNCT: alucontrolD=`ALU_OR;
+                    `XOR_FUNCT: alucontrolD=`ALU_XOR;
+					`SLLV_FUNCT: alucontrolD=`ALU_SLLV;
+                    `SLL_FUNCT: alucontrolD=`ALU_SLL;
+                    `SRAV_FUNCT: alucontrolD=`ALU_SRAV;
+                    `SRA_FUNCT: alucontrolD=`ALU_SRA;
+                    `SRLV_FUNCT: alucontrolD=`ALU_SRLV;
+                    `SRL_FUNCT: alucontrolD=`ALU_SRL;
+                    `DIV_FUNCT: alucontrolD=`ALU_DIV;
+                    `DIVU_FUNCT: alucontrolD=`ALU_DIVU;
+					`MULT_FUNCT: alucontrolD=`ALU_MULT;
+                    `MULTU_FUNCT: alucontrolD=`ALU_MULTU;
+                    `MTHI_FUNCT: alucontrolD=`ALU_MTHI;
+                    `MTLO_FUNCT: alucontrolD=`ALU_MTLO;
+                    default: alucontrolD=`ALU_NOP;
                 endcase
             end
             `SPECIAL2: begin
                 case(functD)
-                    `CLO_FUNCT: aluopD=`ALU_CLO;
-                    `CLZ_FUNCT: aluopD=`ALU_CLZ;
-                    default: aluopD=`ALU_NOP;
+                    `CLO_FUNCT: alucontrolD=`ALU_CLO;
+                    `CLZ_FUNCT: alucontrolD=`ALU_CLZ;
+                    default: alucontrolD=`ALU_NOP;
+                endcase
+            end
+            `COP0_SPECIAL: begin
+                case(rsD)
+                    `MFC0_SHAMT: alucontrolD=`ALU_MFC0;
+                    default: alucontrolD=`ALU_NOP;
                 endcase
             end
             `ADDI_SPECIAL, `LW_SPECIAL, `LB_SPECIAL, 
             `LBU_SPECIAL, `LH_SPECIAL, `LHU_SPECIAL,
-            `SWL_SPECIAL, `SB_SPECIAL, `SH_SPECIAL: aluopD=`ALU_ADD;
+            `SW_SPECIAL, `SB_SPECIAL, `SH_SPECIAL: alucontrolD=`ALU_ADD;
 
-            `ADDIU_SPECIAL: aluopD=`ALU_ADDU;
-            `ANDI_SPECIAL: aluopD=`ALU_AND;
-            `ORI_SPECIAL: aluopD=`ALU_OR;
-            `XORI_SPECIAL: aluopD=`ALU_XOR;
+            `ADDIU_SPECIAL: alucontrolD=`ALU_ADDU;
+            `ANDI_SPECIAL: alucontrolD=`ALU_AND;
+            `ORI_SPECIAL: alucontrolD=`ALU_OR;
+            `XORI_SPECIAL: alucontrolD=`ALU_XOR;
 
 
-            `SLTI_SPECIAL: aluopD=`ALU_SLT;
-            `SLTIU_SPECIAL: aluopD=`ALU_SLTU;
-            `LUI_SPECIAL: aluopD=`ALU_LUI;
+            `SLTI_SPECIAL: alucontrolD=`ALU_SLT;
+            `SLTIU_SPECIAL: alucontrolD=`ALU_SLTU;
+            `LUI_SPECIAL: alucontrolD=`ALU_LUI;
 
-            default: aluopD=`ALU_NOP;
+            default: alucontrolD=`ALU_NOP;
         endcase
     end
     
     //branch_judge_controlD
-	always @(*) begin
+	always @(instrD) begin
 		case(opD)
 			`BEQ: branch_judge_controlD=3'b001;
 			`BNE: branch_judge_controlD=3'b010;
