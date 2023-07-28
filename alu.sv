@@ -69,7 +69,7 @@ module alu(
                     alustallE = 1'b0;
                     mul_startE = 1'b0;
                     aluoutE = aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
@@ -81,7 +81,7 @@ module alu(
                     mul_startE = 1'b0;
                     alustallE = 1'b0;
                     aluoutE = aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
@@ -93,7 +93,7 @@ module alu(
                     div_startE = 1'b0;
                     alustallE = 1'b0;
                     aluoutE = aluout_div;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
@@ -105,19 +105,19 @@ module alu(
                     div_startE = 1'b0;
                     alustallE = 1'b0;
                     aluoutE = aluout_div;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
             `MTHI_CONTROL: begin
                 aluoutE = {src_aE, 32'b0};
                 hilo_selectE = 2'b11;
-                if(~stallE) hilo_writeE = 1'b1;
+                hilo_writeE = 1'b1;
             end
             `MTLO_CONTROL: begin
                 aluoutE = {32'b0, src_aE};
                 hilo_selectE = 2'b10;
-                if(~stallE) hilo_writeE = 1'b1;
+                hilo_writeE = 1'b1;
             end
             `MFHI_CONTROL, `MFLO_CONTROL:begin
                 // aluoutE = {32'b0, hilo_outE};
@@ -219,7 +219,7 @@ module alu(
                     alustallE = 1'b0;
                     mul_startE = 1'b0;
                     aluoutE = hilo_outE + aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
@@ -231,7 +231,7 @@ module alu(
                     alustallE = 1'b0;
                     mul_startE = 1'b0;
                     aluoutE = hilo_outE + aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
@@ -243,7 +243,7 @@ module alu(
                     alustallE = 1'b0;
                     mul_startE = 1'b0;
                     aluoutE = hilo_outE - aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
@@ -255,7 +255,7 @@ module alu(
                     alustallE = 1'b0;
                     mul_startE = 1'b0;
                     aluoutE = hilo_outE - aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    hilo_writeE = 1'b1;
                 end
                 else aluoutE = 31'b0;
             end
