@@ -54,7 +54,6 @@ module maindec(
 					// 算数运算指令
 					`ADD,`ADDU,`SUB,`SUBU,`SLTU,`SLT ,
 					`AND,`NOR, `OR, `XOR,
-					// `SLLV, `SLL, `SRAV, `SRA, `SRLV, `SRL,
 					`SLLV, `SLL, `SRAV, `SRA, `SRLV,
 					`MFHI, `MFLO : begin
 						aluopD=`R_TYPE_OP;

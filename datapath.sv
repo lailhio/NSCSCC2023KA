@@ -364,10 +364,11 @@ module datapath(
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
     assign flush_pred_failedM = ~pre_right;
 	//-------------------------------------Memory2-------------------------------------------------
-    // todo M2 flop 
-	flopstrc #(7) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
-            .in({writeregM, regwriteM ,memtoregM}),
-            .out({writeregM2, regwriteM2, memtoregM2}));
+    wire is_mfcM2; // for debug
+    // todo M2 flop
+	flopstrc #(8) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
+            .in({writeregM, regwriteM ,memtoregM,is_mfcM}),
+            .out({writeregM2, regwriteM2, memtoregM2,is_mfcM2}));
 	flopstrc #(32) flopAluoutM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(aluoutM),.out(aluoutM2));
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
 	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(pcM),.out(pcM2));
@@ -375,10 +376,14 @@ module datapath(
 	//------------------Memory2_Flop--------------------------
     mux2 #(32) mux2_memtoreg(resultori_M2,result_rdataM2, memtoregM2,resultM2);
 	//-------------------------------------Write_Back-------------------------------------------------
-	flopstrc #(6) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
-            .in({writeregM2,regwriteM2}),
-            .out({writeregW,regwriteW}));
+    wire is_mfcW;
+    wire [31:0] instrW; // for debug
+	flopstrc #(7) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
+            .in({writeregM2,regwriteM2,is_mfcM2}),
+            .out({writeregW,regwriteW,is_mfcW}));
+	flopstrc #(32) flopInstrW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(instrM2),.out(instrW));
 	flopstrc #(32) flopPcW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(pcM2),.out(pcW));
+	flopstrc #(32) flopAluoutW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(aluoutM2),.out(aluoutW));
 	flopstrc #(32) flopResW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM2),.out(resultW));
 	//------------------Write_Back_Flop--------------------------
 
