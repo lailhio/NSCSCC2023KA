@@ -137,7 +137,7 @@ module d_cache#(
     assign data_addr = isIDLE ? cpu_data_addr_M2 : cpu_data_addr_M3;
     assign no_cache_res = isIDLE ? no_cache_M2 : no_cache_M3;
     assign data_wr_en = isIDLE ? cpu_data_wr_M2: cpu_data_wr_M3;
-    assign data_en = (isIDLE | isSAVERES) ? cpu_data_en_M2 : cpu_data_en_M3;
+    assign data_en = isIDLE ? cpu_data_en_M2 : cpu_data_en_M3;
     assign c_valid = isIDLE ? c_valid_M2: c_valid_M3;
     assign c_tag[0] = isIDLE ? c_tag_M2[0] : c_tag_M3[0];
     assign c_tag[1] = isIDLE ? c_tag_M2[1] : c_tag_M3[1];
@@ -357,6 +357,8 @@ module d_cache#(
                         if(store) begin
                             cache_dirty[index_M2][tway] <= 1'b1;
                         end
+                        cache_lru[index_M2][tway] <=1'b0;
+                        cache_lru[index_M2][~tway] <=1'b1;
                         cache_valid[index_M2][tway] <= 1'b1;
                         cache_buff_cnt <=0;
                         buff_last <= 0;
