@@ -37,9 +37,6 @@ module datapath_new(
     wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
 	//----------decode stage---------
-	//wire[3:0] aluopD;
-    //wire[7:0] aluopD;
-	//wire[4:0] alucontrolD;
     wire[7:0] alucontrolD;
 	wire [31:0] instrD;  //指令
     wire [31:0] PcD, PcPlus4D;  //pc
@@ -73,7 +70,6 @@ module datapath_new(
 	wire [31:0] pcE, pcplus4E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
-    //wire [4 :0] alucontrolE;  //alu控制信号
     wire [7 :0] alucontrolE;
     wire [31:0] src_a1E, src_b1E; //alu输入（操作数
     wire [31:0] src_aE, src_bE; //alu输入（操作数
@@ -94,7 +90,6 @@ module datapath_new(
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
 	wire        hilotoregE;//hilo到寄存器
-    wire        hilo_writeE;  //hilo写使
 	wire        breakE, syscallE;
 	wire        riE,eretE;
 	wire        cp0_writeE;
@@ -124,10 +119,7 @@ module datapath_new(
 
     wire [31:0] result_rdataM2;
     wire [31:0] hilo_outM;  //hilo输出
-    wire        hilotoregM; 
 	wire		is_mfcM;
-	wire        mfhiM;
-	wire        mfloM;
 
     wire [31:0] src_b1M;
     //异常处理信号 exception
@@ -158,7 +150,6 @@ module datapath_new(
     wire [31:0] instrM2;
     wire [31:0] cp0_statusM2, cp0_causeM2, cp0_epcM2, cp0_outM2;
 	//------writeback stage----------
-    wire [31:0] aluoutW; //alu输出
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
@@ -214,8 +205,6 @@ module datapath_new(
         .in(is_in_delayslot_iF),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
-	//aludec ad(functD,aluopD,alucontrolD);
-	//maindec md(instrD,sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD );
     main_decoder md(instrD,sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,mfhiD , mfloD , is_mfcD,  
     alucontrolD, branch_judge_controlD );
     //扩展立即数
@@ -241,8 +230,8 @@ module datapath_new(
         .immD(immD),
         .pcF(PC_IF1),
         .pcM(pcM),
-        .branchM(branchM),
-        .actual_takeM(actual_takeM),
+        .branchE(branchM),
+        .actual_takeE(actual_takeM),
 
         .branchD(branchD),
         .pred_takeD(pred_takeD)
@@ -276,14 +265,22 @@ module datapath_new(
     flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE}));
-    //flopstrc #(15) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),.out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
     //-----------------------ExFlop---------------------
 	//ALU
-    //alu aluitem(.clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),.src_aE(src_aE), .src_bE(src_bE),.alucontrolE(alucontrolE),.sa(instrE[10:6]),.hilo_writeE(hilo_writeE) , .hilo_selectE(hilo_selectE),.alustallE(alu_stallE),.aluoutE(aluoutE) , .overflowE(overflowE));
-    alu_new aluitem(.clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),.src_aE(src_aE), .src_bE(src_bE),.alucontrolE(alucontrolE),.sa(instrE[10:6]),.hilo_writeE(hilo_writeE) , .hilo_selectE(hilo_selectE),.alustallE(alu_stallE),.aluoutE(aluoutE) , .overflowE(overflowE));
+    alu aluitem(
+        //input
+        .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
+        .src_aE(src_aE), .src_bE(src_bE),
+        .alucontrolE(alucontrolE),.sa(instrE[10:6]),
+        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM),
+        //output
+        .alustallE(alu_stallE),
+        .aluoutE(aluoutE) , .overflowE(overflowE)
+    );
+
 	//在execute阶段得到真实branch跳转情况
     branch_check branch_check(
         .branch_judge_controlE(branch_judge_controlE),
@@ -296,16 +293,16 @@ module datapath_new(
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
-	flopstrc #(64) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
+	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE[31:0]),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
-    flopstrc #(10) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE,hilotoregE}),
-        .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM,hilotoregM}));
-    flopstrc #(10) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,mfhiE,mfloE,breakE,hilotoregE}),
-        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,mfhiM,mfloM,breakM,hilotoregM}));
+    flopstrc #(9) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE}),
+        .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM}));
+    flopstrc #(8) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,breakE,hilotoregE}),
+        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,breakM,hilotoregM}));
     flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
@@ -323,14 +320,11 @@ module datapath_new(
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  
     );
 
-    // hilo
-    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiM ,mfloM , aluoutE , hilo_outM );
+
     //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
-    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据
-    mux3 #(32) mux3_memtoreg(aluoutM, hilo_outM, cp0_outM2, 
-                            {is_mfcM, hilotoregM},
-                            resultM);
+    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据 Todo
+    mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM2, is_mfcM, resultM);
      //异常处理
     exception exception(
         .rst(rst),.ext_int(ext_int),
@@ -364,7 +358,7 @@ module datapath_new(
     assign flush_pred_failedM = ~pre_right;
 	//-------------------------------------Memory2-------------------------------------------------
     wire is_mfcM2; // for debug
-    // todo M2 flop 
+    // todo M2 flop
 	flopstrc #(8) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
             .in({writeregM, regwriteM ,memtoregM,is_mfcM}),
             .out({writeregM2, regwriteM2, memtoregM2,is_mfcM2}));
@@ -375,7 +369,7 @@ module datapath_new(
 	//------------------Memory2_Flop--------------------------
     mux2 #(32) mux2_memtoreg(resultori_M2,result_rdataM2, memtoregM2,resultM2);
 	//-------------------------------------Write_Back-------------------------------------------------
-    wire is_mfcW; 
+    wire is_mfcW;
     wire [31:0] instrW; // for debug
 	flopstrc #(7) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
             .in({writeregM2,regwriteM2,is_mfcM2}),
