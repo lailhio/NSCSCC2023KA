@@ -39,6 +39,8 @@ module aludec(
 					//hilo
 					`MTHI:  	alucontrol = `MTHI_CONTROL;
 					`MTLO:  	alucontrol = `MTLO_CONTROL;
+					`MFHI:      alucontrol = `MFHI_CONTROL;
+					`MFLO:      alucontrol = `MFLO_CONTROL;
 					default:    	alucontrol = 5'b00000;
 				endcase
 			//I type

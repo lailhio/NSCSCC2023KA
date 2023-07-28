@@ -5,7 +5,7 @@ module hilo(
    input wire        clk,rst,
    input wire [1:0] hilo_selectE,
    input wire        we, //both write lo and hi
-   input wire  mfhiM,mfloM,
+   input wire  mfhiE,mfloE,
    input wire [63:0] hilo_in,  //存入hilo的值
    
    output wire [31:0] hilo_out
@@ -34,5 +34,5 @@ module hilo(
    // 若为mfhi指令 读hilo高32位  若为mflo指令读hilo低32位
    
 
-   assign hilo_out = ({32{mfhiM}} & hilo_hi) | ({32{mfloM}} & hilo_lo);
+   assign hilo_out = ({32{mfhiE}} & hilo_hi) | ({32{mfloE}} & hilo_lo);
 endmodule

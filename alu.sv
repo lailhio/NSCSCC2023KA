@@ -8,21 +8,23 @@ module alu(
     input wire [31:0] src_aE, src_bE,
     input wire [4:0] alucontrolE, 
     input wire [4:0] sa, 
+    input wire mfhiE, mfloE, flush_exceptionM,
     
-    output reg hilo_writeE,
-    output reg [1:0]hilo_selectE,
     output reg alustallE,
     output reg [63:0] aluoutE, 
     output reg overflowE
 );
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
+    wire [31:0] hilo_outE;
     reg mul_sign;
     reg div_sign; 
 	wire ready_div;
     wire ready_mul;
     reg mul_startE;
     reg div_startE;
+    reg [1:0]hilo_selectE;
+    reg hilo_writeE;
 
    
     always @(*) begin
@@ -117,11 +119,15 @@ module alu(
                 hilo_selectE = 2'b10;
                 if(~stallE) hilo_writeE = 1'b1;
             end
+            `MFHI_CONTROL, `MFLO_CONTROL:begin
+                aluoutE = {32'b0, hilo_outE};
+            end
             5'b00000: aluoutE = src_aE;  // do nothing
 
             default:    aluoutE = 32'b0;
         endcase
     end
+
 
 
     mul mul(
@@ -152,5 +158,8 @@ module alu(
 		.ready_o(ready_div),
 		.result_o(aluout_div)
 	);
+
+// hilo
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiE ,mfloE , aluoutE , hilo_outE );
 
 endmodule

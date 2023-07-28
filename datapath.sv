@@ -93,7 +93,6 @@ module datapath(
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
 	wire        hilotoregE;//hilo到寄存器
-    wire        hilo_writeE;  //hilo写使
 	wire        breakE, syscallE;
 	wire        riE,eretE;
 	wire        cp0_writeE;
@@ -123,10 +122,7 @@ module datapath(
 
     wire [31:0] result_rdataM2;
     wire [31:0] hilo_outM;  //hilo输出
-    wire        hilotoregM; 
 	wire		is_mfcM;
-	wire        mfhiM;
-	wire        mfloM;
 
     wire [31:0] src_b1M;
     //异常处理信号 exception
@@ -288,8 +284,9 @@ module datapath(
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),
+        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM),
         //output
-        .hilo_writeE(hilo_writeE) , .hilo_selectE(hilo_selectE),.alustallE(alu_stallE),
+        .alustallE(alu_stallE),
         .aluoutE(aluoutE) , .overflowE(overflowE)
     );
     
@@ -309,12 +306,12 @@ module datapath(
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
-    flopstrc #(10) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE,hilotoregE}),
-        .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM,hilotoregM}));
-    flopstrc #(8) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,mfhiE,mfloE}),
-        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,mfhiM,mfloM}));
+    flopstrc #(9) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE}),
+        .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM}));
+    flopstrc #(6) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE}),
+        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM}));
     flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
@@ -332,14 +329,11 @@ module datapath(
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  
     );
 
-    // hilo
-    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiM ,mfloM , aluoutE , hilo_outM );
+    
     //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
-    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据
-    mux3 #(32) mux3_memtoreg(aluoutM, hilo_outM, cp0_outM2, 
-                            {is_mfcM, hilotoregM},
-                            resultM);
+    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据 Todo
+    mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM2, is_mfcM, resultM);
      //异常处理
     exception exception(
         .rst(rst),.ext_int(ext_int),
