@@ -326,8 +326,11 @@ module datapath(
 
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  
     );
+
+    
+    //后两位不为0
     assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
-    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据
+    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据 Todo
     mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM2, is_mfcM, resultM);
      //异常处理
     exception exception(
