@@ -27,17 +27,17 @@ module d_cache#(
     input wire        d_rvalid,
     output reg         d_rready,
     //write
-    (*mark_debug="true"*) output reg [31:0] d_awaddr,
+    output reg [31:0] d_awaddr,
     output reg [7:0] d_awlen,
     output reg [2:0] d_awsize,
-    (*mark_debug="true"*) output reg       d_awvalid,
-    (*mark_debug="true"*) input wire        d_awready,
+    output reg       d_awvalid,
+    input wire        d_awready,
     
     (*mark_debug="true"*) output reg [31:0] d_wdata,
-    (*mark_debug="true"*) output reg [3:0] d_wstrb,
-    (*mark_debug="true"*) output reg       d_wlast,
-    (*mark_debug="true"*) output reg       d_wvalid,
-    (*mark_debug="true"*) input wire        d_wready,
+    output reg [3:0] d_wstrb,
+    output reg       d_wlast,
+    output reg       d_wvalid,
+    input wire        d_wready,
 
     (*mark_debug="true"*) input wire        d_bvalid,
     output wire       d_bready
@@ -172,8 +172,8 @@ module d_cache#(
     reg buff_last;
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
-    (*mark_debug="true"*) reg [31:0] axi_data_rdata;
-    (*mark_debug="true"*) assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : NoCache_rdata;
+    reg [31:0] axi_data_rdata;
+    assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : NoCache_rdata;
 
 
     logic [1:0] wena_tag_ram_way;
@@ -184,7 +184,7 @@ module d_cache#(
     wire [1:0] wena_tag_hitway;
     assign  wena_tag_hitway = hit & store ?
             {{data_wr_en & tway & ~(i_stall & ~data_wr_en)}, {data_wr_en & ~tway & ~(i_stall & ~data_wr_en)}} : wena_tag_ram_way; // 4 bytes
-    (*mark_debug="true"*) wire [3:0] wena_data_hitway [NR_WAYS-1:0];
+    wire [3:0] wena_data_hitway [NR_WAYS-1:0];
     assign  wena_data_hitway = hit & store ?
             {{data_sram_wen_Res & {4{tway & ~(i_stall & ~data_wr_en)}}}, {data_sram_wen_Res & {4{~tway & ~(i_stall & ~data_wr_en)}}}} : wena_data_bank_way; // 4 bytes
     // write back part

@@ -35,14 +35,14 @@ module datapath(
     wire is_in_delayslot_iF; // 此时的D阶段（即上一条指令）是否为跳转指令
     //--------InstFetch2 stage----------
 	wire [31:0] PcPlus4F2;    //pc
-    (*mark_debug="true"*) wire [31:0] PcF2;    //pc
+    wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
 	//----------decode stage---------
 	wire[3:0] aluopD;
 	wire[4:0] alucontrolD;
-	(*mark_debug="true"*) wire [31:0] instrD;  //指令
-    (*mark_debug="true"*) wire [31:0] PcD, PcPlus4D;  //pc
-    (*mark_debug="true"*) wire [31:0] src_a1D, src_b1D,src_aD, src_bD; //alu输入（操作数
+	wire [31:0] instrD;  //指令
+    wire [31:0] PcD, PcPlus4D;  //pc
+    wire [31:0] src_a1D, src_b1D,src_aD, src_bD; //alu输入（操作数
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
     wire        flush_pred_failedM;  //分支预测失败
@@ -69,19 +69,19 @@ module datapath(
     wire [2:0]  forward_1D;
     wire [2:0]  forward_2D;
 	//-------execute stage----------
-	(*mark_debug="true"*) wire [31:0] pcE, pcplus4E; //pc pc+4 寄存器号 写内存 立即数
+	wire [31:0] pcE, pcplus4E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
     wire [4 :0] alucontrolE;  //alu控制信号
 
-    (*mark_debug="true"*) wire [31:0] src_a1E, src_b1E; //alu输入（操作数
-    (*mark_debug="true"*) wire [31:0] src_aE, src_bE; //alu输入（操作数
-    (*mark_debug="true"*) wire [63:0] aluoutE; //alu输出
+    wire [31:0] src_a1E, src_b1E; //alu输入（操作数
+    wire [31:0] src_aE, src_bE; //alu输入（操作数
+    wire [63:0] aluoutE; //alu输出
     wire [4 :0] writeregE; //写寄存器号
     wire        branchE; //分支信号
     wire [31:0] pc_branchE;  //分支跳转pc
 
-    (*mark_debug="true"*) wire [31:0] instrE;
+    wire [31:0] instrE;
     wire [31:0] pc_jumpE;  //jump pc
     wire        jump_conflictE; //jump冲突
     wire        regwriteE;	//寄存器写
@@ -312,9 +312,9 @@ module datapath(
     flopstrc #(10) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE,hilotoregE}),
         .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM,hilotoregM}));
-    flopstrc #(10) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,mfhiE,mfloE,breakE,hilotoregE}),
-        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,mfhiM,mfloM,breakM,hilotoregM}));
+    flopstrc #(8) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,mfhiE,mfloE}),
+        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,mfhiM,mfloM}));
     flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
