@@ -190,16 +190,16 @@ module alu(
             `WSBH_CONTROL:  begin
                 aluoutE = {src_bE[23:16], src_bE[31:24], src_bE[7:0], src_bE[15:8]};
             end
-            `MOVN_CONTROL:  begin
-                if(src_bE) begin
-                    aluoutE = src_aE;
-                end
-            end
-            `MOVZ_CONTROL:  begin
-                if(!src_bE) begin
-                    aluoutE = src_aE;
-                end
-            end
+            // `MOVN_CONTROL:  begin
+            //     if(src_bE) begin
+            //         aluoutE = src_aE;
+            //     end
+            // end
+            // `MOVZ_CONTROL:  begin
+            //     if(!src_bE) begin
+            //         aluoutE = src_aE;
+            //     end
+            // end
             `MUL_CONTROL:    begin
                 mul_sign = 1'b1;
                 mul_startE = 1'b1;
