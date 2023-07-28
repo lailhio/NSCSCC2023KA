@@ -6,7 +6,7 @@ module alu_new(
     input wire [7:0] alucontrolE, 
     input wire [4:0] sa, 
     input wire mfhiE, mfloE, flush_exceptionM,
-
+    
     output reg alustallE,
     output reg [63:0] aluoutE, 
     output reg overflowE
@@ -22,7 +22,6 @@ module alu_new(
     reg div_startE;
     reg [1:0]hilo_selectE;
     reg hilo_writeE;
-
    
     always @(*) begin
         mul_sign =1'b0;
@@ -34,41 +33,59 @@ module alu_new(
         hilo_writeE = 1'b0;
         hilo_selectE = 2'b00;
         case(alucontrolE)
+            `ALU_AND:       aluoutE = src_aE & src_bE;
+            `ALU_OR:        aluoutE = src_aE | src_bE;
+            `ALU_NOR:       aluoutE =~(src_aE | src_bE);
+            `ALU_XOR:       aluoutE = src_aE ^ src_bE;
+
             `ALU_ADD:begin
                 aluoutE = {src_aE[31], src_aE} + {src_bE[31], src_bE};
                 overflowE= (src_aE[31] == src_bE[31]) & (aluoutE[31] != src_aE[31]);
             end
-            `ALU_ADDU: aluoutE = src_aE + src_bE;
+            `ALU_ADDU:      aluoutE = src_aE + src_bE;
             `ALU_SUB:begin
                 aluoutE= {src_aE[31], src_aE} - {src_bE[31], src_bE};
                 overflowE =(src_aE[31]^src_bE[31]) & (aluoutE[31]==src_bE[31]);;
             end
-            `ALU_SUBU: aluoutE = src_aE - src_bE;
-            `ALU_AND: aluoutE = src_aE & src_bE;
-            `ALU_OR: aluoutE = src_aE | src_bE;
-            `ALU_XOR: aluoutE = src_aE ^ src_bE;
-            `ALU_NOR: aluoutE = ~(src_aE | src_bE);
-            `ALU_SLT: aluoutE = $signed(src_aE) < $signed(src_bE); 
-            `ALU_SLTU: aluoutE = src_aE < src_bE; 
-            `ALU_SLL: aluoutE = src_bE << sa; 
-            `ALU_SRL: aluoutE = src_bE >> sa;
-            `ALU_SRA: aluoutE = $signed(src_bE) >>> sa;
-            `ALU_SLLV: aluoutE = src_bE << src_aE[4:0]; 
-            `ALU_SRLV: aluoutE = src_bE >> src_aE[4:0];
-            `ALU_SRAV: aluoutE = $signed(src_bE) >>> src_aE[4:0];
-            `ALU_LUI :aluoutE = {src_bE[15:0], 16'b0};
+            `ALU_SUBU:      aluoutE = src_aE - src_bE;
 
-            `ALU_MTHI: begin
-                aluoutE = {src_aE, 32'b0};
-                hilo_selectE = 2'b11;
-                if(~stallE) hilo_writeE = 1'b1;
+            `ALU_SLT:       aluoutE = $signed(src_aE) < $signed(src_bE); 
+            `ALU_SLTU:      aluoutE = src_aE < src_bE; 
+            //Mov Cmd
+            `ALU_SLLV:       aluoutE = src_bE << src_aE[4:0]; 
+            `ALU_SRLV:       aluoutE = src_bE >> src_aE[4:0];
+            `ALU_SRAV:       aluoutE = $signed(src_bE) >>> src_aE[4:0];
+
+            `ALU_SLL:    aluoutE = src_bE << sa; 
+            `ALU_SRL:    aluoutE = src_bE >> sa;
+            `ALU_SRA:    aluoutE = $signed(src_bE) >>> sa;
+
+            `ALU_LUI:       aluoutE = {src_bE[15:0], 16'b0};
+            `ALU_MULT  : begin
+                mul_sign = 1'b1;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin 
+                    alustallE = 1'b0;
+                    mul_startE = 1'b0;
+                    aluoutE = aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
+                else aluoutE = 31'b0;
             end
-            `ALU_MTLO: begin
-                aluoutE = {32'b0, src_aE};
-                hilo_selectE = 2'b10;
-                if(~stallE) hilo_writeE = 1'b1;
+            `ALU_MULTU  : begin
+                mul_sign = 1'b0;
+                mul_startE = 1'b1;
+                alustallE = 1'b1;
+                if(ready_mul) begin 
+                    mul_startE = 1'b0;
+                    alustallE = 1'b0;
+                    aluoutE = aluout_mul;
+                    if(~stallE) hilo_writeE = 1'b1;
+                end
+                else aluoutE = 31'b0;
             end
-            `ALU_DIV:begin
+            `ALU_DIV :begin
                 div_sign = 1'b1;
                 div_startE = 1'b1;
                 alustallE = 1'b1;
@@ -78,6 +95,7 @@ module alu_new(
                     aluoutE = aluout_div;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `ALU_DIVU :begin
                 div_sign = 1'b0;
@@ -89,33 +107,25 @@ module alu_new(
                     aluoutE = aluout_div;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
-            
-            `ALU_MULT: begin
-                mul_sign = 1'b1;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
-                if(ready_mul) begin 
-                    alustallE = 1'b0;
-                    mul_startE = 1'b0;
-                    aluoutE = aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
-                end
+            `ALU_MTHI: begin
+                aluoutE = {src_aE, 32'b0};
+                hilo_selectE = 2'b11;
+                if(~stallE) hilo_writeE = 1'b1;
             end
-            `ALU_MULTU: begin
-                mul_sign = 1'b0;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
-                if(ready_mul) begin 
-                    mul_startE = 1'b0;
-                    alustallE = 1'b0;
-                    aluoutE = aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
-                end
+            `ALU_MTLO: begin
+                aluoutE = {32'b0, src_aE};
+                hilo_selectE = 2'b10;
+                if(~stallE) hilo_writeE = 1'b1;
             end
+            `ALU_MFHI, `ALU_MFLO:begin
+                aluoutE = {32'b0, hilo_outE};
+            end
+            // CLO & CLZ
             `ALU_CLO: begin
                 aluoutE = 32;
-                for(int i=31;i>=0;i--) begin
+                for(int i = 31;i >= 0;i--) begin
                     if(!src_aE[i]) begin
                         aluoutE = 31-i;
                         break;
@@ -124,7 +134,7 @@ module alu_new(
             end
             `ALU_CLZ: begin
                 aluoutE = 32;
-                for(int i=31;i>=0;i--) begin
+                for(int i = 31;i >= 0;i--) begin
                     if(src_aE[i]) begin
                         aluoutE = 31-i;
                         break;
@@ -133,17 +143,19 @@ module alu_new(
             end
 
             // SEB & SEH
-            `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
-            `SEH_CONTROL:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
+            `ALU_SEB:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
+            `ALU_SEH:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
 
             // ROTR
-            // `ROTR_CONTROL:  aluoutE = {src_bE[sa-1:0], src_bE[31:sa]};
+            // `ALU_ROTR:  aluoutE = {src_bE[sa-1:0], src_bE[31:sa]};
 
             8'b00000: aluoutE = src_aE;  // do nothing
 
             default:    aluoutE = 32'b0;
         endcase
     end
+
+
 
     mul mul(
 		.clk(clk),

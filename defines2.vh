@@ -29,7 +29,11 @@
 `define ALU_CLO 8'b00011000
 `define ALU_CLZ 8'b00011001
 `define ALU_MFC0 8'b00011010
-
+`define ALU_MTC0 8'b00011011
+`define ALU_MFHI 8'b00011100
+`define ALU_MFLO 8'b00011101
+`define ALU_SEB 8'b00011110
+`define ALU_SEH 8'b00011111
 
 
 

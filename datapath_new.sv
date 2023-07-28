@@ -185,6 +185,7 @@ module datapath_new(
     );
     
 	//----------------------------------------InstFetch2------------------------------------------------
+    wire inst_enF2;
     flopstrc #(32) flopPcplusF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
@@ -192,7 +193,6 @@ module datapath_new(
         .in(is_in_delayslot_iF),.out(is_in_delayslot_iF2));
         
     wire [31:0] instr_validF2;
-    wire inst_enF2;
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
     //-----------------------InstFetch2Flop------------------------------
 
@@ -270,7 +270,7 @@ module datapath_new(
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
     //-----------------------ExFlop---------------------
 	//ALU
-    alu aluitem(
+    alu_new aluitem(
         //input
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
