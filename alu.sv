@@ -5,14 +5,15 @@ module alu(
     input wire [31:0] src_aE, src_bE,
     input wire [7:0] alucontrolE, 
     input wire [4:0] sa, msbd,
-    input wire mfhiE, mfloE, flush_exceptionM,
+    input wire mfhiE, mfloE, flush_exceptionM, DivMulEnE,
     
-    output reg alustallE,
-    output reg [63:0] aluoutE, 
+    output wire alustallE,
+    output reg [31:0] aluoutE, 
     output reg overflowE
 );
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
+    reg [63:0] hilo_in_muldiv;
     wire [63:0] hilo_outE;
     reg mul_sign;
     reg div_sign; 
@@ -23,12 +24,13 @@ module alu(
     reg [1:0]hilo_selectE;
     reg hilo_writeE;
    
+    assign alustallE = DivMulEnE & ~ready_div & ~ready_mul;
+
     always @(*) begin
         mul_sign =1'b0;
         div_sign =1'b0;
         mul_startE =1'b0;
         div_startE  =1'b0;
-        alustallE = 1'b0;
         overflowE = 1'b0;
         hilo_writeE = 1'b0;
         hilo_selectE = 2'b00;
@@ -62,86 +64,92 @@ module alu(
 
             `LUI_CONTROL:       aluoutE = {src_bE[15:0], 16'b0};
             `MULT_CONTROL  : begin
-                mul_sign = 1'b1;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin 
-                    alustallE = 1'b0;
                     mul_startE = 1'b0;
-                    aluoutE = aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = aluout_mul;
+                    hilo_writeE = 1'b1;
                 end
-                else aluoutE = 31'b0;
+                else begin
+                    mul_sign = 1'b1;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
+                end
             end
             `MULTU_CONTROL  : begin
-                mul_sign = 1'b0;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin 
                     mul_startE = 1'b0;
-                    alustallE = 1'b0;
-                    aluoutE = aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = aluout_mul;
+                    hilo_writeE = 1'b1;
                 end
-                else aluoutE = 31'b0;
+                else begin
+                    mul_sign = 1'b0;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
+                end
             end
             `DIV_CONTROL :begin
-                div_sign = 1'b1;
-                div_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_div) begin 
                     div_startE = 1'b0;
-                    alustallE = 1'b0;
-                    aluoutE = aluout_div;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = aluout_div;
+                    hilo_writeE = 1'b1;
                 end
-                else aluoutE = 31'b0;
+                else begin
+                    div_sign = 1'b1;
+                    div_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
+                end
             end
             `DIVU_CONTROL :begin
-                div_sign = 1'b0;
-                div_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_div) begin 
                     div_startE = 1'b0;
-                    alustallE = 1'b0;
-                    aluoutE = aluout_div;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = aluout_div;
+                    hilo_writeE = 1'b1;
                 end
-                else aluoutE = 31'b0;
+                else begin
+                    div_sign = 1'b0;
+                    div_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
+                end
             end
             `MTHI_CONTROL: begin
-                aluoutE = {src_aE, 32'b0};
+                aluoutE = 32'b0;
+                // hilo_in_muldiv = {src_aE, 32'b0};
                 hilo_selectE = 2'b11;
-                if(~stallE) hilo_writeE = 1'b1;
+                hilo_writeE = 1'b1;
             end
             `MTLO_CONTROL: begin
-                aluoutE = {32'b0, src_aE};
+                aluoutE = 32'b0;
+                // hilo_in_muldiv = {32'b0, src_aE};
                 hilo_selectE = 2'b10;
-                if(~stallE) hilo_writeE = 1'b1;
+                hilo_writeE = 1'b1;
             end
             `MFHI_CONTROL, `MFLO_CONTROL:begin
                 // aluoutE = {32'b0, hilo_outE};
-                aluoutE = {32, ({32{mfhiE}} & hilo_outE[63:32]) | ({32{mfloE}} & hilo_outE[31:0])};
+                aluoutE = ({32{mfhiE}} & hilo_outE[63:32]) | ({32{mfloE}} & hilo_outE[31:0]);
             end
-            // CLO & CLZ
-            `CLO_CONTROL: begin
-                aluoutE = 32;
-                for(int i = 31;i >= 0;i--) begin
-                    if(!src_aE[i]) begin
-                        aluoutE = 31-i;
-                        break;
-                    end
-                end
-            end
-            `CLZ_CONTROL: begin
-                aluoutE = 32;
-                for(int i = 31;i >= 0;i--) begin
-                    if(src_aE[i]) begin
-                        aluoutE = 31-i;
-                        break;
-                    end
-                end
-            end
+            // // CLO & CLZ
+            // `CLO_CONTROL: begin
+            //     aluoutE = 32;
+            //     for(int i = 31;i >= 0;i--) begin
+            //         if(!src_aE[i]) begin
+            //             aluoutE = 31-i;
+            //             break;
+            //         end
+            //     end
+            // end
+            // `CLZ_CONTROL: begin
+            //     aluoutE = 32;
+            //     for(int i = 31;i >= 0;i--) begin
+            //         if(src_aE[i]) begin
+            //             aluoutE = 31-i;
+            //             break;
+            //         end
+            //     end
+            // end
 
             // SEB & SEH
             `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
@@ -176,61 +184,71 @@ module alu(
                 else aluoutE = 31'b0;
             end
             `MUL_CONTROL:    begin
-                mul_sign = 1'b1;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin
-                    alustallE = 1'b0;
                     mul_startE = 1'b0;
-                    aluoutE = aluout_mul[31:0];
+                    // hilo_in_muldiv = aluout_mul[31:0];
+                end
+                else begin
+                    mul_sign = 1'b1;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
                 end
                 else aluoutE = 31'b0;              
             end
             `MADD_CONTROL:  begin
-                mul_sign = 1'b1;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin
-                    alustallE = 1'b0;
                     mul_startE = 1'b0;
-                    aluoutE = hilo_outE + aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = hilo_outE + aluout_mul;
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    mul_sign = 1'b1;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
                 end
                 else aluoutE = 31'b0;
             end
             `MADDU_CONTROL: begin
-                mul_sign = 1'b0;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin
-                    alustallE = 1'b0;
                     mul_startE = 1'b0;
-                    aluoutE = hilo_outE + aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = hilo_outE + aluout_mul;
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    mul_sign = 1'b0;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
                 end
                 else aluoutE = 31'b0;
             end
             `MSUB_CONTROL:  begin
-                mul_sign = 1'b1;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin
-                    alustallE = 1'b0;
                     mul_startE = 1'b0;
-                    aluoutE = hilo_outE - aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = hilo_outE - aluout_mul;
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    mul_sign = 1'b1;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
                 end
                 else aluoutE = 31'b0;
             end
             `MSUBU_CONTROL:  begin
-                mul_sign = 1'b0;
-                mul_startE = 1'b1;
-                alustallE = 1'b1;
+                aluoutE = 32'b0;
                 if(ready_mul) begin
-                    alustallE = 1'b0;
                     mul_startE = 1'b0;
-                    aluoutE = hilo_outE - aluout_mul;
-                    if(~stallE) hilo_writeE = 1'b1;
+                    // hilo_in_muldiv = hilo_outE - aluout_mul;
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    mul_sign = 1'b0;
+                    mul_startE = 1'b1;
+                    // hilo_in_muldiv = 64'b0;
                 end
                 else aluoutE = 31'b0;
             end
@@ -240,9 +258,35 @@ module alu(
             default:    aluoutE = 32'b0;
         endcase
     end
-
-
-
+    always @(*) begin
+        case(alucontrolE)
+            `MULT_CONTROL, `MULTU_CONTROL, `MUL_CONTROL  : begin
+                hilo_in_muldiv = aluout_mul;
+            end
+            `DIV_CONTROL, `DIVU_CONTROL :begin
+                hilo_in_muldiv = aluout_div;
+            end
+            `MTHI_CONTROL: begin
+                hilo_in_muldiv = {src_aE, 32'b0};
+            end
+            `MTLO_CONTROL: begin
+                hilo_in_muldiv = {32'b0, src_aE};
+            end
+            `MADD_CONTROL:  begin
+                hilo_in_muldiv = hilo_outE + aluout_mul;
+            end
+            `MADDU_CONTROL: begin
+                hilo_in_muldiv = hilo_outE + aluout_mul;
+            end
+            `MSUB_CONTROL:  begin
+                hilo_in_muldiv = hilo_outE - aluout_mul;
+            end
+            `MSUBU_CONTROL:  begin
+                hilo_in_muldiv = hilo_outE - aluout_mul;
+            end
+            default:    hilo_in_muldiv = 64'b0;
+        endcase
+    end
     mul mul(
 		.clk(clk),
 		.rst(rst),
@@ -273,6 +317,6 @@ module alu(
 	);
 
 // hilo
-    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiE ,mfloE , aluoutE , hilo_outE );
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
 
 endmodule

@@ -31,7 +31,6 @@ module datapath(
     
     wire pc_errorF;  // pc错误
 
-    wire is_in_delayslot_iF; // 此时的D阶段（即上一条指令）是否为跳转指令
     //--------InstFetch2 stage----------
 	wire [31:0] PcPlus4F2;    //pc
     wire [31:0] PcF2;    //pc
@@ -75,7 +74,7 @@ module datapath(
 
     wire [31:0] src_a1E, src_b1E; //alu输入（操作数
     wire [31:0] src_aE, src_bE; //alu输入（操作数
-    wire [63:0] aluoutE; //alu输出
+    wire [31:0] aluoutE; //alu输出
     wire [4 :0] writeregE; //写寄存器号
     wire        branchE; //分支信号
     wire [31:0] pc_branchE;  //分支跳转pc
@@ -156,6 +155,7 @@ module datapath(
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
+    wire [31:0] aluoutW;
     wire [31:0] pcW;
     //------stall sign---------------
     wire stallF, stallD, stallE, stallM, stallW ,stallDblank,  longest_stall;
@@ -173,7 +173,6 @@ module datapath(
     // pc+4
     assign PcPlus4F = PC_IF1 + 4;
     assign pc_errorF = (~|(PC_IF1[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
-    assign is_in_delayslot_iF = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     // pc reg
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
@@ -191,12 +190,11 @@ module datapath(
     flopstrc #(32) flopPcplusF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
-    flopstrc #(1) flopIsdelayF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),
-        .in(is_in_delayslot_iF),.out(is_in_delayslot_iF2));
         
     wire [31:0] instr_validF2;
     wire inst_enF2;
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
+    assign is_in_delayslot_iF2 = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
 
 
@@ -205,7 +203,7 @@ module datapath(
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcF2),.out(PcD));
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instr_validF2),.out(instrD));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
-        .in(is_in_delayslot_iF),.out(is_in_delayslot_iD));
+        .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
 	aludec ad(functD,aluopD,alucontrolD);
@@ -213,8 +211,9 @@ module datapath(
 		//output
         sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
-        mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD );
+        mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
     
+    wire DivMulEnD, DivMulEnE;
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile，                             rs            rt
@@ -223,9 +222,9 @@ module datapath(
     assign pc_branchD = {immD[29:0], 2'b00} + PcPlus4D;
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
-    //前推至ID阶段
-    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE[31:0], 32'b0, 32'b0, 32'b0, forward_1D, src_a1D);
-    mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE[31:0], 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
+    //前推至ID阶段                                                          todo shamt
+    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, instrD[10:6], 32'b0, 32'b0, forward_1D, src_a1D);
+    mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
     //choose imm
     mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);
     //choose jump
@@ -270,9 +269,9 @@ module datapath(
     flopstrc #(8) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({branchD,pred_takeD,is_in_delayslot_iD,jump_conflictD,regwriteD,riD,breakD,hilotoregD}),
         .out({branchE,pred_takeE,is_in_delayslot_iE,jump_conflictE,regwriteE,riE,breakE,hilotoregE}));
-    flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
-        .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD}),
-        .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE}));
+    flopstrc #(11) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+        .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD, DivMulEnD}),
+        .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE, DivMulEnE}));
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
@@ -283,7 +282,7 @@ module datapath(
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
-        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM),
+        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM), .DivMulEnE(DivMulEnE), 
         //output
         .alustallE(alu_stallE),
         .aluoutE(aluoutE) , .overflowE(overflowE)
@@ -301,7 +300,7 @@ module datapath(
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
-	flopstrc #(64) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
+	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
