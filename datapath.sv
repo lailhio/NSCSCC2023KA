@@ -75,7 +75,7 @@ module datapath(
 
     wire [31:0] src_a1E, src_b1E; //alu输入（操作数
     wire [31:0] src_aE, src_bE; //alu输入（操作数
-    wire [63:0] aluoutE; //alu输出
+    wire [31:0] aluoutE; //alu输出
     wire [4 :0] writeregE; //写寄存器号
     wire        branchE; //分支信号
     wire [31:0] pc_branchE;  //分支跳转pc
@@ -224,8 +224,8 @@ module datapath(
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
     //前推至ID阶段
-    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE[31:0], 32'b0, 32'b0, 32'b0, forward_1D, src_a1D);
-    mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE[31:0], 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
+    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_1D, src_a1D);
+    mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
     //choose imm
     mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);
     //choose jump
@@ -301,7 +301,7 @@ module datapath(
     assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
-	flopstrc #(64) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
+	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
