@@ -223,8 +223,8 @@ module datapath(
     assign pc_branchD = {immD[29:0], 2'b00} + PcPlus4D;
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
-    //前推至ID阶段
-    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_1D, src_a1D);
+    //前推至ID阶段                                                          todo shamt
+    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, instrD[10:6], 32'b0, 32'b0, forward_1D, src_a1D);
     mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
     //choose imm
     mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);

@@ -144,8 +144,8 @@ module d_cache#(
     assign c_lru = isIDLE ?  c_lru_M2 : c_lru_M3;
     assign c_dirty = isIDLE ?  c_dirty_M2 : c_dirty_M3;
     // hit and miss
-    assign c_way[0] = c_valid[0] & c_tag[0] == tag_compare;
-    assign c_way[1] = c_valid[1] & c_tag[1] == tag_compare;
+    assign c_way[0] = c_valid[0] & (~|(c_tag[0] ^ tag_compare));
+    assign c_way[1] = c_valid[1] & (~|(c_tag[1] ^ tag_compare));
     assign tway = hit ? c_way[1] : c_lru[1];
     assign hit = |c_way;
     assign miss = ~hit;
@@ -173,7 +173,7 @@ module d_cache#(
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = ~no_cache_M3 ? (pre_state==CACHE_REPLACE ? axi_data_rdata : c_block_M2[tway]) : NoCache_rdata;
+    assign cpu_data_rdata   = pre_state! = IDLE ? axi_data_rdata : c_block_M2[tway];
 
 
     logic [1:0] wena_tag_ram_way;
@@ -474,7 +474,7 @@ module d_cache#(
                         end
                         else if (d_rvalid & d_rready) begin
                             d_rready <= 1'b0;
-                            NoCache_rdata <= d_rdata;
+                            axi_data_rdata <= d_rdata;
                         end
                         else if (~d_rvalid & ~d_rready)begin
                             cpu_data_ok <=1;
