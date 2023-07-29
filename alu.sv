@@ -147,58 +147,33 @@ module alu(
             `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
             `SEH_CONTROL:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
 
-            // `ROTR_CONTROL:  aluoutE = src_bE << (32-sa) + src_bE >> sa;
-            `ROTR_CONTROL:  begin
-                // exception?
-                for(int i = 0;i <= 31;i++) begin
-                    if(i < sa) begin
-                        aluoutE[32-sa+i] = src_bE[i];
-                    end
-                    else begin
-                        aluoutE[i-sa] = src_bE[i]; 
-                    end
-                end
-            end
-            // `ROTRV_CONTROL: aluoutE = src_bE << (32-src_aE[4:0]) + src_bE >> src_aE[4:0];
-            `ROTRV_CONTROL:  begin
-                // exception?
-                for(int i = 0;i <= 31;i++) begin
-                    if(i < src_aE[4:0]) begin
-                        aluoutE[32-src_aE[4:0]+i] = src_bE[i];
-                    end
-                    else begin
-                        aluoutE[i-src_aE[4:0]] = src_bE[i];
-                    end
-                end
-            end
-
+            `ROTR_CONTROL:  aluoutE = src_bE << (32-sa) + src_bE >> sa;
+  
+            `ROTRV_CONTROL: aluoutE = src_bE << (32-src_aE[4:0]) + src_bE >> src_aE[4:0];
+ 
             `EXT_CONTROL:   begin
-                // case: sa + msbd > 31
-                aluoutE = 0;
-                for(int i = sa;i <= sa + msbd;i++) begin
-                    aluoutE[i-sa] = src_aE[i];
-                end
+                // case: lsb(sa) + msbd > 31
+                aluoutE = (src_aE << (31-sa-msbd)) >> (31-msbd);                 
             end
             `INS_CONTROL:   begin
                 // case1: lsb > msb
                 // case2: msb > 31
-                aluoutE = src_bE;
-                for(int i = sa;i <= msbd;i++) begin
-                    aluoutE[i] = src_aE[i-sa];
-                end
+                aluoutE = (src_aE << (31-msbd+sa)) >> (31-msbd) + (src_bE >> (msbd+1)) << (msbd+1) + (src_bE << (32-sa)) >> (32-sa);
             end
             `WSBH_CONTROL:  begin
                 aluoutE = {src_bE[23:16], src_bE[31:24], src_bE[7:0], src_bE[15:8]};
             end
             `MOVN_CONTROL:  begin
-                if(src_bE) begin
+                if(|src_bE) begin
                     aluoutE = src_aE;
                 end
+                else aluoutE = 31'b0;
             end
             `MOVZ_CONTROL:  begin
-                if(!src_bE) begin
+                if(~(|src_bE)) begin
                     aluoutE = src_aE;
                 end
+                else aluoutE = 31'b0;
             end
             `MUL_CONTROL:    begin
                 mul_sign = 1'b1;
@@ -209,6 +184,7 @@ module alu(
                     mul_startE = 1'b0;
                     aluoutE = aluout_mul[31:0];
                 end
+                else aluoutE = 31'b0;              
             end
             `MADD_CONTROL:  begin
                 mul_sign = 1'b1;
@@ -220,6 +196,7 @@ module alu(
                     aluoutE = hilo_outE + aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MADDU_CONTROL: begin
                 mul_sign = 1'b0;
@@ -231,6 +208,7 @@ module alu(
                     aluoutE = hilo_outE + aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MSUB_CONTROL:  begin
                 mul_sign = 1'b1;
@@ -242,6 +220,7 @@ module alu(
                     aluoutE = hilo_outE - aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
             `MSUBU_CONTROL:  begin
                 mul_sign = 1'b0;
@@ -253,6 +232,7 @@ module alu(
                     aluoutE = hilo_outE - aluout_mul;
                     if(~stallE) hilo_writeE = 1'b1;
                 end
+                else aluoutE = 31'b0;
             end
 
             8'b00000: aluoutE = src_aE;  // do nothing
