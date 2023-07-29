@@ -155,6 +155,7 @@ module datapath(
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
+    wire [31:0] aluoutW;
     wire [31:0] pcW;
     //------stall sign---------------
     wire stallF, stallD, stallE, stallM, stallW ,stallDblank,  longest_stall;
