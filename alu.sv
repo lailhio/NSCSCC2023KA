@@ -13,7 +13,7 @@ module alu(
 );
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
-    wire [63:0] hilo_in_muldiv;
+    reg [63:0] hilo_in_muldiv;
     wire [63:0] hilo_outE;
     reg mul_sign;
     reg div_sign; 
