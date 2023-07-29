@@ -20,7 +20,8 @@ module maindec(
 		output reg is_mfcD,   //为mfc0
 		output reg [5:0] aluopD,
 		output reg [5:0] funct_to_aluD,
-		output reg [2:0] branch_judge_controlD
+		output reg [2:0] branch_judge_controlD,
+		output reg DivMulEnD
     );
 
 	//Instruct Divide
@@ -45,6 +46,25 @@ module maindec(
 	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
 
+	always @(*) begin
+		case(opD)
+			`R_TYPE:begin
+				case (functD)
+					`MULT, `MULTU, `DIV, `DIVU: 
+						DivMulEnD = 1'b1;
+					default: DivMulEnD = 1'b0;
+				endcase
+			end
+			`SPECIAL2_INST:begin
+				case (functD)
+					`MUL, `MADD, `MADDU, `MSUB, `MSUBU:	
+						DivMulEnD = 1'b1;
+					default: DivMulEnD = 1'b0;
+				endcase
+			end
+			default: DivMulEnD = 1'b0;
+		endcase
+	end
 	always @(*) begin
 		case(opD)
 			`R_TYPE:begin

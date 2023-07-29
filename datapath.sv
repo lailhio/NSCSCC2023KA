@@ -211,9 +211,9 @@ module datapath(
 		//output
         sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
-        mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD );
+        mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
     
-    wire is_MulDiv;
+    wire DivMulEnD, DivMulEnE;
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile，                             rs            rt
@@ -269,9 +269,9 @@ module datapath(
     flopstrc #(8) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({branchD,pred_takeD,is_in_delayslot_iD,jump_conflictD,regwriteD,riD,breakD,hilotoregD}),
         .out({branchE,pred_takeE,is_in_delayslot_iE,jump_conflictE,regwriteE,riE,breakE,hilotoregE}));
-    flopstrc #(10) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
-        .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD}),
-        .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE}));
+    flopstrc #(11) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+        .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD, DivMulEnD}),
+        .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE, DivMulEnE}));
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
@@ -282,7 +282,7 @@ module datapath(
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
-        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM),
+        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM), .DivMulEnE(DivMulEnE), 
         //output
         .alustallE(alu_stallE),
         .aluoutE(aluoutE) , .overflowE(overflowE)
