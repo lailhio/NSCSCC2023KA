@@ -543,6 +543,9 @@
 `define SWL     6'b101010
 `define SWR     6'b101110
 
+`define LL      6'b110000
+`define SC      6'b111000
+
 // ALU OP 4bit
 
 // `define ANDI_OP 4'b0000

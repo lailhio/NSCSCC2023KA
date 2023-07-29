@@ -203,7 +203,7 @@ module maindec(
 			end
 			
 	// 访存指令，都是立即数指令
-			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR: begin
+			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR, `LL: begin
 				riD=1'b0;
 				is_mfcD=1'b0;
 				aluopD=`MEM_OP;
@@ -217,6 +217,14 @@ module maindec(
 				{regwriteD, regdstD, is_immD}  =  4'b0001;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b001;
 			end
+			// `SC: begin
+			// 	riD=1'b0;
+			// 	is_mfcD=1'b0;
+			// 	aluopD=`MEM_OP;
+			// 	{regwriteD, regdstD, is_immD}  =  4'b1011;
+			// 	{memtoregD, mem_readD, mem_writeD}  =  3'b101;
+			// end			
+
 	
 	//  J type
 			`J: begin

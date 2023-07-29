@@ -22,6 +22,7 @@ module mem_control(
 
     wire instr_lw, instr_lh, instr_lb, instr_sw, instr_sh, instr_sb, instr_lhu, instr_lbu;
     wire instr_lwl, instr_lwr, instr_swl, instr_swr;
+    wire instr_ll, instr_sc;
     wire addr_W0M, addr_B2M, addr_B1M, addr_B3M;
     wire addr_W0M2, addr_B2M2, addr_B1M2, addr_B3M2;
     
@@ -51,6 +52,9 @@ module mem_control(
 
     assign instr_lwl = ~(|(op_codeM2 ^ `LWL));
     assign instr_lwr = ~(|(op_codeM2 ^ `LWR));
+    
+    assign instr_ll = ~(|(op_codeM2 ^ `LL));
+    assign instr_sc = ~(|(op_codeM ^ `SC));
 
     assign instr_swl = ~(|(op_codeM ^ `SWL));
     assign instr_swr = ~(|(op_codeM ^ `SWR));
@@ -59,12 +63,15 @@ module mem_control(
     assign instr_lwM = ~(|(op_codeM ^ `LW));
     assign instr_lhM = ~(|(op_codeM ^ `LH));
     assign instr_lhuM = ~(|(op_codeM ^ `LHU));
+    assign instr_llM = ~(|(op_codeM ^ `LL));
 
     // 地址异常
     assign addr_error_sw = (instr_sw & ~addr_W0M)
-                        | (  instr_sh & ~(addr_W0M | addr_B2M));
+                        | (  instr_sh & ~(addr_W0M | addr_B2M))
+                        | (  instr_sc & ~addr_W0M);
     assign addr_error_lw = (instr_lwM & ~addr_W0M)
-                        | (( instr_lhM | instr_lhuM ) & ~(addr_W0M | addr_B2M));
+                        | (( instr_lhM | instr_lhuM ) & ~(addr_W0M | addr_B2M))
+                        | (instr_llM & ~addr_W0M);
 
 // wdata  and  byte_wen
     assign mem_write_selectM =     ( {4{( instr_sw & addr_W0M )}} & 4'b1111)          //写字  
@@ -82,6 +89,7 @@ module mem_control(
                         | ( {4{( instr_swr & addr_B1M )}} & 4'b1110)
                         | ( {4{( instr_swr & addr_B2M )}} & 4'b1100)
                         | ( {4{( instr_swr & addr_B3M )}} & 4'b1000);
+                        // | ( {4{( instr_sc  & LLbit_out)}}) & 4'b1111;   //if LLbit then store
 
 
 // data ram 按字寻址
@@ -95,7 +103,8 @@ module mem_control(
                         | ( {32{instr_swr & addr_W0M}} & data_wdataM)
                         | ( {32{instr_swr & addr_B1M}} & {data_wdataM[23:0], 8'b0})
                         | ( {32{instr_swr & addr_B2M}} & {2{data_wdataM[15:0]}})
-                        | ( {32{instr_swr & addr_B3M}} & {4{data_wdataM[7:0]}}); //
+                        | ( {32{instr_swr & addr_B3M}} & {4{data_wdataM[7:0]}});
+                        // | ( {32{instr_sc}} & data_wdataM); //
 // rdata   
     assign data_rdataM2 =  ( {32{instr_lw}}   & mem_rdataM2)                                                  //lw 直接读取字
                         | ( {32{ instr_lh   & addr_W0M2}}  & { {16{mem_rdataM2[15]}},  mem_rdataM2[15:0]    })  //lh 分别从00 10开始读半字 读取后进行符号扩展
@@ -118,4 +127,11 @@ module mem_control(
                         | ( {32{ instr_lwr  & addr_B1M2}}  & {  rt_valueM2[31:24],         mem_rdataM2[31:8]})
                         | ( {32{ instr_lwr  & addr_B2M2}}  & {  rt_valueM2[31:16],         mem_rdataM2[31:16]})
                         | ( {32{ instr_lwr  & addr_B3M2}}  & {  rt_valueM2[31:8],          mem_rdataM2[31:24]});
+                        // | ( {32{instr_ll}}  & mem_rdataM2)
+                        // | ( {32{instr_sc}}  & {31'b0, LLbit_out});
+
+    // wire we = instr_ll;
+    // wire LLbit_out;
+    // LLbit_reg llbit(.clk(clk), .rst(rst), .we(instr_ll),
+    //                 .LLbit_in(1'b1), .LLbit_out(LLbit_out));
 endmodule
