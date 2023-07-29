@@ -173,7 +173,7 @@ module d_cache#(
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = pre_state! = IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
+    assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[tway];
 
 
     logic [1:0] wena_tag_ram_way;
