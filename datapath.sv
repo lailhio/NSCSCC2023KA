@@ -31,7 +31,6 @@ module datapath(
     
     wire pc_errorF;  // pc错误
 
-    wire is_in_delayslot_iF; // 此时的D阶段（即上一条指令）是否为跳转指令
     //--------InstFetch2 stage----------
 	wire [31:0] PcPlus4F2;    //pc
     wire [31:0] PcF2;    //pc
@@ -173,7 +172,6 @@ module datapath(
     // pc+4
     assign PcPlus4F = PC_IF1 + 4;
     assign pc_errorF = (~|(PC_IF1[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
-    assign is_in_delayslot_iF = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     // pc reg
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
@@ -191,12 +189,11 @@ module datapath(
     flopstrc #(32) flopPcplusF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
-    flopstrc #(1) flopIsdelayF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),
-        .in(is_in_delayslot_iF),.out(is_in_delayslot_iF2));
         
     wire [31:0] instr_validF2;
     wire inst_enF2;
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
+    assign is_in_delayslot_iF2 = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
 
 
@@ -205,7 +202,7 @@ module datapath(
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcF2),.out(PcD));
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instr_validF2),.out(instrD));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
-        .in(is_in_delayslot_iF),.out(is_in_delayslot_iD));
+        .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
 	aludec ad(functD,aluopD,alucontrolD);
@@ -215,6 +212,7 @@ module datapath(
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD );
     
+    wire is_MulDiv;
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile，                             rs            rt
