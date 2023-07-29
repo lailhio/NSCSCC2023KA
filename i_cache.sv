@@ -100,7 +100,7 @@ module i_cache #(
     //output to mips core
     // first stage is not stall, and the second judge whether to stall
     reg [31:0] axi_inst_rdata;
-    assign cpu_inst_rdata   = ~no_cache_IF2 ? (pre_state==CACHE_REPLACE ?axi_inst_rdata : c_block_IF2[tway_IF2]) : i_rdata;
+    assign cpu_inst_rdata   = pre_state != IDLE ? axi_inst_rdata : c_block_IF2[c_way[1]];
 
 
     //FSM
@@ -213,12 +213,13 @@ module i_cache #(
                             i_rready <= 1'b1;
                         end
                     end
-                    else begin
-                        if (i_rvalid & i_rready) begin
-                            i_rready <= 1'b0;
-                            state <= IDLE;
-                            cpu_instr_ok <= 1'b1;
-                        end
+                    else if (i_rvalid & i_rready) begin
+                        i_rready <= 1'b0;
+                        axi_inst_rdata <= i_rdata;
+                    end
+                    else if (~i_rvalid & ~i_rready)begin
+                        cpu_instr_ok <=1;
+                        state <= IDLE;
                     end
                 end
                 CACHE_REPLACE: begin
