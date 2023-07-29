@@ -1,6 +1,6 @@
 module i_cache #(
-    parameter LEN_LINE = 6,  // 32 Bytes
-    parameter LEN_INDEX = 7, // 128 lines
+    parameter LEN_LINE = 5,  // 32 Bytes
+    parameter LEN_INDEX = 8, // 128 lines
     parameter NR_WAYS = 2
 ) (
     input wire clk, rst, no_cache, stallF2, d_stall,

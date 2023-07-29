@@ -1,6 +1,6 @@
 module d_cache#(
     parameter LEN_LINE = 6,  // 32 Bytes
-    parameter LEN_INDEX = 7, // 128 lines
+    parameter LEN_INDEX = 8, // 128 lines
     parameter NR_WAYS = 2
 ) (
     input wire clk, rst, stallM2,no_cache, i_stall,
