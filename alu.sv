@@ -133,89 +133,78 @@ module alu(
                 // aluoutE = {32'b0, hilo_outE};
                 aluoutE = ({32{mfhiE}} & hilo_outE[63:32]) | ({32{mfloE}} & hilo_outE[31:0]);
             end
-            // // CLO & CLZ
-            // `CLO_CONTROL: begin
-            //     aluoutE = 32;
-            //     for(int i = 31;i >= 0;i--) begin
-            //         if(!src_aE[i]) begin
-            //             aluoutE = 31-i;
-            //             break;
-            //         end
-            //     end
-            // end
-            // `CLZ_CONTROL: begin
-            //     aluoutE = 32;
-            //     for(int i = 31;i >= 0;i--) begin
-            //         if(src_aE[i]) begin
-            //             aluoutE = 31-i;
-            //             break;
-            //         end
-            //     end
-            // end
-
-            // SEB & SEH
-            `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
-            `SEH_CONTROL:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
+            `CLO_CONTROL:   aluoutE = ~src_aE[31] ? 32'd0 : ~src_aE[30] ? 32'd1 :
+                                    ~src_aE[29] ? 32'd2 : ~src_aE[28] ? 32'd3 :
+                                    ~src_aE[27] ? 32'd4 : ~src_aE[26] ? 32'd5 :
+                                    ~src_aE[25] ? 32'd6 : ~src_aE[24] ? 32'd7 :
+                                    ~src_aE[23] ? 32'd8 : ~src_aE[22] ? 32'd9 :
+                                    ~src_aE[21] ? 32'd10 : ~src_aE[20] ? 32'd11 :
+                                    ~src_aE[19] ? 32'd12 : ~src_aE[18] ? 32'd13 :
+                                    ~src_aE[17] ? 32'd14 : ~src_aE[16] ? 32'd15 :
+                                    ~src_aE[15] ? 32'd16 : ~src_aE[14] ? 32'd17 :
+                                    ~src_aE[13] ? 32'd18 : ~src_aE[12] ? 32'd19 :
+                                    ~src_aE[11] ? 32'd20 : ~src_aE[10] ? 32'd21 :
+                                    ~src_aE[9] ? 32'd22 : ~src_aE[8] ? 32'd23 :
+                                    ~src_aE[7] ? 32'd24 : ~src_aE[6] ? 32'd25 :
+                                    ~src_aE[5] ? 32'd26 : ~src_aE[4] ? 32'd27 :
+                                    ~src_aE[3] ? 32'd28 : ~src_aE[2] ? 32'd29 :
+                                    ~src_aE[1] ? 32'd30 : ~src_aE[0] ? 32'd31 : 32'd32;
+            `CLZ_CONTROL:   aluoutE = src_aE[31] ? 32'd0 : src_aE[30] ? 32'd1 :
+                                    src_aE[29] ? 32'd2 : src_aE[28] ? 32'd3 :
+                                    src_aE[27] ? 32'd4 : src_aE[26] ? 32'd5 :
+                                    src_aE[25] ? 32'd6 : src_aE[24] ? 32'd7 :
+                                    src_aE[23] ? 32'd8 : src_aE[22] ? 32'd9 :
+                                    src_aE[21] ? 32'd10 : src_aE[20] ? 32'd11 :
+                                    src_aE[19] ? 32'd12 : src_aE[18] ? 32'd13 :
+                                    src_aE[17] ? 32'd14 : src_aE[16] ? 32'd15 :
+                                    src_aE[15] ? 32'd16 : src_aE[14] ? 32'd17 :
+                                    src_aE[13] ? 32'd18 : src_aE[12] ? 32'd19 :
+                                    src_aE[11] ? 32'd20 : src_aE[10] ? 32'd21 :
+                                    src_aE[9] ? 32'd22 : src_aE[8] ? 32'd23 :
+                                    src_aE[7] ? 32'd24 : src_aE[6] ? 32'd25 :
+                                    src_aE[5] ? 32'd26 : src_aE[4] ? 32'd27 :
+                                    src_aE[3] ? 32'd28 : src_aE[2] ? 32'd29 :
+                                    src_aE[1] ? 32'd30 : src_aE[0] ? 32'd31 : 32'd32;                      
+            // // SEB & SEH
+            // `SEB_CONTROL:   aluoutE = {{24{src_bE[7]}}, src_bE[7:0]};
+            // `SEH_CONTROL:   aluoutE = {{16{src_bE[15]}}, src_bE[15:0]};
 
             // `ROTR_CONTROL:  aluoutE = src_bE << (32-sa) + src_bE >> sa;
-            // `ROTR_CONTROL:  begin
-            //     // exception?
-            //     for(int i = 0;i <= 31;i++) begin
-            //         if(i < sa) begin
-            //             aluoutE[32-sa+i] = src_bE[i];
-            //         end
-            //         else begin
-            //             aluoutE[i-sa] = src_bE[i]; 
-            //         end
-            //     end
-            // end
-            // // `ROTRV_CONTROL: aluoutE = src_bE << (32-src_aE[4:0]) + src_bE >> src_aE[4:0];
-            // `ROTRV_CONTROL:  begin
-            //     // exception?
-            //     for(int i = 0;i <= 31;i++) begin
-            //         if(i < src_aE[4:0]) begin
-            //             aluoutE[32-src_aE[4:0]+i] = src_bE[i];
-            //         end
-            //         else begin
-            //             aluoutE[i-src_aE[4:0]] = src_bE[i];
-            //         end
-            //     end
-            // end
-
+  
+            // `ROTRV_CONTROL: aluoutE = src_bE << (32-src_aE[4:0]) + src_bE >> src_aE[4:0];
+ 
             // `EXT_CONTROL:   begin
-            //     // case: sa + msbd > 31
-            //     aluoutE = 0;
-            //     for(int i = sa;i <= sa + msbd;i++) begin
-            //         aluoutE[i-sa] = src_aE[i];
-            //     end
+            //     // case: lsb(sa) + msbd > 31
+            //     aluoutE = (src_aE << (31-sa-msbd)) >> (31-msbd);                 
             // end
             // `INS_CONTROL:   begin
             //     // case1: lsb > msb
             //     // case2: msb > 31
-            //     aluoutE = src_bE;
-            //     for(int i = sa;i <= msbd;i++) begin
-            //         aluoutE[i] = src_aE[i-sa];
-            //     end
+            //     aluoutE = (src_aE << (31-msbd+sa)) >> (31-msbd) + (src_bE >> (msbd+1)) << (msbd+1) + (src_bE << (32-sa)) >> (32-sa);
             // end
-            `WSBH_CONTROL:  begin
-                aluoutE = {src_bE[23:16], src_bE[31:24], src_bE[7:0], src_bE[15:8]};
+            // `WSBH_CONTROL:  begin
+            //     aluoutE = {src_bE[23:16], src_bE[31:24], src_bE[7:0], src_bE[15:8]};
+            // end
+            `MOVN_CONTROL:  begin
+                if(|src_bE) begin
+                    aluoutE = src_aE;
+                end
+                else aluoutE = 31'b0;
             end
-            // `MOVN_CONTROL:  begin
-            //     if(src_bE) begin
-            //         aluoutE = src_aE;
-            //     end
-            // end
-            // `MOVZ_CONTROL:  begin
-            //     if(!src_bE) begin
-            //         aluoutE = src_aE;
-            //     end
-            // end
+            `MOVZ_CONTROL:  begin
+                if(~(|src_bE)) begin
+                    aluoutE = src_aE;
+                end
+                else aluoutE = 31'b0;
+            end
             `MUL_CONTROL:    begin
                 aluoutE = 32'b0;
                 mul_sign = 1'b1;
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = aluout_mul[31:0];
+                    hilo_writeE = 1'b1;
+                    aluoutE = aluout_mul[31:0];
                 end
                 else begin
                     mul_startE = 1'b1;
