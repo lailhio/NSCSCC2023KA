@@ -134,7 +134,7 @@ module mycpu_top(
         .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
         .d_cache_stall(d_stall),
         
-        .stallF2(stallF2), .stallM2(stallM2),
+        .stallF2(stallF2), .stallM2(stallM2), .alu_stallE(alu_stallE),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc),
         .debug_wb_rf_wen(debug_wb_rf_wen),
@@ -151,7 +151,7 @@ module mycpu_top(
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_cache(no_cache), .d_stall(d_stall), .stallM2(stallM2), .i_stall(i_stall),
+        .no_cache(no_cache), .d_stall(d_stall), .stallM2(stallM2), .i_stall(i_stall), .alu_stallE(alu_stallE),
         .data_sram_wen(data_sram_wen),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),

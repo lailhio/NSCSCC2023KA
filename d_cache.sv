@@ -3,7 +3,7 @@ module d_cache#(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst, stallM2,no_cache, i_stall,
+    input wire clk, rst, stallM2,no_cache, i_stall, alu_stallE,
     output wire d_stall,
     input [3:0]   data_sram_wen,
     //mips core
@@ -153,7 +153,11 @@ module d_cache#(
     reg buff_last;
 
     assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : (~hit & data_en & ~cpu_data_ok);
-    wire cache_en = (~stallM2 | d_stall) & ~(i_stall & ~data_wr_en);
+    wire cache_en = (~i_stall | d_stall) & (~alu_stallE | data_wr_en);
+    wire cache_en1 = d_stall | ~i_stall & ~alu_stallE;
+
+
+
     reg [31:0] axi_data_rdata;
     assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
 
@@ -318,7 +322,7 @@ module d_cache#(
                         cache_lru[index_M2][tway] <=1'b0;
                         cache_lru[index_M2][~tway] <=1'b1;
                     end
-                    else if(~stallM2 | d_stall)begin
+                    else if(cache_en1)begin
                         if (miss & dirty)begin
                             state <= CACHE_WRITEBACK;
                             d_awaddr <= {c_tag_M2[tway], index_M2,{LEN_LINE{1'b0}}};
@@ -471,7 +475,7 @@ module d_cache#(
                 // end
             endcase
         end
-        else if(~stallM2 | d_stall) begin
+        else if(cache_en1) begin
             if(~data_en & cpu_data_ok)begin
                 no_cache_M3 <= 0;
             end

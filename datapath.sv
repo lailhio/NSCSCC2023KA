@@ -18,7 +18,7 @@ module datapath(
     output wire [31:0] writedataM,    //写数据
     input wire         d_cache_stall,
 
-    output wire        stallF2, stallM2, 
+    output wire        stallF2, stallM2, alu_stallE,
 	//debug interface
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
@@ -83,7 +83,7 @@ module datapath(
     wire [31:0] pc_jumpE;  //jump pc
     wire        jump_conflictE; //jump冲突
     wire        regwriteE;	//寄存器写
-    wire        alu_stallE;  //alu暂停
+    // wire        alu_stallE;  //alu暂停
     wire        flush_jump_conflictE;  //jump冲突
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
