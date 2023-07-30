@@ -1,1 +1,3 @@
-Number 1 Functional Test Point PASS!
+set performance test program to 5
+949a0
+total ticks = 2456767
