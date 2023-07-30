@@ -193,8 +193,7 @@ module alu(
                     mul_sign = 1'b1;
                     mul_startE = 1'b1;
                     // hilo_in_muldiv = 64'b0;
-                end
-                else aluoutE = 31'b0;              
+                end           
             end
             `MADD_CONTROL:  begin
                 aluoutE = 32'b0;
@@ -208,7 +207,6 @@ module alu(
                     mul_startE = 1'b1;
                     // hilo_in_muldiv = 64'b0;
                 end
-                else aluoutE = 31'b0;
             end
             `MADDU_CONTROL: begin
                 aluoutE = 32'b0;
@@ -222,7 +220,6 @@ module alu(
                     mul_startE = 1'b1;
                     // hilo_in_muldiv = 64'b0;
                 end
-                else aluoutE = 31'b0;
             end
             `MSUB_CONTROL:  begin
                 aluoutE = 32'b0;
@@ -236,7 +233,6 @@ module alu(
                     mul_startE = 1'b1;
                     // hilo_in_muldiv = 64'b0;
                 end
-                else aluoutE = 31'b0;
             end
             `MSUBU_CONTROL:  begin
                 aluoutE = 32'b0;
@@ -250,7 +246,6 @@ module alu(
                     mul_startE = 1'b1;
                     // hilo_in_muldiv = 64'b0;
                 end
-                else aluoutE = 31'b0;
             end
 
             8'b00000: aluoutE = src_aE;  // do nothing
