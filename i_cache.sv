@@ -71,7 +71,14 @@ module i_cache #(
     reg[1:0]            c_lru_IF3 ; //* recently used
     reg [LEN_TAG-1:0]   c_tag_IF3  [1:0];
 
-
+    //FSM
+    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
+    reg [1:0] pre_state;
+    reg [1:0] state;
+    wire isIDLE, isReplace;
+    assign isIDLE = state==IDLE;
+    assign isReplace = state==CACHE_REPLACE;
+    
     // hit miss and way
     wire hit, miss;
     reg  cpu_instr_ok;
@@ -92,13 +99,6 @@ module i_cache #(
     reg [31:0] axi_inst_rdata;
     assign cpu_inst_rdata   = pre_state != IDLE ? axi_inst_rdata : c_block_IF2[c_way[1]];
 
-
-    //FSM
-    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
-    reg [1:0] pre_state;
-    reg [1:0] state;
-    wire isIDLE = state==IDLE;
-    wire isReplace = state==CACHE_REPLACE;
     // axi cnt
     logic [LEN_LINE-1:2] axi_cnt;
 

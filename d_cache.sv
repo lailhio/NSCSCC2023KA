@@ -117,6 +117,12 @@ module d_cache#(
     //判断是否命中
     wire hit, miss;
     reg cpu_data_ok;
+    //FSM
+    parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
+    reg [2:0] pre_state;
+    reg [2:0] state;
+    wire isIDLE;
+    assign isIDLE = state==IDLE;
 
     // judge the right time
     assign index_Res = isIDLE ? index_M2 : index_M3;
@@ -140,12 +146,6 @@ module d_cache#(
     wire dirty, clean;
     assign dirty = c_dirty_M2[tway];
     assign clean = ~dirty;
-
-    //FSM
-    parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
-    reg [2:0] state;
-    reg [2:0] pre_state;
-
 
     // axi cnt
     logic [LEN_LINE-1:2] axi_cnt;
@@ -183,7 +183,6 @@ module d_cache#(
     
     wire isCACHE_REPLACE = state==CACHE_REPLACE;
     wire isCACHE_WRITEBACK = state==CACHE_WRITEBACK;
-    wire isIDLE = state==IDLE;
     wire isSAVERES = state==SAVE_RES;
 
     // axi d_bready
