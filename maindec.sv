@@ -26,12 +26,13 @@ module maindec(
 
 	//Instruct Divide
 	wire [5:0] opD,functD;
-	wire [4:0] rsD,rtD,rdD;
+	wire [4:0] rsD,rtD,rdD,shamtD;
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
+	assign shamtD = instrD[10:6];
 
 	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
@@ -264,7 +265,7 @@ module maindec(
 			end
 
 			`COP0_INST:begin
-				case(instrD[25:21])
+				case(rsD)
 					`MTC0: begin
 						riD=1'b0;
 						is_mfcD=1'b0;
@@ -353,7 +354,7 @@ module maindec(
 			`SPECIAL3_INST: begin
 				case(functD)
 					`BSHFL: begin
-						case(instrD[10:6])
+						case(shamtD)
 							`SEB: begin
 								riD = 1'b0;
 								is_mfcD = 1'b0;

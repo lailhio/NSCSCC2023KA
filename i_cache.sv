@@ -59,11 +59,6 @@ module i_cache #(
     assign tag = cpu_inst_addr[31 : LEN_INDEX + LEN_LINE];
 
     //  Select
-    wire [LEN_TAG-1:0]   tag_compare;
-    wire [1:0]           c_valid;
-    wire [LEN_TAG-1:0]   c_tag  [1:0];
-    wire [1:0]           c_dirty;
-    wire [1:0]           c_lru;
     wire                 inst_en;
     //  IF2
     reg  [1:0]           c_valid_IF2;
@@ -76,25 +71,27 @@ module i_cache #(
     reg[1:0]            c_lru_IF3 ; //* recently used
     reg [LEN_TAG-1:0]   c_tag_IF3  [1:0];
 
-
+    //FSM
+    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
+    reg [1:0] pre_state;
+    reg [1:0] state;
+    wire isIDLE, isReplace;
+    assign isIDLE = state==IDLE;
+    assign isReplace = state==CACHE_REPLACE;
+    
     // hit miss and way
     wire hit, miss;
     reg  cpu_instr_ok;
     // Time Control 
     assign inst_en = isIDLE ? cpu_inst_en_IF2 : cpu_inst_en_IF3;
-    assign c_valid = isIDLE ? c_valid_IF2 : c_valid_IF3;
-    assign c_tag[0] = isIDLE ? c_tag_IF2[0] : c_tag_IF3[0];
-    assign c_tag[1] = isIDLE  ? c_tag_IF2[1] : c_tag_IF3[1];
-    assign tag_compare = isIDLE ?  tag_IF2 : tag_IF3;
-    assign c_lru = isIDLE ?  c_lru_IF2 : c_lru_IF3;
 
     // hit Control
-    assign tway_IF2 = hit ? c_way[1] : c_lru[1];
-    assign hit = |c_way;  //* cache line
+    assign tway_IF2 = hit ? c_way[1] : c_lru_IF2[1];
+    assign hit = |c_way & isIDLE;  //* cache line
     assign miss = ~hit;
 
-    assign c_way[0] = c_valid[0] & c_tag[0] == tag_compare;
-    assign c_way[1] = c_valid[1] & c_tag[1] == tag_compare;
+    assign c_way[0] = c_valid_IF2[0] & c_tag_IF2[0] == tag_IF2;
+    assign c_way[1] = c_valid_IF2[1] & c_tag_IF2[1] == tag_IF2;
     wire   cache_hit_available = hit  & !no_cache_IF2;
     assign i_stall = (~isIDLE | (!cache_hit_available & inst_en)) & ~cpu_instr_ok;
     //output to mips core
@@ -102,13 +99,6 @@ module i_cache #(
     reg [31:0] axi_inst_rdata;
     assign cpu_inst_rdata   = pre_state != IDLE ? axi_inst_rdata : c_block_IF2[c_way[1]];
 
-
-    //FSM
-    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
-    reg [1:0] pre_state;
-    reg [1:0] state;
-    wire isIDLE = state==IDLE;
-    wire isReplace = state==CACHE_REPLACE;
     // axi cnt
     logic [LEN_LINE-1:2] axi_cnt;
 

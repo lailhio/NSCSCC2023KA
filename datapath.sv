@@ -18,7 +18,7 @@ module datapath(
     output wire [31:0] writedataM,    //写数据
     input wire         d_cache_stall,
 
-    output wire        stallF2, stallM2, 
+    output wire        stallF2, stallM2, alu_stallE,
 	//debug interface
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
@@ -83,7 +83,7 @@ module datapath(
     wire [31:0] pc_jumpE;  //jump pc
     wire        jump_conflictE; //jump冲突
     wire        regwriteE;	//寄存器写
-    wire        alu_stallE;  //alu暂停
+    // wire        alu_stallE;  //alu暂停
     wire        flush_jump_conflictE;  //jump冲突
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
@@ -187,12 +187,11 @@ module datapath(
     );
     
 	//----------------------------------------InstFetch2------------------------------------------------
+    wire inst_enF2;
+    wire [31:0] instr_validF2;
     flopstrc #(32) flopPcplusF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
-        
-    wire [31:0] instr_validF2;
-    wire inst_enF2;
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
     assign is_in_delayslot_iF2 = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
@@ -206,14 +205,14 @@ module datapath(
         .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
+    wire DivMulEnD, DivMulEnE;
 	aludec ad(functD,aluopD,alucontrolD);
 	maindec md(instrD,
 		//output
         sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
-    
-    wire DivMulEnD, DivMulEnE;
+
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
 	//regfile，                             rs            rt
@@ -350,16 +349,13 @@ module datapath(
      // cp0 todo 
     cp0_reg cp0(
         .clk(clk) , .rst(rst),
-        .we_i(cp0_writeM) , .i_cache_stall(i_cache_stall),
+        .i_cache_stall(i_cache_stall), .we_i(cp0_writeM) ,
         .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
         .data_i(src_b1M) , .int_i(ext_int),
-        
-        .data_o(cp0_outM2),
-
         .excepttype_i(except_typeM) , .current_inst_addr_i(pcM),
         .is_in_delayslot_i(is_in_delayslot_iM) , .bad_addr_i(badvaddrM),
-
-        .status_o(cp0_statusM2) , .cause_o(cp0_causeM2) , .epc_o(cp0_epcM2)
+        .status_o(cp0_statusM2) , .cause_o(cp0_causeM2) ,
+        .epc_o(cp0_epcM2), .data_o(cp0_outM2)
     );
     //分支预测结果
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
