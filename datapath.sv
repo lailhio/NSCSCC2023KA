@@ -365,11 +365,11 @@ module datapath(
     assign pre_right = ~(pred_takeM ^ actual_takeM); 
     assign flush_pred_failedM = ~pre_right;
 	//-------------------------------------Memory2-------------------------------------------------
-    wire is_mfcM2; // for debug
+    wire is_mfcM2, mem_writeM2; // for debug
     // todo M2 flop
-	flopstrc #(8) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
-            .in({writeregM, regwriteM ,memtoregM,is_mfcM}),
-            .out({writeregM2, regwriteM2, memtoregM2,is_mfcM2}));
+	flopstrc #(9) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
+            .in({writeregM, regwriteM ,memtoregM, mem_writeM, is_mfcM}),
+            .out({writeregM2, regwriteM2, memtoregM2, mem_writeM2, is_mfcM2}));
 	flopstrc #(32) flopAluoutM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(aluoutM),.out(aluoutM2));
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
 	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(pcM),.out(pcM2));
@@ -390,7 +390,7 @@ module datapath(
 	//------------------Write_Back_Flop--------------------------
 
 	//hazard detection
-    wire Blank_SL = (~|(aluoutE[31:2] ^ aluoutM[31:2])) & mem_writeM &  mem_readE;
+    wire Blank_SL = (~|(aluoutM[31:2] ^ aluoutM2[31:2])) & mem_writeM2 &  mem_readM;
 	hazard hazard0(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),

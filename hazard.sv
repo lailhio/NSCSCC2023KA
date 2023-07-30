@@ -59,7 +59,7 @@ module hazard(
     assign stallF2 = (~flush_exceptionM & (id_cache_stall | alu_stallE| stallDblank | Blank_SL));
     assign stallD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
     assign stallE =  id_cache_stall| alu_stallE | Blank_SL;
-    assign stallM =  id_cache_stall| alu_stallE;
+    assign stallM =  id_cache_stall| alu_stallE | Blank_SL;
     assign stallM2 = id_cache_stall| alu_stallE;
     assign stallW =  ~flush_exceptionM &(id_cache_stall | alu_stallE);
 
@@ -67,7 +67,7 @@ module hazard(
     assign flushF2 = flush_exceptionM | flush_pred_failedM | ((flush_jump_conflictE | jumpD | branch_ok) & ~stallF2); 
     assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); 
     assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) |(~stallE & stallDblank) ; 
-    assign flushM = flush_exceptionM |(~stallM & Blank_SL);
-    assign flushM2 = flush_exceptionM;
+    assign flushM = flush_exceptionM;
+    assign flushM2 = flush_exceptionM |(~stallM2 & Blank_SL);
     assign flushW = 1'b0;
 endmodule
