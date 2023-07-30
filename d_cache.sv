@@ -152,7 +152,8 @@ module d_cache#(
     logic [LEN_LINE:2] cache_buff_cnt;
     reg buff_last;
 
-    assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : ((~isIDLE | (!hit & data_en)) & ~cpu_data_ok);
+    assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : (~hit & data_en & ~cpu_data_ok);
+    wire cache_en = (~stallM2 | d_stall) & ~(i_stall & ~data_wr_en);
     reg [31:0] axi_data_rdata;
     assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
 
@@ -206,7 +207,7 @@ module d_cache#(
             c_dirty_M2 <= 2'b00;
             c_lru_M2 <= 2'b00;
         end
-        else if((~stallM2 | d_stall) & ~(i_stall & ~data_wr_en))begin
+        else if(cache_en)begin
             lineLoc_M2 <= lineLoc;
             index_M2 <= index;
             tag_M2 <= tag;
@@ -272,7 +273,7 @@ module d_cache#(
             d_wlast <= 0;
             d_wvalid <= 0;
         end
-        else if(data_en & (((~stallM2 | d_stall) & ~(i_stall & ~data_wr_en))))begin          
+        else if(data_en & ((cache_en)))begin          
             pre_state <= state;  
             case(state)
             // 按照状态机编写
@@ -487,8 +488,8 @@ module d_cache#(
             (
             .clka   (clk),
             .clkb   (clk),
-            .ena    ((~stallM2 | d_stall) & ~(i_stall & ~data_wr_en)),
-            .enb    ((~stallM2 | d_stall) & ~(i_stall & ~data_wr_en)),
+            .ena    (cache_en),
+            .enb    (cache_en),
             .addra  (index_Res),
             .dina   (tag_compare),
             .wea    (wena_tag_hitway[i]),
@@ -499,8 +500,8 @@ module d_cache#(
             (
             .clka   (clk),
             .clkb   (clk),
-            .ena    ((~stallM2 | d_stall) & ~(i_stall & ~data_wr_en)),
-            .enb    ((~stallM2 | d_stall) & ~(i_stall & ~data_wr_en)),
+            .ena    (cache_en),
+            .enb    (cache_en),
             .addra  ({index_Res, (hit & store ? lineLoc_M2[LEN_LINE-1:2] : axi_cnt)}),
             .dina   (data_write),
             .wea    (wena_data_hitway[i]),
