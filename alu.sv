@@ -190,13 +190,13 @@ module alu(
                 if(|src_bE) begin
                     aluoutE = src_aE;
                 end
-                else aluoutE = 31'b0;
+                else aluoutE = 32'b0;
             end
             `MOVZ_CONTROL:  begin
                 if(~(|src_bE)) begin
                     aluoutE = src_aE;
                 end
-                else aluoutE = 31'b0;
+                else aluoutE = 32'b0;
             end
             `MUL_CONTROL:    begin
                 aluoutE = 32'b0;
