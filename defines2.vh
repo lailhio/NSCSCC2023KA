@@ -546,6 +546,20 @@
 `define LL      6'b110000
 `define SC      6'b111000
 
+`define TEQ     6'b110100
+`define TGE     6'b110000
+`define TGEU    6'b110001
+`define TLT     6'b110010
+`define TLTU    6'b110011
+`define TNE     6'b110110
+
+`define TEQI    5'b01100
+`define TGEI    5'b01000
+`define TGEIU   5'b01001
+`define TLTI    5'b01010
+`define TLTIU   5'b01011
+`define TNEI    5'b01110
+
 // ALU OP 4bit
 
 // `define ANDI_OP 4'b0000
@@ -606,6 +620,13 @@
 `define MSUB_OP     6'b011000
 `define MSUBU_OP    6'b011001
 `define MUL_OP      6'b011010
+
+`define TEQI_OP     6'b011011
+`define TGEI_OP     6'b011100
+`define TGEIU_OP    6'b011101
+`define TLTI_OP     6'b011110
+`define TLTIU_OP    6'b011111
+`define TNEI_OP     6'b100000
 
 // // ALU CONTROL 5bit
 // `define AND_CONTROL 5'b00111
@@ -698,6 +719,20 @@
 `define MSUB_CONTROL    8'b00101001
 `define MSUBU_CONTROL   8'b00101010
 `define MUL_CONTROL     8'b00101011
+
+`define TEQ_CONTROL     8'b00101100
+`define TGE_CONTROL     8'b00101101
+`define TGEU_CONTROL    8'b00101110
+`define TLT_CONTROL     8'b00101111
+`define TLTU_CONTROL    8'b00110000
+`define TNE_CONTROL     8'b00110001
+
+`define TEQI_CONTROL    8'b00110010
+`define TGEI_CONTROL    8'b00110011
+`define TGEIU_CONTROL   8'b00110100
+`define TLTI_CONTROL    8'b00110101
+`define TLTIU_CONTROL   8'b00110110
+`define TNEI_CONTROL    8'b00110111
 
 //inst ROM macro definition
 `define InstAddrBus		31:0

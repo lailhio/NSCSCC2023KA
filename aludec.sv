@@ -45,6 +45,14 @@ module aludec(
 					`MOVN:		alucontrol = `MOVN_CONTROL;
 					`MOVZ:		alucontrol = `MOVZ_CONTROL;
 
+					//trap
+					`TEQ:		alucontrol = `TEQ_CONTROL;
+					`TGE:		alucontrol = `TGE_CONTROL;
+					`TGEU:		alucontrol = `TGEU_CONTROL;
+					`TLT:		alucontrol = `TLT_CONTROL;
+					`TLTU:		alucontrol = `TLTU_CONTROL;
+					`TNE:		alucontrol = `TNE_CONTROL;
+
 					default:    	alucontrol = 8'b00000000;
 				endcase
 			//I type
@@ -77,6 +85,13 @@ module aludec(
 			`MSUBU_OP:	alucontrol = `MSUBU_CONTROL;
 
 			`MUL_OP:	alucontrol = `MUL_CONTROL;
+
+			`TEQI_OP:	alucontrol = `TEQI_CONTROL;
+			`TGEI_OP:	alucontrol = `TGEI_CONTROL;
+			`TGEIU_OP:	alucontrol = `TGEIU_CONTROL;
+			`TLTI_OP:	alucontrol = `TLTI_CONTROL;
+			`TLTIU_OP:	alucontrol = `TLTIU_CONTROL;
+			`TNEI_OP:	alucontrol = `TNEI_CONTROL;
 
 			default:
 						alucontrol = 8'b0;

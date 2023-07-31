@@ -9,7 +9,8 @@ module alu(
     
     output wire alustallE,
     output reg [31:0] aluoutE, 
-    output reg overflowE
+    output reg overflowE,
+    output reg trapE
 );
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
@@ -47,7 +48,7 @@ module alu(
             `ADDU_CONTROL:      aluoutE = src_aE + src_bE;
             `SUB_CONTROL:begin
                 aluoutE= {src_aE[31], src_aE} - {src_bE[31], src_bE};
-                overflowE =(src_aE[31]^src_bE[31]) & (aluoutE[31]==src_bE[31]);;
+                overflowE =(src_aE[31]^src_bE[31]) & (aluoutE[31]==src_bE[31]);
             end
             `SUBU_CONTROL:      aluoutE = src_aE - src_bE;
 
@@ -266,6 +267,10 @@ module alu(
                     // hilo_in_muldiv = 64'b0;
                 end
             end
+            `TEQ_CONTROL, `TGE_CONTROL, `TGEU_CONTROL, `TNE_CONTROL,
+            `TLT_CONTROL, `TLTU_CONTROL : begin
+                aluoutE = 32'b0;
+            end
 
             8'b00000: aluoutE = src_aE;  // do nothing
 
@@ -299,6 +304,31 @@ module alu(
                 hilo_in_muldiv = hilo_outE - aluout_mul;
             end
             default:    hilo_in_muldiv = 64'b0;
+        endcase
+    end
+    always @(*) begin
+        case(alucontrolE)
+            `TEQ_CONTROL,   `TEQI_CONTROL: begin
+                trapE = src_aE == src_bE;
+            end
+            `TGE_CONTROL,  `TGEI_CONTROL: begin
+                trapE = $signed(src_aE) >= $signed(src_bE);
+            end
+            `TGEU_CONTROL,  `TGEIU_CONTROL: begin
+                trapE = $unsigned(src_aE) >= $unsigned(src_bE);
+            end
+            `TLT_CONTROL,   `TLTI_CONTROL: begin
+                trapE = $signed(src_aE) < $signed(src_bE);
+            end
+            `TLTU_CONTROL,  `TLTIU_CONTROL: begin
+                trapE = $unsigned(src_aE) < $unsigned(src_bE);
+            end
+            `TNE_CONTROL,   `TNEI_CONTROL: begin
+                trapE = src_aE != src_bE;
+            end
+            default: begin
+                trapE = 1'b0;
+            end
         endcase
     end
     mul mul(

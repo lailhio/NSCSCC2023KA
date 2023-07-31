@@ -101,6 +101,7 @@ module datapath(
  // 异常处理信号
     wire        is_in_delayslot_iE; //是否处于延迟槽
     wire        overflowE; //溢出
+    wire        trapE; //自陷
 	
 	//----------mem stage--------
 	wire [31:0] pcM;  // pc
@@ -129,6 +130,7 @@ module datapath(
     wire        syscallM; //syscall指令
     wire        eretM; //eretM指令
     wire        overflowM;  //算数溢出
+    wire        trapM;  //自陷指令
     wire        addrErrorLwM, addrErrorSwM; //访存指令异常
     wire        pcErrorM;  //pc异常
 
@@ -284,7 +286,7 @@ module datapath(
         .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionM(flush_exceptionM), .DivMulEnE(DivMulEnE), 
         //output
         .alustallE(alu_stallE),
-        .aluoutE(aluoutE) , .overflowE(overflowE)
+        .aluoutE(aluoutE) , .overflowE(overflowE), .trapE(trapE)
     );
     
 	//在execute阶段得到真实branch跳转情况
@@ -311,6 +313,8 @@ module datapath(
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,breakM,hilotoregM}));
     flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
+    // 可合并
+    flopstrc #(1) flopTrapM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(trapE),.out(trapM));
     //----------------------MemoryFlop------------------------
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
     // Assign Logical
