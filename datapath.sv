@@ -306,9 +306,9 @@ module datapath(
     flopstrc #(9) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE}),
         .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM}));
-    flopstrc #(8) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,breakE,hilotoregE}),
-        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,breakM,hilotoregM}));
+    flopstrc #(7) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,hilotoregE}),
+        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,hilotoregM}));
     flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     //----------------------MemoryFlop------------------------
