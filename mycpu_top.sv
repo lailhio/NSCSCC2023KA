@@ -156,7 +156,6 @@ module mycpu_top(
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),
-        .cpu_NoCache_waddr(cpu_data_addr),
         //D CACHE
         .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),
         .d_arsize          (d_arsize ), .d_arvalid         (d_arvalid),
