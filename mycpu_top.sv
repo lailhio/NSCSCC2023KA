@@ -55,7 +55,6 @@ module mycpu_top(
     wire no_cache;
     assign clk=aclk;
     assign rst=~aresetn;
-
     //inst
     wire [31:0]   virtual_instr_addr;  //指令地址
     wire          cpu_inst_en;  //使能
@@ -70,7 +69,8 @@ module mycpu_top(
     wire        stallM2;
     //cpu
     wire [31:0] cpu_inst_addr ;
-    wire [31:0] cpu_inst_rdata;
+    wire [31:0] cpu_inst1_rdata;
+    wire [31:0] cpu_inst2_rdata;
 
     wire [31:0] cpu_data_addr ;
     wire cpu_data_wr   ;
@@ -125,7 +125,7 @@ module mycpu_top(
 		.ext_int(ext_int),
         //instruction
     	.PC_IF1(virtual_instr_addr), .inst_enF(cpu_inst_en), 
-        .instrF2(cpu_inst_rdata),
+        .inst1_F2(cpu_inst1_rdata), .inst2_F2(cpu_inst2_rdata),
         .i_cache_stall(i_stall),
         //data
     	.mem_addrM(virtual_data_addr),.mem_enM(cpu_data_en),
@@ -181,7 +181,7 @@ module mycpu_top(
         .cpu_inst_en(cpu_inst_en),
         .cpu_inst_addr(cpu_inst_addr),
         
-        .cpu_inst_rdata(cpu_inst_rdata),
+        .cpu_inst1_rdata(cpu_inst1_rdata),.cpu_inst2_rdata(cpu_inst2_rdata),
         //I CACHE OUTPUT
         .i_araddr          (i_araddr ), .i_arlen           (i_arlen  ),
         .i_arsize          (i_arsize ), .i_arvalid         (i_arvalid),
@@ -256,8 +256,11 @@ module mycpu_top(
 
     //ascii
     //use for debug
-    instdec instdec(
-        .instr(cpu_inst_rdata)
+    instdec instdec1(
+        .instr(cpu_inst1_rdata)
+    );
+    instdec instdec2(
+        .instr(cpu_inst2_rdata)
     );
 
 endmodule
