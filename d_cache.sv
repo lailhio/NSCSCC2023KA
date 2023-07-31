@@ -11,7 +11,6 @@ module d_cache#(
     input         cpu_data_wr      , // whether is store type
     input  [1 :0] cpu_data_size    , // from the addr ,write size data 
     input  [31:0] cpu_data_addr    ,
-    input  [31:0] cpu_NoCache_waddr,
     input  [31:0] cpu_data_wdata   ,
     output [31:0] cpu_data_rdata   ,
 
@@ -106,7 +105,6 @@ module d_cache#(
     reg [LEN_TAG-1:0]         c_tag_M2  [1:0];
     reg [DATA_WIDTH-1:0]      c_block_M2[1:0];
     wire [1:0]                c_way;
-    wire                      tway;
 
     reg [1:0]                 c_valid_M3;
     reg [1:0]                 c_dirty_M3; // 是否修改过
@@ -133,7 +131,6 @@ module d_cache#(
     // hit and miss
     assign c_way[0] = c_valid_M2[0] & (~|(c_tag_M2[0] ^ tag_M2));
     assign c_way[1] = c_valid_M2[1] & (~|(c_tag_M2[1] ^ tag_M2));
-    assign tway = hit ? c_way[1] : c_lru_M2[1];
     assign hit = |c_way & isIDLE;
     assign miss = ~hit;
 
@@ -144,7 +141,7 @@ module d_cache#(
 
     //* cache当前位置是否dirty
     wire dirty, clean;
-    assign dirty = c_dirty_M2[tway];
+    assign dirty = c_dirty_M2[c_lru_M2[1]];
     assign clean = ~dirty;
 
     // axi cnt
@@ -167,10 +164,10 @@ module d_cache#(
     // hit and write
     wire [1:0] wena_tag_hitway;
     assign  wena_tag_hitway = hit & store ?
-            {{tway & ~i_stall}, {~tway & ~i_stall}} : wena_tag_ram_way; // 4 bytes
+            {{c_way[1]}, {~c_way[1]}} : wena_tag_ram_way; // 4 bytes
     wire [3:0] wena_data_hitway [NR_WAYS-1:0];
     assign  wena_data_hitway = hit & store ?
-            {{data_sram_wen_M2 & {4{tway & ~i_stall}}}, {data_sram_wen_M2 & {4{~tway & ~i_stall}}}} : wena_data_bank_way; // 4 bytes
+            {{data_sram_wen_M2 & {4{c_way[1]}}}, {data_sram_wen_M2 & {4{~c_way[1]}}}} : wena_data_bank_way; // 4 bytes
     // write back part
     wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
 
@@ -288,7 +285,6 @@ module d_cache#(
                     lineLoc_M3 <= lineLoc_M2;
                     no_cache_M3 <= no_cache_M2;
                     tag_M3 <= tag_M2;
-                    tway_M3 <= tway;
                     cpu_data_ok <= 0;
                     cpu_data_en_M3 <= cpu_data_en_M2;
                     cpu_data_wr_M3 <= cpu_data_wr_M2;
@@ -315,15 +311,15 @@ module d_cache#(
                     else if (hit) begin
                         state <= IDLE;
                         if(store) begin
-                            cache_dirty[index_M2][tway] <= 1'b1;
+                            cache_dirty[index_M2][c_way[1]] <= 1'b1;
                         end
-                        cache_lru[index_M2][tway] <=1'b0;
-                        cache_lru[index_M2][~tway] <=1'b1;
+                        cache_lru[index_M2][c_way[1]] <=1'b0;
+                        cache_lru[index_M2][~c_way[1]] <=1'b1;
                     end
                     else begin
                         if (miss & dirty)begin
                             state <= CACHE_WRITEBACK;
-                            d_awaddr <= {c_tag_M2[tway], index_M2,{LEN_LINE{1'b0}}};
+                            d_awaddr <= {c_tag_M2[c_lru_M2[1]], index_M2,{LEN_LINE{1'b0}}};
                             d_awlen <= NR_WORDS - 1;
                             d_awsize <= 3'd2;
                             axi_cnt <= 1;
@@ -334,17 +330,18 @@ module d_cache#(
                             d_arlen <= NR_WORDS - 1;
                             d_arsize <= 3'd2;
                             d_arvalid <= 1'b1;
-                            wena_data_bank_way[tway] <= 4'hf;// write to instram
-                            wena_data_bank_way[~tway] <= 4'h0;// write to instram
-                            wena_tag_ram_way <= {tway,~tway}; //write to tag
+                            wena_data_bank_way[c_lru_M2[1]] <= 4'hf;// write to instram
+                            wena_data_bank_way[~c_lru_M2[1]] <= 4'h0;// write to instram
+                            wena_tag_ram_way <= {c_lru_M2[1],~c_lru_M2[1]}; //write to tag
                             axi_cnt <= 0;
                         end
                         if(store) begin
-                            cache_dirty[index_M2][tway] <= 1'b1;
+                            cache_dirty[index_M2][c_lru_M2[1]] <= 1'b1;
                         end
-                        cache_lru[index_M2][tway] <=1'b0;
-                        cache_lru[index_M2][~tway] <=1'b1;
-                        cache_valid[index_M2][tway] <= 1'b1;
+                        tway_M3 <= c_lru_M2[1];
+                        cache_lru[index_M2][c_lru_M2[1]] <=1'b0;
+                        cache_lru[index_M2][~c_lru_M2[1]] <=1'b1;
+                        cache_valid[index_M2][c_lru_M2[1]] <= 1'b1;
                         cache_buff_cnt <=0;
                         buff_last <= 0;
                     end
