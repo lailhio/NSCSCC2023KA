@@ -49,7 +49,7 @@ module hazard(
                         3'b000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
-    assign branch_ok = branchD & ~branchM & pred_takeD || branchD & branchM & pre_right & pred_takeD;
+    wire branch_ok =(~branchM | branchM & pre_right) & branchD & pred_takeD;
     
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
