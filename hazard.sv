@@ -28,7 +28,7 @@ module hazard(
     input wire  Blank_SL,
     output wire stallF, stallF2, stallD, stallE, stallM, stallM2, stallW,
     output wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW,
-    output wire longest_stall, stallDblank,
+    output wire longest_stall, stallDblank, icache_Ctl,
 
     output wire [2:0] forward_1D, forward_2D //000-> NONE, 001-> WRITE, 010-> M2, 011 -> M , 100 -> E
 );
@@ -54,9 +54,10 @@ module hazard(
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
     assign stallDblank= ((((~|(forward_2D ^ 3'b100)) | (~|(forward_1D ^ 3'b100))) & (is_mfcE | mem_readE)) 
-                | ((((~|(forward_1D ^ 3'b011))) | ((~|(forward_2D ^ 3'b011))))& (mem_readM))) & (~flush_exceptionM) & (~flush_pred_failedM) ;
+                | ((((~|(forward_1D ^ 3'b011))) | ((~|(forward_2D ^ 3'b011))))& (mem_readM)));
     assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank | Blank_SL));
-    assign stallF2 = (~flush_exceptionM & (id_cache_stall | alu_stallE| stallDblank | Blank_SL));
+    assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL;
+    assign stallF2 =  id_cache_stall | alu_stallE| stallDblank | Blank_SL;
     assign stallD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
     assign stallE =  id_cache_stall| alu_stallE | Blank_SL;
     assign stallM =  id_cache_stall| alu_stallE | Blank_SL;

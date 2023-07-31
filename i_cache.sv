@@ -42,7 +42,6 @@ module i_cache #(
     reg [LEN_INDEX-1:0] index_IF2;
     reg [LEN_TAG-1:0] tag_IF2;
     reg  no_cache_IF2;
-    wire tway_IF2;
     reg  cpu_inst_en_IF2;
 
     reg [LEN_LINE-1:0] lineLoc_IF3;
@@ -86,12 +85,11 @@ module i_cache #(
     assign inst_en = isIDLE ? cpu_inst_en_IF2 : cpu_inst_en_IF3;
 
     // hit Control
-    assign tway_IF2 = hit ? c_way[1] : c_lru_IF2[1];
     assign hit = |c_way & isIDLE;  //* cache line
     assign miss = ~hit;
 
-    assign c_way[0] = c_valid_IF2[0] & c_tag_IF2[0] == tag_IF2;
-    assign c_way[1] = c_valid_IF2[1] & c_tag_IF2[1] == tag_IF2;
+    assign c_way[0] = c_valid_IF2[0] & (~|(c_tag_IF2[0] ^ tag_IF2));
+    assign c_way[1] = c_valid_IF2[1] & (~|(c_tag_IF2[1] ^ tag_IF2));
     wire   cache_hit_available = hit  & !no_cache_IF2;
     assign i_stall = (~isIDLE | (!cache_hit_available & inst_en)) & ~cpu_instr_ok;
     //output to mips core
@@ -162,7 +160,6 @@ module i_cache #(
                     index_IF3 <= index_IF2;
                     lineLoc_IF3 <= lineLoc_IF2;
                     tag_IF3 <= tag_IF2;
-                    tway_IF3 <= tway_IF2;
                     // Valid and lru should be floped
                     c_valid_IF3 <= c_valid_IF2;
                     c_lru_IF3 <= c_lru_IF2;
@@ -175,25 +172,26 @@ module i_cache #(
                         state <= NOCACHE;
                     end
                     else if (!hit) begin
+                        tway_IF3 <= c_lru_IF2[1];
                         i_araddr <= {tag_IF2, index_IF2,{LEN_LINE{1'b0}}};
                         i_arlen <= NR_WORDS - 1;
                         i_arsize <= 3'd2; //4 bytes
                         i_arvalid <= 1'b1;  //read addr is valid
                         // Write ena
-                        wena_data_bank_way[tway_IF2] <= 4'hf;// write to instram
-                        wena_data_bank_way[~tway_IF2] <= 4'h0;
-                        wena_tag_ram_way <= {tway_IF2,~tway_IF2}; //write to tag
-                        cache_valid[index_IF2][tway_IF2] <= 1'b1;
-                        cache_lru[index_IF2][tway_IF2] <=1'b0;
-                        cache_lru[index_IF2][~tway_IF2] <=1'b1;
+                        wena_data_bank_way[c_lru_IF2[1]] <= 4'hf;// write to instram
+                        wena_data_bank_way[~c_lru_IF2[1]] <= 4'h0;
+                        wena_tag_ram_way <= {c_lru_IF2[1],~c_lru_IF2[1]}; //write to tag
+                        cache_valid[index_IF2][c_lru_IF2[1]] <= 1'b1;
+                        cache_lru[index_IF2][c_lru_IF2[1]] <=1'b0;
+                        cache_lru[index_IF2][~c_lru_IF2[1]] <=1'b1;
                         axi_cnt <= 0;
                         state <= CACHE_REPLACE;
                     end
-                    else if (!stallF2) begin
+                    else begin
                         // Update LRU when icache hit
                         // Note: If NR_WAYS > 2, we should implement pseudo-LRU or LFSR.
-                        cache_lru[index_IF2][tway_IF2] <=1'b0;
-                        cache_lru[index_IF2][~tway_IF2] <=1'b1;
+                        cache_lru[index_IF2][c_way[1]] <=1'b0;
+                        cache_lru[index_IF2][~c_way[1]] <=1'b1;
                     end
                 end
                 NOCACHE: begin

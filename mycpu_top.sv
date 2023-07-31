@@ -151,12 +151,11 @@ module mycpu_top(
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_cache(no_cache), .d_stall(d_stall), .stallM2(stallM2), .i_stall(i_stall), .alu_stallE(alu_stallE),
+        .no_cache(no_cache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
         .data_sram_wen(data_sram_wen),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),
-        .cpu_NoCache_waddr(cpu_data_addr),
         //D CACHE
         .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),
         .d_arsize          (d_arsize ), .d_arvalid         (d_arvalid),
