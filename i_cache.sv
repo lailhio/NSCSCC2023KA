@@ -3,7 +3,7 @@ module i_cache #(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst, no_cache, stallF2, d_stall,
+    input wire clk, rst, no_cache, icache_Ctl,
     output wire i_stall,
     //mips core input
     input  [31:0] cpu_inst_addr    ,
@@ -92,6 +92,7 @@ module i_cache #(
     assign c_way[1] = c_valid_IF2[1] & (~|(c_tag_IF2[1] ^ tag_IF2));
     wire   cache_hit_available = hit  & !no_cache_IF2;
     assign i_stall = (~isIDLE | (!cache_hit_available & inst_en)) & ~cpu_instr_ok;
+    wire cache_en = ~icache_Ctl | i_stall; 
     //output to mips core
     // first stage is not stall, and the second judge whether to stall
     reg [31:0] axi_inst_rdata;
@@ -112,7 +113,7 @@ module i_cache #(
             c_valid_IF2 <= 0;
             c_lru_IF2 <= 0;
         end
-        else if(~stallF2 | i_stall)begin
+        else if(cache_en)begin
             lineLoc_IF2 <= lineLoc;
             index_IF2 <= index;
             tag_IF2 <= tag;
@@ -151,7 +152,7 @@ module i_cache #(
             // clear axi status
             axi_cnt <= 0;
         end
-        else if (inst_en & (~stallF2 | i_stall))begin
+        else if (inst_en & cache_en)begin
             pre_state <= state;
             case(state)
                 IDLE: begin
@@ -245,7 +246,7 @@ module i_cache #(
                 // end
             endcase
         end
-        else if(~stallF2 | i_stall)begin
+        else if(cache_en)begin
             pre_state <= state;
             cpu_instr_ok <= 0;
         end
@@ -260,7 +261,7 @@ module i_cache #(
             .clka   (clk),
             .clkb   (clk),
             .ena    (wena_tag_ram_way[i]),
-            .enb    (~stallF2 | i_stall),
+            .enb    (cache_en),
             .addra  (index_IF3),
             .dina   (tag_IF3),
             .wea    (wena_tag_ram_way[i]),
@@ -272,7 +273,7 @@ module i_cache #(
             .clka   (clk),
             .clkb   (clk),
             .ena    (1'b1),
-            .enb    (~stallF2 | i_stall),
+            .enb    (cache_en),
             .addra  ({index_IF3,axi_cnt[LEN_LINE-1:2]}),
             .dina   (i_rdata),
             .wea    (wena_data_bank_way[i]),

@@ -18,7 +18,7 @@ module datapath(
     output wire [31:0] writedataM,    //写数据
     input wire         d_cache_stall,
 
-    output wire        stallF2, stallM2, alu_stallE,
+    output wire        stallM2, alu_stallE, icache_Ctl, 
 	//debug interface
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
@@ -160,7 +160,7 @@ module datapath(
     wire [31:0] aluoutW;
     wire [31:0] pcW;
     //------stall sign---------------
-    wire stallF, stallD, stallE, stallM, stallW ,stallDblank,  longest_stall;
+    wire stallF, stallF2, stallD, stallE, stallM, stallW ,stallDblank,  longest_stall;
     wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW;
 //------------------------------------------Data------------------------------------------
 	//--------------------debug---------------------
@@ -421,7 +421,7 @@ module datapath(
         .Blank_SL(Blank_SL),
         .stallF(stallF), .stallF2(stallF2), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallM2(stallM2), .stallW(stallW),
         .flushF(flushF), .flushF2(flushF2), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushM2(flushM2), .flushW(flushW),
-        .longest_stall(longest_stall), .stallDblank(stallDblank),
+        .longest_stall(longest_stall), .stallDblank(stallDblank), .icache_Ctl(icache_Ctl), 
         .forward_1D(forward_1D), .forward_2D(forward_2D)
     );
 	
