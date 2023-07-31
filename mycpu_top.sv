@@ -65,9 +65,8 @@ module mycpu_top(
     wire        cpu_data_en;                    
     wire [31:0] virtual_data_addr;     //写地址
     wire [3 :0] data_sram_wen;      //写使能
-    wire         d_stall;
+    wire         d_stall, icache_Ctl, alu_stallE;
     //stall 
-    wire        stallF2;
     wire        stallM2;
     //cpu
     wire [31:0] cpu_inst_addr ;
@@ -134,7 +133,7 @@ module mycpu_top(
         .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
         .d_cache_stall(d_stall),
         
-        .stallF2(stallF2), .stallM2(stallM2), .alu_stallE(alu_stallE),
+        .stallM2(stallM2), .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc),
         .debug_wb_rf_wen(debug_wb_rf_wen),
@@ -177,7 +176,7 @@ module mycpu_top(
 
     i_cache i_cache(
         .clk(clk), .rst(rst),
-        .no_cache(1'b0), .i_stall(i_stall), .stallF2(stallF2), .d_stall(d_stall),
+        .no_cache(1'b0), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
         
         .cpu_inst_en(cpu_inst_en),
         .cpu_inst_addr(cpu_inst_addr),
