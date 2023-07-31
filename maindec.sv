@@ -11,7 +11,7 @@ module maindec(
 		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
 		output wire hilotoregD,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 		output reg riD,
-		output wire breakD, syscallD, eretD, 
+		output wire breakD, syscallD, eretD,
 		output wire cp0_writeD,
 		output wire cp0_to_regD,
 			
@@ -112,7 +112,9 @@ module maindec(
 					end
 					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
 					`JR, `MULT, `MULTU, `DIV, `DIVU, `MTHI, `MTLO,
-					`SYSCALL, `BREAK : begin
+					`SYSCALL, `BREAK,
+					`TEQ, `TGE, `TGEU, `TNE,
+					`TLT, `TLTU : begin
 						aluopD=`R_TYPE_OP;
 						{regwriteD, regdstD, is_immD} =  4'b0;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
@@ -210,6 +212,48 @@ module maindec(
 						riD=1'b0;
 						is_mfcD=1'b0;
 						aluopD=`USELESS_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`TEQI: begin
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`TEQI_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`TGEI: begin
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`TGEI_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`TGEIU: begin
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`TGEIU_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`TLTI: begin
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`TLTI_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`TLTIU: begin
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`TLTIU_OP;
+						{regwriteD, regdstD, is_immD}  =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+					end
+					`TNEI: begin
+						riD=1'b0;
+						is_mfcD=1'b0;
+						aluopD=`TNEI_OP;
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
