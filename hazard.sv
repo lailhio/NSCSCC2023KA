@@ -6,7 +6,7 @@ module hazard(
 	input wire d_cache_stall,
     input wire alu_stallE, 
 
-    input wire flush_jump_conflictE, flush_pred_failedM, flush_exceptionM, jumpD,
+    input wire flush_pred_failedM, flush_exceptionM, jumpD,
     input wire branchD, branchM, pre_right, pred_takeD,
 
     input wire is_mfcE, // cp0 read sign
@@ -65,8 +65,8 @@ module hazard(
     assign stallW =  ~flush_exceptionM &(id_cache_stall | alu_stallE);
 
     assign flushF = 1'b0;
-    assign flushF2 = flush_exceptionM | flush_pred_failedM | ((flush_jump_conflictE | jumpD | branch_ok) & ~stallF2); 
-    assign flushD = flush_exceptionM | flush_pred_failedM | (flush_jump_conflictE & ~stallD); 
+    assign flushF2 = flush_exceptionM | flush_pred_failedM | ((jumpD | branch_ok) & ~stallF2); 
+    assign flushD = flush_exceptionM | flush_pred_failedM; 
     assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) |(~stallE & stallDblank) ; 
     assign flushM = flush_exceptionM;
     assign flushM2 = flush_exceptionM |(~stallM2 & Blank_SL);

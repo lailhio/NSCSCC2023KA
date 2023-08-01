@@ -38,14 +38,13 @@ module datapath(
 	//----------decode stage---------
 	wire[5:0] aluopD;
 	wire[7:0] alucontrolD;
-	wire [31:0] instrD;  //指令
+	wire [31:0] instr1D;  //指令
     wire [31:0] PcD, PcPlus4D;  //pc
     wire [31:0] src_a1D, src_b1D,src_aD, src_bD; //alu输入（操作数
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
     wire        flush_pred_failedM;  //分支预测失败
 
-    wire        jump_conflictD;  //jump冲突
     wire [2 :0] branch_judge_controlD; //分支判断控制
 	wire 		sign_exD;          //立即数是否为符号扩展
 	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> $ra
@@ -81,10 +80,8 @@ module datapath(
 
     wire [31:0] instrE;
     wire [31:0] pc_jumpE;  //jump pc
-    wire        jump_conflictE; //jump冲突
     wire        regwriteE;	//寄存器写
     // wire        alu_stallE;  //alu暂停
-    wire        flush_jump_conflictE;  //jump冲突
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
@@ -171,19 +168,19 @@ module datapath(
     // Todo : jal wrong
     //--------------------------------------Fetch------------------------------------------------
     
-    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE & ~stallDblank;
+    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~stallDblank;
     // pc+4
     assign PcPlus4F = PC_IF1 + 4;
+    assign PcPlus8F = PC_IF1 + 8;
     assign pc_errorF = (~|(PC_IF1[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
     // pc reg
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
         .branchD(branchD), .branchM(branchM), .pre_right(pre_right), .actual_takeM(actual_takeM),
         .pred_takeD(pred_takeD), .pc_trapM(pc_trapM), .jumpD(jumpD),
-        .jump_conflictD(jump_conflictD), .jump_conflictE(jump_conflictE),
 
         .pc_exceptionM(pc_exceptionM), .pcplus4E(pcplus4E), .pc_branchM(pc_branchM),
-        .pc_jumpE(pc_jumpE), .pc_jumpD(pc_jumpD), .pc_branchD(pc_branchD), .PcPlus4F(PcPlus4F),
+        .pc_jumpD(pc_jumpD), .pc_branchD(pc_branchD), .PcPlus4F(PcPlus4F), .PcPlus8F(PcPlus8F), 
 
         .pc(PC_IF1)
     );
@@ -203,29 +200,30 @@ module datapath(
 	//----------------------------------------Decode------------------------------------------------
     flopstrc #(32) flopPcplusD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcPlus4F2),.out(PcPlus4D));
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcF2),.out(PcD));
-    flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst1_validF2),.out(instrD));
+    flopstrc #(32) flopInst1D(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst1_validF2),.out(instr1D));
+    flopstrc #(32) flopInst2D(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst2_validF2),.out(instr2D));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
         .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
     wire DivMulEnD, DivMulEnE;
 	aludec ad(functD,aluopD,alucontrolD);
-	maindec md(instrD,
+	maindec md(instr1D,
 		//output
         sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
 
     //扩展立即数
-    signext signex(sign_exD,instrD[15:0],immD);
+    signext signex(sign_exD,instr1D[15:0],immD);
 	//regfile，                             rs            rt
-	regfile rf(clk,rst,stallW,regwriteW,instrD[25:21],instrD[20:16],writeregW,resultW,rd1D,rd2D);
+	regfile rf(clk,rst,stallW,regwriteW,instr1D[25:21],instr1D[20:16],writeregW,resultW,rd1D,rd2D);
     // 立即数左移2 + pc+4得到分支跳转地址   
     assign pc_branchD = {immD[29:0], 2'b00} + PcPlus4D;
     //选择writeback寄存器     rd             rt
-    mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
+    mux3 #(5) mux3_regdst(instr1D[15:11],instr1D[20:16],5'd31,regdstD,  writeregD);
     //前推至ID阶段                                                          todo shamt
-    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, instrD[10:6], 32'b0, 32'b0, forward_1D, src_a1D);
+    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, instr1D[10:6], 32'b0, 32'b0, forward_1D, src_a1D);
     mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
     //choose imm
     mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);
@@ -234,7 +232,7 @@ module datapath(
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
-        .flushD(flushD),.stallD(stallD),.instrD(instrD),
+        .flushD(flushD),.stallD(stallD),.instr1D(instr1D),
         
         .immD(immD),
         .pcF(PC_IF1),
@@ -247,21 +245,20 @@ module datapath(
     );
     // jump, assign Logic
     jump_control jump_control(
-        .instrD(instrD),
+        .instr1D(instr1D),
         .PcPlus4D(PcPlus4D),
-        .rd1D(rd1D),
+        .src_a1D(src_a1D),
         .regwriteE(regwriteE), .writeregE(writeregE), 
         .regwriteM(regwriteM), .writeregM(writeregM),
         .regwriteM2(regwriteM2), .writeregM2(writeregM2),
         .regwriteW(regwriteW), .writeregW(writeregW),
 
         .jumpD(jumpD),                      //是jump类指令(j, jr)
-        .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲突
         .pc_jumpD(pc_jumpD)                 //D阶段最终跳转地址
     );
 	//----------------------------------Execute------------------------------------
     flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcD),.out(pcE));
-    flopstrc #(32) flopInstE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instrD),.out(instrE));
+    flopstrc #(32) flopInstE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instr1D),.out(instrE));
     flopstrc #(32) flopSrca1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
     flopstrc #(32) flopSrcb1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
     flopstrc #(32) flopSrcaE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_aD),.out(src_aE));
@@ -269,8 +266,8 @@ module datapath(
     flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcPlus4D),.out(pcplus4E));
     flopstrc #(32) flopPcbranchE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pc_branchD),.out(pc_branchE));
     flopstrc #(8) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
-        .in({branchD,pred_takeD,is_in_delayslot_iD,jump_conflictD,regwriteD,riD,breakD,hilotoregD}),
-        .out({branchE,pred_takeE,is_in_delayslot_iE,jump_conflictE,regwriteE,riE,breakE,hilotoregE}));
+        .in({branchD,pred_takeD,is_in_delayslot_iD,regwriteD,riD,breakD,hilotoregD}),
+        .out({branchE,pred_takeE,is_in_delayslot_iE,regwriteE,riE,breakE,hilotoregE}));
     flopstrc #(11) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD, DivMulEnD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE, DivMulEnE}));
@@ -299,7 +296,6 @@ module datapath(
     );
     
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
-    assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
@@ -398,14 +394,13 @@ module datapath(
         .alu_stallE(alu_stallE),
 
         .jumpD                  (jumpD),
-        .flush_jump_conflictE   (flush_jump_conflictE),
         .flush_pred_failedM     (flush_pred_failedM),
         .flush_exceptionM       (flush_exceptionM),
 
         .branchD(branchD), .branchM(branchM), .pre_right(pre_right), .pred_takeD(pred_takeD),
 
-        .rsD(instrD[25:21]),
-        .rtD(instrD[20:16]),
+        .rsD(instr1D[25:21]),
+        .rtD(instr1D[20:16]),
         .is_mfcE(is_mfcE),
         .hilotoregE(hilotoregE),
         .regwriteE(regwriteE),
