@@ -236,10 +236,10 @@ module datapath(
         .flushD(flushD),.stallD(stallD),.instrD(instrD),
         
         .immD(immD),
-        .pcF(PC_IF1),
-        .pcM(pcM),
-        .branchE(branchM),
-        .actual_takeE(actual_takeM),
+        .pcF(PcF2),
+        .pcE(pcE),
+        .branchE(branchE),
+        .actual_takeE(actual_takeE),
 
         .branchD(branchD),
         .pred_takeD(pred_takeD)
@@ -360,8 +360,8 @@ module datapath(
         .epc_o(cp0_epcM2), .data_o(cp0_outM2)
     );
     //分支预测结果
-    assign pre_right = ~(pred_takeM ^ actual_takeM); 
-    assign flush_pred_failedM = ~pre_right;
+    assign pre_right = ~flush_pred_failedM; 
+    assign flush_pred_failedM = pred_takeM ^ actual_takeM;
 	//-------------------------------------Memory2-------------------------------------------------
     wire is_mfcM2, mem_writeM2; // for debug
     // todo M2 flop
