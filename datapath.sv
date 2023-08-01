@@ -36,6 +36,7 @@ module datapath(
     wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
 	//----------decode stage---------
+    ctrl_sign dec_sign1, dec_sign2;
 	wire[7:0] alucontrolD;
 	wire [31:0] instr1D;  //指令
     wire [31:0] PcD, PcPlus4D;  //pc
@@ -205,12 +206,7 @@ module datapath(
         .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
     //-----------------------DecodeFlop----------------------------------
     wire DivMulEnD, DivMulEnE;
-	maindec main_dec(.instrD(instr1D),
-		//output
-        .sign_exD(sign_exD) , .regdstD(regdstD), .is_immD(is_immD) , .regwriteD(regwriteD) , .mem_readD(mem_readD) , 
-        .mem_writeD(mem_writeD) , .memtoregD(memtoregD), .hilotoregD(hilotoregD) , .riD(riD), .breakD(breakD) , .syscallD(syscallD) , 
-        .eretD(eretD) , .cp0_writeD(cp0_writeD) , .cp0_to_regD(cp0_to_regD),.mfhiD(mfhiD) , .mfloD(mfloD) , .is_mfcD(is_mfcD) ,
-        .alucontrolD(alucontrolD), .branch_judge_controlD(branch_judge_controlD) , .DivMulEnD(DivMulEnD));
+	maindec main_dec1(.instrD(instr1D),.dec_sign(dec_sign1));
 
     //扩展立即数
     signext signex(sign_exD,instr1D[15:0],immD);
