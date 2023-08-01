@@ -780,6 +780,50 @@
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
 `define LOG2_TLB_LINE_NUM 5
+module maindec(
+		input wire[31:0] instrD,
+
+		output wire sign_exD,          //立即数是否为符号扩展
+		output reg [1:0] regdstD,     	//写寄存器选择  00-> rd, 01-> rt, 10-> ?$ra
+		output reg is_immD,        //alu srcb选择 0->rd2E, 1->immE
+		output reg regwriteD,	//写寄存器堆使能
+		output reg mem_readD, mem_writeD,
+		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
+		output wire hilotoregD,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
+		output reg riD,
+		output wire breakD, syscallD, eretD,
+		output wire cp0_writeD,
+		output wire cp0_to_regD,
+			
+		output wire mfhiD,
+		output wire mfloD,
+		output reg is_mfcD,   //为mfc0
+		output reg[7:0] alucontrolD,
+		output reg [2:0] branch_judge_controlD,
+		output reg DivMulEnD
+    );
+typedef struct packed{
+    logic [7:0] aluop;
+    logic flush_all; // 1: flush all but commit current inst
+    logic read_rs; // 1: reg value; 0: shamt / not need read reg
+    logic read_rt; // 1: reg value; 0: imm / not need read reg
+    logic reg_write;
+    logic mem_en;
+    logic mem_write_reg;
+    logic mem_read;
+    logic mem_write;
+    logic cp0_read;
+    logic cp0_write;
+    logic hilo_read;
+    logic hilo_write;
+    logic may_bring_flush; // instruction which will bring flush
+    logic only_one_issue;  // such as
+    logic icache_fence;
+    logic dcache_fence;
+    logic tlb_fence;
+    logic mul_en;
+    logic div_en;
+} ctrl_sign;
 
 typedef struct packed {
     logic        G;

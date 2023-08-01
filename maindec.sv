@@ -18,13 +18,13 @@ module maindec(
 		output wire mfhiD,
 		output wire mfloD,
 		output reg is_mfcD,   //为mfc0
-		output reg [5:0] aluopD,
-		output reg [5:0] funct_to_aluD,
+		output reg[7:0] alucontrolD,
 		output reg [2:0] branch_judge_controlD,
 		output reg DivMulEnD
     );
 
 	//Instruct Divide
+	reg [5:0] aluopD;
 	wire [5:0] opD,functD;
 	wire [4:0] rsD,rtD,rdD,shamtD;
 	assign opD = instrD[31:26];
@@ -46,6 +46,8 @@ module maindec(
 	
 	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
+	
+	aludec alu_dec(functD,aluopD,alucontrolD);
 
 	always @(*) begin
 		case(opD)
@@ -461,7 +463,6 @@ module maindec(
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 		endcase
-		funct_to_aluD=functD;
 	end
 	always @(*) begin
 		case(opD)
