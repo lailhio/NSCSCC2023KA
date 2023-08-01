@@ -236,7 +236,7 @@ module datapath(
         .flushD(flushD),.stallD(stallD),.instrD(instrD),
         
         .immD(immD),
-        .pcF(PcF2),
+        .PcF2(PcF2),
         .pcE(pcE),
         .branchE(branchE),
         .actual_takeE(actual_takeE),
