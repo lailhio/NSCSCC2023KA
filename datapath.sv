@@ -180,13 +180,13 @@ module datapath(
         .clk(clk), .rst(rst), .stallF(stallF),
         .branchD(branchD), .branchM(branchM), .pre_right(pre_right), .actual_takeM(actual_takeM),
         .pred_takeD(pred_takeD), .pc_trapM(pc_trapM), .jumpD(jumpD),
-        .jump_conflictD(jump_conflictD), .jump_conflictE(jump_conflictE),
 
         .pc_exceptionM(pc_exceptionM), .pcplus4E(pcplus4E), .pc_branchM(pc_branchM),
-        .pc_jumpE(pc_jumpE), .pc_jumpD(pc_jumpD), .pc_branchD(pc_branchD), .PcPlus4F(PcPlus4F),
+        .pc_jumpD(pc_jumpD), .pc_branchD(pc_branchD), .PcPlus4F(PcPlus4F),
 
         .pc(PC_IF1)
     );
+    
     
 	//----------------------------------------InstFetch2------------------------------------------------
     wire inst_enF2;
@@ -248,14 +248,13 @@ module datapath(
     jump_control jump_control(
         .instrD(instrD),
         .PcPlus4D(PcPlus4D),
-        .rd1D(rd1D),
+        .src_a1D(src_a1D),
         .regwriteE(regwriteE), .writeregE(writeregE), 
         .regwriteM(regwriteM), .writeregM(writeregM),
         .regwriteM2(regwriteM2), .writeregM2(writeregM2),
         .regwriteW(regwriteW), .writeregW(writeregW),
 
         .jumpD(jumpD),                      //是jump类指令(j, jr)
-        .jump_conflictD(jump_conflictD),    //jr rs寄存器发生冲突
         .pc_jumpD(pc_jumpD)                 //D阶段最终跳转地址
     );
 	//----------------------------------Execute------------------------------------
@@ -267,9 +266,9 @@ module datapath(
     flopstrc #(32) flopSrcbE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_bD),.out(src_bE));
     flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcPlus4D),.out(pcplus4E));
     flopstrc #(32) flopPcbranchE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pc_branchD),.out(pc_branchE));
-    flopstrc #(8) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
-        .in({branchD,pred_takeD,is_in_delayslot_iD,jump_conflictD,regwriteD,riD,breakD,hilotoregD}),
-        .out({branchE,pred_takeE,is_in_delayslot_iE,jump_conflictE,regwriteE,riE,breakE,hilotoregE}));
+    flopstrc #(7) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+        .in({branchD,pred_takeD,is_in_delayslot_iD,regwriteD,riD,breakD,hilotoregD}),
+        .out({branchE,pred_takeE,is_in_delayslot_iE,regwriteE,riE,breakE,hilotoregE}));
     flopstrc #(11) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD, DivMulEnD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE, DivMulEnE}));
@@ -298,7 +297,6 @@ module datapath(
     );
     
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
-    assign flush_jump_conflictE = jump_conflictE;
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
@@ -397,7 +395,6 @@ module datapath(
         .alu_stallE(alu_stallE),
 
         .jumpD                  (jumpD),
-        .flush_jump_conflictE   (flush_jump_conflictE),
         .flush_pred_failedM     (flush_pred_failedM),
         .flush_exceptionM       (flush_exceptionM),
 
