@@ -36,7 +36,7 @@ module maindec(
 
 	assign sign_exD = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
-	assign hilotoregD = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
+	assign hilotoregD = (opD == `R_TYPE) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 	assign mfhiD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
 	assign mfloD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));

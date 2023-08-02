@@ -8,8 +8,8 @@ module branch_check (
     always @(*) begin
         // 根据对应操作计算
         case(branch_judge_controlE)
-            3'b001:       actual_takeE = ~(|(rs_valueE ^ rt_valueE));
-            3'b010:       actual_takeE = |(rs_valueE ^ rt_valueE);
+            3'b001:       actual_takeE = (rs_valueE == rt_valueE);
+            3'b010:       actual_takeE = (rs_valueE != rt_valueE);
             3'b100:       actual_takeE = ~rs_valueE[31] & (|rs_valueE);
             3'b110:       actual_takeE = ~rs_valueE[31];
             3'b101:       actual_takeE = rs_valueE[31];

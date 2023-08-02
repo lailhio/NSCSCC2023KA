@@ -30,40 +30,40 @@ module mem_control(
     assign op_codeM2 = instrM2[31:26];
     assign data_addrM = addressM ; 
     // Load and save sel
-    assign addr_W0M = ~(|(addressM[1:0] ^ 2'b00));
-    assign addr_B2M = ~(|(addressM[1:0] ^ 2'b10));
-    assign addr_B1M = ~(|(addressM[1:0] ^ 2'b01));
-    assign addr_B3M = ~(|(addressM[1:0] ^ 2'b11));
+    assign addr_W0M = (addressM[1:0] == 2'b00);
+    assign addr_B2M = (addressM[1:0] == 2'b10);
+    assign addr_B1M = (addressM[1:0] == 2'b01);
+    assign addr_B3M = (addressM[1:0] == 2'b11);
     // Load  sel
-    assign addr_W0M2 = ~(|(addressM2[1:0] ^ 2'b00));
-    assign addr_B2M2 = ~(|(addressM2[1:0] ^ 2'b10));
-    assign addr_B1M2 = ~(|(addressM2[1:0] ^ 2'b01));
-    assign addr_B3M2 = ~(|(addressM2[1:0] ^ 2'b11));
+    assign addr_W0M2 = (addressM2[1:0] == 2'b00);
+    assign addr_B2M2 = (addressM2[1:0] == 2'b10);
+    assign addr_B1M2 = (addressM2[1:0] == 2'b01);
+    assign addr_B3M2 = (addressM2[1:0] == 2'b11);
 
     // 判断是否为各种访存指令
-    assign instr_lw = ~(|(op_codeM2 ^ `LW));
-    assign instr_lb = ~(|(op_codeM2 ^ `LB));
-    assign instr_lh = ~(|(op_codeM2 ^ `LH));
-    assign instr_lbu = ~(|(op_codeM2 ^ `LBU));
-    assign instr_lhu = ~(|(op_codeM2 ^ `LHU));
-    assign instr_sw = ~(|(op_codeM ^ `SW)); 
-    assign instr_sh = ~(|(op_codeM ^ `SH));
-    assign instr_sb = ~(|(op_codeM ^ `SB));
+    assign instr_lw = (op_codeM2 == `LW);
+    assign instr_lb = (op_codeM2 == `LB);
+    assign instr_lh = (op_codeM2 == `LH);
+    assign instr_lbu = (op_codeM2 == `LBU);
+    assign instr_lhu = (op_codeM2 == `LHU);
+    assign instr_sw = (op_codeM == `SW); 
+    assign instr_sh = (op_codeM == `SH);
+    assign instr_sb = (op_codeM == `SB);
 
-    assign instr_lwl = ~(|(op_codeM2 ^ `LWL));
-    assign instr_lwr = ~(|(op_codeM2 ^ `LWR));
+    assign instr_lwl = (op_codeM2 == `LWL);
+    assign instr_lwr = (op_codeM2 == `LWR);
     
-    assign instr_ll = ~(|(op_codeM2 ^ `LL));
-    assign instr_sc = ~(|(op_codeM ^ `SC));
+    assign instr_ll = (op_codeM2 == `LL);
+    assign instr_sc = (op_codeM == `SC);
 
-    assign instr_swl = ~(|(op_codeM ^ `SWL));
-    assign instr_swr = ~(|(op_codeM ^ `SWR));
+    assign instr_swl = (op_codeM == `SWL);
+    assign instr_swr = (op_codeM == `SWR);
 
 
-    assign instr_lwM = ~(|(op_codeM ^ `LW));
-    assign instr_lhM = ~(|(op_codeM ^ `LH));
-    assign instr_lhuM = ~(|(op_codeM ^ `LHU));
-    assign instr_llM = ~(|(op_codeM ^ `LL));
+    assign instr_lwM = (op_codeM == `LW);
+    assign instr_lhM = (op_codeM == `LH);
+    assign instr_lhuM = (op_codeM == `LHU);
+    assign instr_llM = (op_codeM == `LL);
 
     // 地址异常
     assign addr_error_sw = (instr_sw & ~addr_W0M)

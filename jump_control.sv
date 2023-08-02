@@ -11,8 +11,8 @@ module jump_control (
     wire jr, j;
     wire [4:0] rsD;
     assign rsD = instrD[25:21];
-    assign jr = ~(|instrD[31:26]) & (~|(instrD[5:1] ^ 5'b00100)); //判断jr, jalr
-    assign j = ~(|(instrD[31:27] ^ 5'b00001));                   //判断j, jal
+    assign jr = ~(|instrD[31:26]) & ((instrD[5:1] == 5'b00100)); //判断jr, jalr
+    assign j = (instrD[31:27] == 5'b00001);                   //判断j, jal
     assign jumpD = jr | j; //需要jump
 
     

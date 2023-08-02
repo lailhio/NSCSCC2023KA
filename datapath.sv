@@ -174,7 +174,7 @@ module datapath(
     assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE & ~stallDblank;
     // pc+4
     assign PcPlus4F = PC_IF1 + 4;
-    assign pc_errorF = (~|(PC_IF1[1:0] ^ 2'b0)) ? 1'b0 : 1'b1; 
+    assign pc_errorF = ((PC_IF1[1:0] == 2'b0)) ? 1'b0 : 1'b1; 
     // pc reg
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
@@ -331,7 +331,7 @@ module datapath(
 
     
     //后两位不为0
-    assign pcErrorM = |(pcM[1:0] ^ 2'b00);  
+    assign pcErrorM = (pcM[1:0] != 2'b00);  
     //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据 Todo
     mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM2, is_mfcM, resultM);
      //异常处理
@@ -388,7 +388,7 @@ module datapath(
 	//------------------Write_Back_Flop--------------------------
 
 	//hazard detection
-    wire Blank_SL = (~|(aluoutM[31:2] ^ aluoutM2[31:2])) & mem_writeM2 &  mem_readM;
+    wire Blank_SL = ((aluoutM[31:2] == aluoutM2[31:2])) & mem_writeM2 &  mem_readM;
 	hazard hazard0(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),

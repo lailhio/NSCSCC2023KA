@@ -37,15 +37,15 @@ module hazard(
     //  1、 if Ex、Mem or Wb is same
     //  2、 And if ExInst is lw or Mfhilo
     //  ps : lw des rt, mfc0 des rt, mfhilo des rd
-    assign forward_1D = (|(rsD ^ 0)) & regwriteE & (~|(rsD ^ writeregE)) ? 3'b100 :
-                        (|(rsD ^ 0)) & regwriteM & (~|(rsD ^ writeregM)) ? 3'b011 :
-                        (|(rsD ^ 0)) & regwriteM2 & (~|(rsD ^ writeregM2)) ? 3'b010 :
-                        (|(rsD ^ 0)) & regwriteW & (~|(rsD ^ writeregW)) ? 3'b001 :
+    assign forward_1D = ((rsD != 0)) & regwriteE & ((rsD == writeregE)) ? 3'b100 :
+                        ((rsD != 0)) & regwriteM & ((rsD == writeregM)) ? 3'b011 :
+                        ((rsD != 0)) & regwriteM2 & ((rsD == writeregM2)) ? 3'b010 :
+                        ((rsD != 0)) & regwriteW & ((rsD == writeregW)) ? 3'b001 :
                         3'b000;
-    assign forward_2D = (|(rtD ^ 0)) & regwriteE & (~|(rtD ^ writeregE)) ? 3'b100 :
-                        (|(rtD ^ 0)) & regwriteM & (~|(rtD ^ writeregM)) ? 3'b011 :
-                        (|(rtD ^ 0)) & regwriteM2 & (~|(rtD ^ writeregM2)) ? 3'b010 :
-                        (|(rtD ^ 0)) & regwriteW & (~|(rtD ^ writeregW)) ? 3'b001 :
+    assign forward_2D = ((rtD != 0)) & regwriteE & ((rtD == writeregE)) ? 3'b100 :
+                        ((rtD != 0)) & regwriteM & ((rtD == writeregM)) ? 3'b011 :
+                        ((rtD != 0)) & regwriteM2 & ((rtD == writeregM2)) ? 3'b010 :
+                        ((rtD != 0)) & regwriteW & ((rtD == writeregW)) ? 3'b001 :
                         3'b000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
@@ -53,8 +53,8 @@ module hazard(
     
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
-    assign stallDblank= ((((~|(forward_2D ^ 3'b100)) | (~|(forward_1D ^ 3'b100))) & (is_mfcE | mem_readE)) 
-                | ((((~|(forward_1D ^ 3'b011))) | ((~|(forward_2D ^ 3'b011))))& (mem_readM)));
+    assign stallDblank= (((((forward_2D == 3'b100)) | ((forward_1D == 3'b100))) & (is_mfcE | mem_readE)) 
+                | (((((forward_1D == 3'b011))) | (((forward_2D == 3'b011))))& (mem_readM)));
     assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank | Blank_SL));
     assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL;
     assign stallF2 =  id_cache_stall | alu_stallE| stallDblank | Blank_SL;

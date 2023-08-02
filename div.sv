@@ -79,10 +79,10 @@ module div(
                			cnt <= cnt + 1;
              		end 
 					else begin
-                		if((signed_div_i == 1'b1) && ((save_op_1[31] ^ save_op_2[31]) == 1'b1)) begin
+                		if((signed_div_i) & ((save_op_1[31] ^ save_op_2[31]))) begin
                   			dividend[31:0] <= (~dividend[31:0] + 1);
                			end
-               			if((signed_div_i == 1'b1) && ((save_op_1[31] ^ dividend[64]) == 1'b1)) begin              
+               			if((signed_div_i) & ((save_op_1[31] ^ dividend[64]))) begin              
                   			dividend[64:33] <= (~dividend[64:33] + 1);
                			end
                 		state <= `DivEnd;

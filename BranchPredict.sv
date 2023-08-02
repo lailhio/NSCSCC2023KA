@@ -24,8 +24,8 @@ module BranchPredict(
 	assign rs = instrD[25:21];
 	assign rt = instrD[20:16];
 	assign funct = instrD[5:0];
-    assign branchD = ( (~|(op_code ^ `REGIMM_INST)) & (~|(instrD[19:17] ^ 3'b000) | (~|(instrD[19:17] ^ 3'b001))) ) //6'b000001 = EXE_REGIMM
-                    | (~|(op_code[5:2] ^ 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
+    assign branchD = ( ((op_code == `REGIMM_INST)) & ((instrD[19:17] == 3'b000) | ((instrD[19:17] == 3'b001))) ) //6'b000001 = EXE_REGIMM
+                    | ((op_code[5:2] == 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
                                                     // 3'b000 -> BLTZ BLTZAL BGEZAL BGEZ
                                                     // 3'b001 -> BGEZALL BGEZL BLTZALL BLTZL
 
