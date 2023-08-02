@@ -8,7 +8,7 @@ module BranchPredict(
     input wire [31:0] instrD,
     input wire [31:0] immD,
 
-    input wire [31:0] pcF,
+    input wire [31:0] PcF2,
     input wire [31:0] pcE,
     input wire branchE,
     input wire actual_takeE,
@@ -40,7 +40,7 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] BHT_index;
     wire [(PHT_DEPTH-1):0] BHR_value;
 
-    assign BHT_index = pcF[11:2];     
+    assign BHT_index = PcF2[11:2];     
     assign BHR_value = BHT[BHT_index];  
     assign PHT_index = BHR_value;
 

@@ -391,6 +391,7 @@ module d_cache#(
                         d_arsize <= 3'd2;
                         d_arvalid <= 1'b1;
                         axi_cnt <= 0 ;
+                        buff_last <= 0;
                         wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
                         wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
                         wena_tag_ram_way[tway_M3] <= 1;
