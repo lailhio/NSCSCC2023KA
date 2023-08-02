@@ -5,70 +5,120 @@ module hazard(
     input wire i_cache_stall,
 	input wire d_cache_stall,
     input wire alu_stallE, 
+    input wire master_only_oneD, slave_only_oneD,
 
-    input wire flush_pred_failedM, flush_exceptionM, jumpD,
-    input wire branchD, branchM, pre_right, pred_takeD,
+    input wire pred_failed_masterE, pred_failed_slaveE, flush_exception_masterM, flush_exception_slaveM
+    input wire jump1D, jump2D, branch1D, branch2D, branch1E, branch2E, pre_right, pred_takeD,
 
-    input wire is_mfcE, // cp0 read sign
-    input wire hilotoregE, //hilo read sign
-    input wire [4:0] rsD,  // operand
-    input wire [4:0] rtD, 
-    input wire regwriteE,
-    input wire regwriteM,
-    input wire regwriteM2,
-    input wire regwriteW,  // whether to write reg
-    input wire [4:0] writeregE, // write which reg
-    input wire [4:0] writeregM,
-    input wire [4:0] writeregM2,
-    input wire [4:0] writeregW,
+    input ctrl_sign dec_sign1D, dec_sign2D, dec_sign1E, dec_sign2E, 
+    input ctrl_sign dec_sign1M, dec_sign2M, dec_sign1M2, dec_sign2M2, dec_sign1W, dec_sign2W, 
 
-    input wire mem_readE,   //Ex's Memread sign, lw lb lhb 
-    input wire mem_readM, 
+    input wire [4:0] rs1D, rs2D,// operand
+    input wire [4:0] rt1D, rs2D,
     
     input wire  Blank_SL,
-    output wire stallF, stallF2, stallD, stallE, stallM, stallM2, stallW,
-    output wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW,
-    output wire longest_stall, stallDblank, icache_Ctl,
+    output wire stallF, stallF2, stall_masterD, stall_slaveD, stall_masterE, stall_slaveE, stall_masterM, stall_slaveM, 
+    output wire stall_masterM2, stall_masterW,
+    output wire flushF, flushF2, flush_masterD, flush_masterE, flush_masterM, flush_masterM2, flushW,
+    output wire stallDblank, icache_Ctl,
 
-    output wire [2:0] forward_1D, forward_2D //000-> NONE, 001-> WRITE, 010-> M2, 011 -> M , 100 -> E
+    output wire [2:0] forward1_1D, forward1_2D, forward2_1D, forward2_2D
 );
     
-    wire id_cache_stall;
+    wire id_cache_stall, longest_stall;
     //  1、 if Ex、Mem or Wb is same
     //  2、 And if ExInst is lw or Mfhilo
     //  ps : lw des rt, mfc0 des rt, mfhilo des rd
-    assign forward_1D = (|(rsD ^ 0)) & regwriteE & (~|(rsD ^ writeregE)) ? 3'b100 :
-                        (|(rsD ^ 0)) & regwriteM & (~|(rsD ^ writeregM)) ? 3'b011 :
-                        (|(rsD ^ 0)) & regwriteM2 & (~|(rsD ^ writeregM2)) ? 3'b010 :
-                        (|(rsD ^ 0)) & regwriteW & (~|(rsD ^ writeregW)) ? 3'b001 :
-                        3'b000;
-    assign forward_2D = (|(rtD ^ 0)) & regwriteE & (~|(rtD ^ writeregE)) ? 3'b100 :
-                        (|(rtD ^ 0)) & regwriteM & (~|(rtD ^ writeregM)) ? 3'b011 :
-                        (|(rtD ^ 0)) & regwriteM2 & (~|(rtD ^ writeregM2)) ? 3'b010 :
-                        (|(rtD ^ 0)) & regwriteW & (~|(rtD ^ writeregW)) ? 3'b001 :
-                        3'b000;
+    assign forward1_1D = (|(rs1D ^ 0)) & dec_sign2E.regwrite & (~|(rs1D ^ dec_sign2E.writereg)) ? 4'b1000 :
+                        (|(rs1D ^ 0)) & dec_sign2M.regwrite & (~|(rs1D ^ dec_sign2M.writereg)) ? 4'b0111 :
+                        (|(rs1D ^ 0)) & dec_sign2M2.regwrite & (~|(rs1D ^ dec_sign2M2.writereg)) ? 4'b0110 :
+                        (|(rs1D ^ 0)) & dec_sign2W.regwrite & (~|(rs1D ^ dec_sign2W.writereg)) ? 4'b0101 :
+                        (|(rs1D ^ 0)) & dec_sign1E.regwrite & (~|(rs1D ^ dec_sign1E.writereg)) ? 4'b0100 :
+                        (|(rs1D ^ 0)) & dec_sign1M.regwrite & (~|(rs1D ^ dec_sign1M.writereg)) ? 4'b0011 :
+                        (|(rs1D ^ 0)) & dec_sign1M2.regwrite & (~|(rs1D ^ dec_sign1M2.writereg)) ? 4'b0010 :
+                        (|(rs1D ^ 0)) & dec_sign1W.regwrite & (~|(rs1D ^ dec_sign1W.writereg)) ? 4'b0001 :
+                        4'b0000;
+    assign forward1_2D = (|(rt1D ^ 0)) & dec_sign2E.regwrite & (~|(rt1D ^ dec_sign2E.writereg)) ? 4'b1000 :
+                        (|(rt1D ^ 0)) & dec_sign2M.regwrite & (~|(rt1D ^ dec_sign2M.writereg)) ? 4'b0111 :
+                        (|(rt1D ^ 0)) & dec_sign2M2.regwrite & (~|(rt1D ^ dec_sign2M2.writereg)) ? 4'b0110 :
+                        (|(rt1D ^ 0)) & dec_sign2W.regwrite & (~|(rt1D ^ dec_sign2W.writereg)) ? 4'b0101 :
+                        (|(rt1D ^ 0)) & dec_sign1E.regwrite & (~|(rt1D ^ dec_sign1E.writereg)) ? 4'b0100 :
+                        (|(rt1D ^ 0)) & dec_sign1M.regwrite & (~|(rt1D ^ dec_sign1M.writereg)) ? 4'b0011 :
+                        (|(rt1D ^ 0)) & dec_sign1M2.regwrite & (~|(rt1D ^ dec_sign1M2.writereg)) ? 4'b0010 :
+                        (|(rt1D ^ 0)) & dec_sign1W.regwrite & (~|(rt1D ^ dec_sign1W.writereg)) ? 4'b0001 :
+                        4'b0000;
+    assign forward2_1D = (|(rs2D ^ 0)) & dec_sign2E.regwrite & (~|(rs2D ^ dec_sign2E.writereg)) ? 4'b1000 :
+                        (|(rs2D ^ 0)) & dec_sign2M.regwrite & (~|(rs2D ^ dec_sign2M.writereg)) ? 4'b0111 :
+                        (|(rs2D ^ 0)) & dec_sign2M2.regwrite & (~|(rs2D ^ dec_sign2M2.writereg)) ? 4'b0110 :
+                        (|(rs2D ^ 0)) & dec_sign2W.regwrite & (~|(rs2D ^ dec_sign2W.writereg)) ? 4'b0101 :
+                        (|(rs2D ^ 0)) & dec_sign1E.regwrite & (~|(rs2D ^ dec_sign1E.writereg)) ? 4'b0100 :
+                        (|(rs2D ^ 0)) & dec_sign1M.regwrite & (~|(rs2D ^ dec_sign1M.writereg)) ? 4'b0011 :
+                        (|(rs2D ^ 0)) & dec_sign1M2.regwrite & (~|(rs2D ^ dec_sign1M2.writereg)) ? 4'b0010 :
+                        (|(rs2D ^ 0)) & dec_sign1W.regwrite & (~|(rs2D ^ dec_sign1W.writereg)) ? 4'b0001 :
+                        4'b0000;
+    assign forward2_2D = (|(rt2D ^ 0)) & dec_sign2E.regwrite & (~|(rt2D ^ dec_sign2E.writereg)) ? 4'b1000 :
+                        (|(rt2D ^ 0)) & dec_sign2M.regwrite & (~|(rt2D ^ dec_sign2M.writereg)) ? 4'b0111 :
+                        (|(rt2D ^ 0)) & dec_sign2M2.regwrite & (~|(rt2D ^ dec_sign2M2.writereg)) ? 4'b0110 :
+                        (|(rt2D ^ 0)) & dec_sign2W.regwrite & (~|(rt2D ^ dec_sign2W.writereg)) ? 4'b0101 :
+                        (|(rt2D ^ 0)) & dec_sign1E.regwrite & (~|(rt2D ^ dec_sign1E.writereg)) ? 4'b0100 :
+                        (|(rt2D ^ 0)) & dec_sign1M.regwrite & (~|(rt2D ^ dec_sign1M.writereg)) ? 4'b0011 :
+                        (|(rt2D ^ 0)) & dec_sign1M2.regwrite & (~|(rt2D ^ dec_sign1M2.writereg)) ? 4'b0010 :
+                        (|(rt2D ^ 0)) & dec_sign1W.regwrite & (~|(rt2D ^ dec_sign1W.writereg)) ? 4'b0001 :
+                        4'b0000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
-    wire branch_ok =(~branchM | branchM & pre_right) & branchD & pred_takeD;
+    wire branch1_ok = branch1D & pred_takeD;
+    wire pc_change1D = (jump1D | branch1_ok)
+    wire branch2_ok = branch2D & pred_takeD;
+    wire pc_change2D = (jump2D | branch2_ok)
+
+    wire fulsh_ex = flush_exception_masterM | flush_exception_slaveM;
+    wire only_one = master_only_oneD | slave_only_oneD 
+                | (dec_sign1D.regwrite & (rs2D == dec_sign1D.writereg | rt2D == dec_sign1D.writereg))
+                | (dec_sign2D.hilotoreg & dec_sign1D.DivMulEn);
+    wire muldiv_conflict = dec_sign1D.DivMulEn & dec_sign2D.DivMulEn;
+    wire pred_failed = pred_failed_masterE | pred_failed_slaveE;
     
-    assign longest_stall=id_cache_stall|alu_stallE;
+    assign longest_stall=id_cache_stall | alu_stallE;
+
     // Is mfc0 mfhilo lw and Operand is the same 
-    assign stallDblank= ((((~|(forward_2D ^ 3'b100)) | (~|(forward_1D ^ 3'b100))) & (is_mfcE | mem_readE)) 
-                | ((((~|(forward_1D ^ 3'b011))) | ((~|(forward_2D ^ 3'b011))))& (mem_readM)));
-    assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank | Blank_SL));
-    assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL;
-    assign stallF2 =  id_cache_stall | alu_stallE| stallDblank | Blank_SL;
-    assign stallD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
-    assign stallE =  id_cache_stall| alu_stallE | Blank_SL;
-    assign stallM =  id_cache_stall| alu_stallE | Blank_SL;
-    assign stallM2 = id_cache_stall| alu_stallE;
-    assign stallW =  ~flush_exceptionM &(id_cache_stall | alu_stallE);
+    assign stallDblank= ((((~|(forward1_2D ^ 4'b0100)) | (~|(forward1_1D ^ 4'b0100))) & (is_mfcE | mem_readE)) 
+                | ((((~|(forward1_1D ^ 4'b0011))) | ((~|(forward1_2D ^ 4'b0011))))& (mem_readM)));
+
+    assign stallF = (~fulsh_ex & (id_cache_stall | alu_stallE | stallDblank | Blank_SL | only_one));
+    assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL | only_one;
+    assign stallF2 =  id_cache_stall | alu_stallE| stallDblank | Blank_SL | only_one;
+
+    assign stall_masterD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
+    assign stall_slaveD = id_cache_stall| alu_stallE | stallDblank | Blank_SL | only_one;
+
+    assign stall_masterE =  id_cache_stall| alu_stallE | Blank_SL;
+    assign stall_slaveE =  id_cache_stall| alu_stallE | Blank_SL;
+
+    assign stall_masterM =  id_cache_stall| alu_stallE | Blank_SL;
+    assign stall_slaveM =  id_cache_stall| alu_stallE | Blank_SL;
+
+    assign stall_masterM2 = id_cache_stall| alu_stallE;
+    assign stall_slaveM2 = id_cache_stall| alu_stallE;
+    
+    assign stall_masterW =  ~fulsh_ex & (id_cache_stall | alu_stallE);
+    assign stall_slaveW =  ~fulsh_ex & (id_cache_stall | alu_stallE);
 
     assign flushF = 1'b0;
-    assign flushF2 = flush_exceptionM | flush_pred_failedM | ((jumpD | branch_ok) & ~stallF2); 
-    assign flushD = flush_exceptionM | flush_pred_failedM; 
-    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) |(~stallE & stallDblank) ; 
-    assign flushM = flush_exceptionM;
-    assign flushM2 = flush_exceptionM |(~stallM2 & Blank_SL);
+
+    assign flushF2 = fulsh_ex | pred_failed | ((pc_change1D | pc_change2D) & ~stallF2); 
+
+    assign flush_masterD = fulsh_ex | pred_failed | ((pc_change1D | only_one)    & ~stall_masterD);
+    assign flush_slaveD = fulsh_ex | pred_failed  | ((pc_change1D | pc_change2D) & ~stall_slaveD);
+
+    assign flush_masterE = fulsh_ex | ((pred_failed_masterE |stallDblank | muldiv_conflict) & ~stall_masterE);
+    assign flush_slaveE = fulsh_ex  | ((pred_failed | stallDblank | only_one) & ~stall_slaveE) ;
+
+    assign flush_masterM = fulsh_ex;
+    assign flush_slaveM = fulsh_ex;
+
+    assign flush_masterM2 = flush_exception_masterM |(~stall_masterM2 & Blank_SL);
+    assign flush_slaveM2 = fulsh_ex |(~stall_slaveM2 & Blank_SL);
+    
     assign flushW = 1'b0;
 endmodule

@@ -2,14 +2,14 @@
 module BranchPredict(
     input wire clk, rst,
     
-    input wire flushD,
-    input wire stallD,
+    input wire flush_masterD,
+    input wire stall_masterD,
 
     input wire [31:0] instrD,
     input wire [31:0] immD,
 
-    input wire [31:0] pcF,
-    input wire [31:0] pcM,
+    input wire [31:0] PcF2,
+    input wire [31:0] pcE,
     input wire branchE,
     input wire actual_takeE,
 
@@ -40,7 +40,7 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] BHT_index;
     wire [(PHT_DEPTH-1):0] BHR_value;
 
-    assign BHT_index = pcF[11:2];     
+    assign BHT_index = PcF2[11:2];     
     assign BHR_value = BHT[BHT_index];  
     assign PHT_index = BHR_value;
 
@@ -51,7 +51,7 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] update_BHT_index;
     wire [(PHT_DEPTH-1):0] update_BHR_value;
 
-    assign update_BHT_index = pcM[11:2];     
+    assign update_BHT_index = pcE[11:2];     
     assign update_BHR_value = BHT[update_BHT_index];  
     assign update_PHT_index = update_BHR_value;
 
@@ -83,10 +83,10 @@ module BranchPredict(
 
 // --------------------------pipeline------------------------------
     always @(posedge clk) begin
-        if(rst | flushD) begin
+        if(rst | flush_masterD) begin
             pred_takeF_r <= 0;
         end
-        else if(~stallD) begin
+        else if(~stall_masterD) begin
             pred_takeF_r <= pred_takeF;
         end
     end

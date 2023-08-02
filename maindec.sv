@@ -3,7 +3,8 @@
 module maindec(
 		input wire[31:0] instrD,
 
-		output ctrl_sign dec_sign
+		output ctrl_sign dec_sign,
+		output reg only_oneD_inst
     );
 			
 
@@ -54,6 +55,7 @@ module maindec(
 		endcase
 	end
 	always @(*) begin
+		only_oneD_inst = 1'b0;
 		case(opD)
 			`R_TYPE:begin
 				dec_sign.is_mfc=1'b0;
@@ -259,6 +261,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`MEM_OP;
+				only_oneD_inst = 1;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b110;
 			end
@@ -266,6 +269,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`MEM_OP;
+				only_oneD_inst = 1;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0001;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b001;
 			end
@@ -296,6 +300,7 @@ module maindec(
 			end
 
 			`COP0_INST:begin
+				only_oneD_inst = 1;
 				case(rsD)
 					`MTC0: begin
 						dec_sign.ri=1'b0;

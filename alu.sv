@@ -1,11 +1,11 @@
 `include "defines2.vh"
 
 module alu(
-    input wire clk, rst,stallE,flushE,
+    input wire clk, rst,stall_masterE,flush_masterE,
     input wire [31:0] src_aE, src_bE,
     input wire [7:0] alucontrolE, 
     input wire [4:0] sa, msbd,
-    input wire mfhiE, mfloE, flush_exceptionM, DivMulEnE,
+    input wire mfhiE, mfloE, flush_exception_masterM, DivMulEnE,
     
     output wire alustallE,
     output reg [31:0] aluoutE, 
@@ -334,7 +334,7 @@ module alu(
     mul mul(
 		.clk(clk),
 		.rst(rst),
-        .flush(flushE),
+        .flush(flush_masterE),
 		.opdata1_i(src_aE),  
 		.opdata2_i(src_bE),  
 		.start_i(mul_startE),
@@ -348,7 +348,7 @@ module alu(
 	div div(
 		.clk(clk),
 		.rst(rst),
-        .flush(flushE),
+        .flush(flush_masterE),
 		.opdata1_i(src_aE),  //divident
 		.opdata2_i(src_bE),  //divisor
 		.start_i(div_startE),
@@ -361,6 +361,6 @@ module alu(
 	);
 
 // hilo
-    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exception_masterM , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
 
 endmodule

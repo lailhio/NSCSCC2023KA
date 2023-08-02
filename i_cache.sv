@@ -104,8 +104,8 @@ module i_cache #(
     wire [31:0] cache_inst1_rdata;
     wire [31:0] cache_inst2_rdata;
 
-    assign cache_inst1_rdata = lineLoc_IF2[2] ? c_block_IF2[c_way[1]][63:32] : c_block_IF2[c_way[1]][31:0];
-    assign cache_inst2_rdata = lineLoc_IF2[2] ? 32'b0                        : c_block_IF2[c_way[1]][63:32];
+    assign cache_inst1_rdata = lineLoc_IF2[2] ? 32'b0: c_block_IF2[c_way[1]][31:0];
+    assign cache_inst2_rdata = c_block_IF2[c_way[1]][63:32];
     
     assign cpu_inst1_rdata   = pre_state != IDLE ? axi_inst1_rdata : cache_inst1_rdata;
     assign cpu_inst2_rdata   = pre_state != IDLE ? axi_inst2_rdata : cache_inst2_rdata;
@@ -222,8 +222,8 @@ module i_cache #(
                     end
                     else if (i_rvalid & i_rready) begin
                         i_rready <= 1'b0;
-                        axi_inst1_rdata <= i_rdata;
-                        axi_inst2_rdata <= 32'b0;
+                        axi_inst1_rdata <= lineLoc_IF3[2] ? 32'b0 : i_rdata;
+                        axi_inst2_rdata <= lineLoc_IF3[2] ? i_rdata : 32'b0;
                     end
                     else if (~i_rvalid & ~i_rready)begin
                         cpu_instr_ok <=1;
@@ -251,11 +251,11 @@ module i_cache #(
                                 wena_data_bank_way[tway_IF3] <= 0;
                                 wena_tag_ram_way[tway_IF3] <= 0;
                             end
-                            if(axi_cnt == lineLoc_IF3[LEN_LINE-1:2])  begin
+                            if(axi_cnt[LEN_LINE-1:3] == lineLoc_IF3[LEN_LINE-1:3])  begin
                                 inst2_Ren <= 1;
-                                axi_inst1_rdata <= i_rdata;
+                                axi_inst1_rdata <= lineLoc_IF3[2] ? 32'b0 : i_rdata;
                             end
-                            else if(inst2_Ren & ~lineLoc_IF3[2])begin
+                            else if(inst2_Ren)begin
                                 inst2_Ren <= 0;
                                 axi_inst2_rdata <= i_rdata;
                             end

@@ -785,6 +785,8 @@ typedef struct packed{
     logic [1:0] regdst;     	//写寄存器选择  00-> rd, 01-> rt, 10-> ?$ra
     logic is_imm;        //alu srcb选择 0->rd2E, 1->immE
     logic regwrite;	//写寄存器堆使能
+    logic read_rs;
+    logic read_rt;
     logic mem_read; 
     logic mem_write;
     logic memtoreg;         	//result选择 0->aluout, 1->read_data
@@ -795,13 +797,14 @@ typedef struct packed{
     logic eret;
     logic cp0_write;
     logic cp0_to_reg;
+    logic DivMulEn;
         
     logic mfhi;
     logic mflo;
     logic is_mfc;   //为mfc0
+	logic [4:0] writereg;//写寄存器号
     logic [7:0] alucontrol;
     logic [2:0] branch_judge_control;
-    logic DivMulEn;
 } ctrl_sign;
 
 typedef struct packed {

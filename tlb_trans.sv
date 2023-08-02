@@ -2,7 +2,7 @@
 
 module tlb_trans (
     input wire clk, rst,
-    input wire stallM, flushM, stallF,
+    input wire stall_masterM, flush_masterM, stallF,
     input wire [31:0] inst_vaddr,
     input wire [31:0] data_vaddr,
     input wire inst_en,
