@@ -292,7 +292,7 @@ module d_cache#(
                     cpu_data_size_M3 <= cpu_data_size_M2;
                     cpu_data_addr_M3 <= cpu_data_addr_M2;
                     data_sram_wen_M3 <= data_sram_wen_M2;
-                    if (no_cache_M2 &  ~(pre_state == NOCACHE & ~no_cache)) begin
+                    if (no_cache_M2) begin
                         if(store) begin
                             d_wstrb <= data_sram_wen_M2;
                             d_awlen  <= 0;

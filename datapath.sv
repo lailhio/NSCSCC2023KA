@@ -233,8 +233,9 @@ module datapath(
             dec_sign1W.writereg, dec_sign2W.writereg, result1W, result2W
             Mrd1D, Mrd2D, Srd1D, Srd2D);
     // 立即数左移2 + pc+4得到分支跳转地址   
-    assign pc_branch1D = {immd1D[29:0], 2'b00} + PcPlus4D; // todo
-    assign pc_branch2D = {immd2D[29:0], 2'b00} + PcPlus8D; // todo
+    assign pc_branch1D = {immd1D[29:0], 2'b00} + PcPlus4D; 
+    assign pc_branch2D = {immd2D[29:0], 2'b00} + PcPlus8D; 
+    assign delayslot_slaveD = branch1D | jump1D; //通过前一条指令，判断是否是延迟槽
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst1(instr1D[15:11], instr1D[20:16], 5'd31, dec_sign1D.regdst, dec_sign1D.writereg);
     mux3 #(5) mux3_regdst2(instr2D[15:11], instr2D[20:16], 5'd31, dec_sign2D.regdst, dec_sign2D.writereg);
