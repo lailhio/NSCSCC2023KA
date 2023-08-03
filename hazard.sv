@@ -8,7 +8,7 @@ module hazard(
     input wire master_only_oneD, slave_only_oneD,
 
     input wire pred_failed_masterE, pred_failed_slaveE, flush_exception_masterM, flush_exception_slaveM
-    input wire jump1D, jump2D, branch1D, branch2D, branch1E, branch2E, pre_right, pred_takeD,
+    input wire jump1D, jump2D, branch1D, branch2D, branch1E, branch2E, pred_take1D, pred_take2D,
 
     input ctrl_sign dec_sign1D, dec_sign2D, dec_sign1E, dec_sign2E, 
     input ctrl_sign dec_sign1M, dec_sign2M, dec_sign1M2, dec_sign2M2, dec_sign1W, dec_sign2W, 
@@ -67,9 +67,9 @@ module hazard(
                         4'b0000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
-    wire branch1_ok = branch1D & pred_takeD;
+    wire branch1_ok = branch1D & pred_take1D;
     wire pc_change1D = (jump1D | branch1_ok)
-    wire branch2_ok = branch2D & pred_takeD;
+    wire branch2_ok = branch2D & pred_take2D;
     wire pc_change2D = (jump2D | branch2_ok)
 
     wire fulsh_ex = flush_exception_masterM | flush_exception_slaveM;

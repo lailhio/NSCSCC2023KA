@@ -45,7 +45,7 @@ module datapath(
     wire [31:0] src2_a1D, src2_b1D,src2_aD, src2_bD; //alu输入（操作数
     wire [31:0] Mrd1D, Mrd2D, immd1D, pc_branch1D, pc_jump1D;  //寄存器读出数据 立即数 pc分支 跳转
     wire [31:0] Srd1D, Srd2D, immd2D, pc_branch2D, pc_jump2D;  //寄存器读出数据 立即数 pc分支 跳转
-    wire        pred_takeD, branch1D, branch2D, jump1D, jump2D;  //立即数扩展 分支预测 branch jump信号
+    wire        pred_take1D, branch1D, branch2D, jump1D, jump2D;  //立即数扩展 分支预测 branch jump信号
     wire        pred_failedE, pred_failed_masterE, pred_failed_slaveE;  //分支预测失败
 
     wire        delayslot_masterD, delayslot_slaveD;//指令是否在延迟槽
@@ -53,8 +53,8 @@ module datapath(
     wire [2:0]  forward1_2D, forward2_2D;
 	//-------execute stage----------
     ctrl_sign   dec_sign1E, dec_sign2E;
-	wire [31:0] pcE, pcplus4E, PcPlus8E, PcPlus12E; //pc pc+4 寄存器号 写内存 立即数
-    wire        pred_takeE;  //分支预测
+	wire [31:0] pcE, PcPlus4E, PcPlus8E, PcPlus12E; //pc pc+4 寄存器号 写内存 立即数
+    wire        pred_take1E;  //分支预测
 
     wire [31:0] src1_a1E, src1_b1E; //alu输入（操作数
     wire [31:0] src1_aE, src1_bE; //alu输入（操作数
@@ -64,7 +64,7 @@ module datapath(
 
     wire [31:0] instrE;
     // wire        alu_stallE;  //alu暂停
-    wire        actual_takeE;  //分支预测 实际结果
+    wire        actual_take1E, actual_take2E;  //分支预测 实际结果
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
  // 异常处理信号
@@ -84,7 +84,7 @@ module datapath(
     wire        memtoregM;  //写回寄存器选择信号
     wire [31:0] result1M, result2M;  // mem out
     wire        pre_right;  // 预测正确
-    wire        pred_takeM; // 预测
+    wire        pred_take1M; // 预测
     wire        branchM; // 分支信号
     wire [31:0] pc_branch1M; //分支跳转地址
 
@@ -154,7 +154,7 @@ module datapath(
         .dec_sign1M(dec_sign1M), .dec_sign2M(dec_sign2M), 
         .dec_sign1M2(dec_sign1M2), .dec_sign2M2(dec_sign2M2), 
         .dec_sign1W(dec_sign1W), .dec_sign2W(dec_sign2W), 
-        .pre_right(pre_right), .pred_takeD(pred_takeD),
+        .pre_right(pre_right), .pred_take1D(pred_take1D),
 
         .rs1D(instr1D[25:21]), .rt1D(instr1D[20:16]),
         .rs2D(instr2D[25:21]), .rt2D(instr2D[20:16]),
@@ -191,10 +191,10 @@ module datapath(
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
         .branch1D(branch1D), .branch1E(branch1E), .branch2D(branch2D), .branch2E(branch2E), 
-        .pre_right(pre_right), .actual_takeE(actual_takeE),
-        .pred_takeD(pred_takeD), .pc_trapM(pc_trapM), .jump1D(jump1D), .jump2D(jump2D),
+        .pre_right(pre_right), .actual_take1E(actual_take1E), .actual_take2E(actual_take2E),
+        .pred_take1D(pred_take1D), .pc_trapM(pc_trapM), .jump1D(jump1D), .jump2D(jump2D),
 
-        .pc_exceptionM(pc_exceptionM), .pcplus4E(pcplus4E), .pc_branch1M(pc_branch1M), .pc_branch2M(pc_branch2M),
+        .pc_exceptionM(pc_exceptionM), .PcPlus4E(PcPlus4E), .pc_branch1M(pc_branch1M), .pc_branch2M(pc_branch2M),
         .pc_jump1D(pc_jump1D), .pc_branch1D(pc_branch1D), .pc_jump2D(pc_jump2D), .pc_branch2D(pc_branch2D), 
         .PcPlus4F(PcPlus4F), .PcPlus8F(PcPlus8F), 
 
@@ -242,30 +242,30 @@ module datapath(
     mux3 #(5) mux3_regdst1(instr1D[15:11], instr1D[20:16], 5'd31, dec_sign1D.regdst, dec_sign1D.writereg);
     mux3 #(5) mux3_regdst2(instr2D[15:11], instr2D[20:16], 5'd31, dec_sign2D.regdst, dec_sign2D.writereg);
     // Forward 1
-    mux8 #(32) mux8_forward1_1D(Mrd1D, result1W, result1M2, result1M, aluout1E, instr1D[10:6], 32'b0, 32'b0, forward1_1D, src1_a1D);
-    mux8 #(32) mux8_forward1_2D(Mrd2D, result1W, result1M2, result1M, aluout1E, 32'b0, 32'b0, 32'b0, forward1_2D, src1_b1D);
+    mux9 #(32) mux9_forward1_1D(Mrd1D, result1W, result1M2, result1M, aluout1E, result2W, result2M2, result2M, aluout2E,  
+                                forward1_1D, src1_a1D);
+    mux9 #(32) mux9_forward1_2D(Mrd2D, result1W, result1M2, result1M, aluout1E, result2W, result2M2, result2M, aluout2E,  
+                                forward1_2D, src1_b1D);
     // Forward 2
-    mux8 #(32) mux8_forward2_1D(Srd1D, result2W, result2M2, result2M, aluout2E, instr2D[10:6], 32'b0, 32'b0, forward2_1D, src2_a1D);
-    mux8 #(32) mux8_forward2_2D(Srd2D, result2W, result2M2, result2M, aluout2E, 32'b0, 32'b0, 32'b0, forward2_2D, src2_b1D);
+    mux9 #(32) mux9_forward2_1D(Srd1D, result1W, result1M2, result1M, aluout1E, result2W, result2M2, result2M, aluout2E,  
+                                forward2_1D, src2_a1D);
+    mux9 #(32) mux9_forward2_2D(Srd2D, result1W, result1M2, result1M, aluout1E, result2W, result2M2, result2M, aluout2E,  
+                                forward2_2D, src2_b1D);
     //choose immd1
-    mux2 #(32) mux2_immd1(src1_b1D, immd1D ,is_immd1D,  src1_bD);
-    mux2 #(32) mux2_immd2(src2_b1D, immd2D ,is_immd2D,  src2_bD);
+    mux2 #(32) mux2_immd1(src1_b1D, immd1D ,dec_sign1D.is_imm,  src1_bD);
+    mux2 #(32) mux2_immd2(src2_b1D, immd2D ,dec_sign2D.is_imm,  src2_bD);
     //choose jump
-    mux2 #(32) mux2_jump(src1_a1D,PcPlus4F2, jump1D | branch1D,src1_aD);
-    mux2 #(32) mux2_jump(src2_a1D,PcPlus4F2, jump1D | branch1D,src2_aD);
+    mux2 #(32) mux2_jump(src1_a1D, PcPlus8D, jump1D | branch1D, src1_aD);
+    mux2 #(32) mux2_jump(src2_a1D, PcPlus12D, jump2D | branch2D, src2_aD);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
-        .flush_masterD(flush_masterD),.stall_masterD(stall_masterD),.instrD(instrD),
-        
-        .immd1D(immd1D),
-        .PcF2(PcF2),
-        .pcE(pcE),
-        .branchE(branchE),
-        .actual_takeE(actual_takeE),
+        .flush_masterD(flush_masterD),.stall_masterD(stall_masterD), .flush_slaveD(flush_slaveD), stall_slaveD(stall_slaveD),
+        .instr1D(instr1D), .instr2D(instr2D), .PcF2(PcF2), PcPlus4F2(PcPlus4F2), .pcE(pcE), .PcPlus4E(PcPlus4E),
+        .branch1E(branch1E), .branch2E(branch2E),  .actual_take1E(actual_take1E), .actual_take2E(actual_take2E),
 
-        .branchD(branch1D),
-        .pred_takeD(pred_takeD)
+        .branch1D(branch1D), .branch2D(branch2D),
+        .pred_take1D(pred_take1D) ,.pred_take2D(pred_take2D)
     );
     // jump, assign Logic
     jump_control jump_control(
@@ -283,11 +283,11 @@ module datapath(
     flopstrc #(32) flopSrcb1E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(src1_b1D),.out(src1_b1E));
     flopstrc #(32) flopSrcaE(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(src1_aD),.out(src1_aE));
     flopstrc #(32) flopSrcbE(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(src1_bD),.out(src1_bE));
-    flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(PcPlus4D),.out(pcplus4E));
+    flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(PcPlus4D),.out(PcPlus4E));
     flopstrc #(32) flopPcbranchE(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(pc_branch1D),.out(pc_branch1E));
     flopstrc #(8) flopSign1E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),
-        .in({branch1D,pred_takeD,delayslot_masterD,regwriteD,riD,breakD,hilotoregD}),
-        .out({branchE,pred_takeE,delayslot_masterE,regwriteE,riE,breakE,hilotoregE}));
+        .in({branch1D,pred_take1D,delayslot_masterD,regwriteD,riD,breakD,hilotoregD}),
+        .out({branchE,pred_take1E,delayslot_masterE,regwriteE,riE,breakE,hilotoregE}));
     flopstrc #(11) flopSign2E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD, DivMulEnD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE, DivMulEnE}));
@@ -308,17 +308,24 @@ module datapath(
     );
     
 	//在execute阶段得到真实branch跳转情况
-    branch_check branch_check(
-        .branch_judge_controlE(branch_judge_controlE),
+    branch_check branch_check1(
+        .branch_judge_controlE(dec_sign1E.branch_judge_control),
         .rs_valueE(src1_a1E),
         .rt_valueE(src1_b1E),
-        .actual_takeE(actual_takeE)
+        .actual_takeE(actual_take1E)
+    );
+    branch_check branch_check2(
+        .branch_judge_controlE(dec_sign2E.branch_judge_control),
+        .rs_valueE(src2_a1E),
+        .rt_valueE(src2_b1E),
+        .actual_takeE(actual_take2E)
     );
     //分支预测结果
-    assign pre_right = ~(pred_takeE ^ actual_takeE); 
-    assign pred_failedE = ~pre_right;
-    assign pred_failed_masterE = ~pre_right & branch1E;
-    assign pred_failed_slaveE = ~pre_right & branch2E;
+    
+    assign pre_right = ~(pred_take1E ^ actual_take1E) & ~(pred_take2E ^ actual_take2E); 
+    assign pred_failedE = (pred_take1E ^ actual_take1E) | (pred_take2E ^ actual_take2E);
+    assign pred_failed_masterE = pred_take1E ^ actual_take1E;
+    assign pred_failed_slaveE = pred_take2E ^ actual_take2E;
 	//-------------------------------------Memory----------------------------------------
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(pcE),.out(pcM));
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(aluout1E),.out(aluout1M));
@@ -326,8 +333,8 @@ module datapath(
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(pc_branch1E),.out(pc_branch1M));
     flopstrc #(9) flopSign1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),
-        .in({regwriteE,pred_takeE,branchE,delayslot_masterE, mem_readE,mem_writeE,memtoregE,breakE}),
-        .out({regwriteM,pred_takeM,branchM,delayslot_masterM, mem_readM,mem_writeM,memtoregM,breakM}));
+        .in({regwriteE,pred_take1E,branchE,delayslot_masterE, mem_readE,mem_writeE,memtoregE,breakE}),
+        .out({regwriteM,pred_take1M,branchM,delayslot_masterM, mem_readM,mem_writeM,memtoregM,breakM}));
     flopstrc #(7) flopSign2M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),
         .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,hilotoregE}),
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,hilotoregM}));
