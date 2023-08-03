@@ -22,13 +22,15 @@ module maindec(
 
 	assign dec_sign.sign_ex = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
+	assign hilo_write = 1'b0;
 	assign dec_sign.hilo_read_to_reg = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
-														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
-	assign dec_sign.mfhi = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
-	assign dec_sign.mflo = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
+
+	// 似乎只有这两条
 	assign dec_sign.cp0_write = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MTC0));
 	assign dec_sign.cp0_read_to_reg = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MFC0));
 	
+	assign dec_sign.mfhi = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
+	assign dec_sign.mflo = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
 	assign dec_sign.eret = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `ERET));
 	assign dec_sign.breaks = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign dec_sign.syscall = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));

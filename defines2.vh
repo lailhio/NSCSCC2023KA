@@ -790,7 +790,8 @@ typedef struct packed{
     logic mem_read; 
     logic mem_write;
     logic memtoreg;         	//result选择 0->aluout, 1->read_data
-    logic hilo_read_to_reg;			//read 00--aluoutM; 01--hilo_out; 10 11--rdataM;
+    logic hilo_write;
+    logic hilo_read_to_reg;
     logic ri;
     logic breaks; 
     logic syscall; 
