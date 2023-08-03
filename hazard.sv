@@ -75,7 +75,7 @@ module hazard(
     wire fulsh_ex = flush_exception_masterM | flush_exception_slaveM;
     wire only_one = master_only_oneD | slave_only_oneD 
                 | (dec_sign1D.regwrite & (rs2D == dec_sign1D.writereg | rt2D == dec_sign1D.writereg))
-                | (dec_sign2D.hilotoreg & dec_sign1D.DivMulEn);
+                | (dec_sign2D.hilo_read_to_reg & dec_sign1D.DivMulEn);
     wire muldiv_conflict = dec_sign1D.DivMulEn & dec_sign2D.DivMulEn;
     wire pred_failed = pred_failed_masterE | pred_failed_slaveE;
     
