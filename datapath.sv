@@ -34,25 +34,25 @@ module datapath(
     //--------InstFetch2 stage----------
 	wire [31:0] PcPlus4F2, PcPlus8F2, PcPlus12F2;    //pc
     wire [31:0] PcF2;    //pc
-    wire delayslot_masterF2; // 此时的D阶段（即上一条指令）是否为跳转指令
+    wire        delayslot_masterF2, delayslot_slaveF2; // 此时的D阶段（即上一条指令）是否为跳转指令
 	//----------decode stage---------
     ctrl_sign   dec_sign1D, dec_sign2D;
     wire        master_only_oneD, slave_only_oneD;
 	wire [31:0] instr1D;  //指令
-    wire [31:0] PcD, PcPlus4D, PcPlus8D;  //pc
+    wire [31:0] PcD, PcPlus4D, PcPlus8D, PcPlus12D;  //pc
     wire [31:0] src1_a1D, src1_b1D,src1_aD, src1_bD; //alu输入（操作数
     wire [31:0] src2_a1D, src2_b1D,src2_aD, src2_bD; //alu输入（操作数
     wire [31:0] Mrd1D, Mrd2D, immd1D, pc_branch1D, pc_jump1D;  //寄存器读出数据 立即数 pc分支 跳转
     wire [31:0] Srd1D, Srd2D, immd2D, pc_branch2D, pc_jump2D;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branch1D, branch2D, jump1D, jump2D;  //立即数扩展 分支预测 branch jump信号
-    wire        pred_failed_masterE;  //分支预测失败
+    wire        pred_failed_masterE, pred_failed_slaveE;  //分支预测失败
 
-    wire        delayslot_masterD;//指令是否在延迟槽
+    wire        delayslot_masterD, delayslot_slaveD;//指令是否在延迟槽
     wire [2:0]  forward1_1D, forward2_1D;
     wire [2:0]  forward1_2D, forward2_2D;
 	//-------execute stage----------
     ctrl_sign   dec_sign1E, dec_sign2E;
-	wire [31:0] pcE, pcplus4E, PcPlus8E; //pc pc+4 寄存器号 写内存 立即数
+	wire [31:0] pcE, pcplus4E, PcPlus8E, PcPlus12E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
 
     wire [31:0] src1_a1E, src1_b1E; //alu输入（操作数
@@ -146,7 +146,7 @@ module datapath(
         .alu_stallE(alu_stallE),
         .master_only_oneD(master_only_oneD), slave_only_oneD(slave_only_oneD), 
 
-        .jump1D (jump1D), .jump2D (jump2D), .branch1D()
+        .jump1D (jump1D), .jump2D (jump2D), .branch1D(branch1D), branch2D(branch2D),
         .pred_failed_masterE(pred_failed_masterE), .pred_failed_slaveE(pred_failed_slaveE),
         .flush_exception_masterM(flush_exception_masterM), .flush_exception_slaveM(flush_exception_slaveM),
 
@@ -208,7 +208,7 @@ module datapath(
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
     assign inst1_validF2 = {32{inst_enF2}}&inst1_F2;  // Discard Not Valid
     assign inst2_validF2 = {32{inst_enF2}}&inst2_F2;  // Discard Not Valid
-    assign delayslot_masterF2 = branch1D | jump1D; //通过前一条指令，判断是否是延迟槽
+    assign delayslot_masterF2 = branch2D | jump2D; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
 
 
@@ -233,8 +233,9 @@ module datapath(
             dec_sign1W.writereg, dec_sign2W.writereg, result1W, result2W
             Mrd1D, Mrd2D, Srd1D, Srd2D);
     // 立即数左移2 + pc+4得到分支跳转地址   
-    assign pc_branch1D = {immd1D[29:0], 2'b00} + PcPlus4D; // todo
-    assign pc_branch2D = {immd2D[29:0], 2'b00} + PcPlus8D; // todo
+    assign pc_branch1D = {immd1D[29:0], 2'b00} + PcPlus4D; 
+    assign pc_branch2D = {immd2D[29:0], 2'b00} + PcPlus8D; 
+    assign delayslot_slaveD = branch1D | jump1D; //通过前一条指令，判断是否是延迟槽
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst1(instr1D[15:11], instr1D[20:16], 5'd31, dec_sign1D.regdst, dec_sign1D.writereg);
     mux3 #(5) mux3_regdst2(instr2D[15:11], instr2D[20:16], 5'd31, dec_sign2D.regdst, dec_sign2D.writereg);
