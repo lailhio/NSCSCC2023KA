@@ -55,7 +55,7 @@ module hazard(
     // Is mfc0 mfhilo lw and Operand is the same 
     assign stallDblank= (((((forward_2D == 3'b100)) | ((forward_1D == 3'b100))) & (is_mfcE | mem_readE)) 
                 | (((((forward_1D == 3'b011))) | (((forward_2D == 3'b011))))& (mem_readM)));
-    assign stallF = (~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank | Blank_SL));
+    assign stallF = ~flush_exceptionM & (id_cache_stall | alu_stallE | stallDblank | Blank_SL);
     assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL;
     assign stallF2 =  id_cache_stall | alu_stallE| stallDblank | Blank_SL;
     assign stallD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
@@ -67,7 +67,7 @@ module hazard(
     assign flushF = 1'b0;
     assign flushF2 = flush_exceptionM | flush_pred_failedM | ((jumpD | branch_ok) & ~stallF2); 
     assign flushD = flush_exceptionM | flush_pred_failedM; 
-    assign flushE = flush_exceptionM | (flush_pred_failedM & ~longest_stall) |(~stallE & stallDblank) ; 
+    assign flushE = flush_exceptionM | ((flush_pred_failedM | stallDblank) & ~stallE ) ; 
     assign flushM = flush_exceptionM;
     assign flushM2 = flush_exceptionM |(~stallM2 & Blank_SL);
     assign flushW = 1'b0;
