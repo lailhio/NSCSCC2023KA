@@ -129,8 +129,8 @@ module d_cache#(
     assign data_wr_en = isIDLE ? cpu_data_wr_M2: cpu_data_wr_M3;
     assign data_en = isIDLE ? cpu_data_en_M2 : cpu_data_en_M3;
     // hit and miss
-    assign c_way[0] = c_valid_M2[0] & ((c_tag_M2[0] == tag_M2));
-    assign c_way[1] = c_valid_M2[1] & ((c_tag_M2[1] == tag_M2));
+    assign c_way[0] = c_valid_M2[0] & (~|(c_tag_M2[0] ^ tag_M2));
+    assign c_way[1] = c_valid_M2[1] & (~|(c_tag_M2[1] ^ tag_M2));
     assign hit = |c_way & isIDLE;
     assign miss = ~hit;
 
@@ -292,7 +292,7 @@ module d_cache#(
                     cpu_data_size_M3 <= cpu_data_size_M2;
                     cpu_data_addr_M3 <= cpu_data_addr_M2;
                     data_sram_wen_M3 <= data_sram_wen_M2;
-                    if (no_cache_M2 &  ~(pre_state == NOCACHE & ~no_cache)) begin
+                    if (no_cache_M2) begin
                         if(store) begin
                             d_wstrb <= data_sram_wen_M2;
                             d_awlen  <= 0;
@@ -391,7 +391,6 @@ module d_cache#(
                         d_arsize <= 3'd2;
                         d_arvalid <= 1'b1;
                         axi_cnt <= 0 ;
-                        buff_last <= 0;
                         wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
                         wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
                         wena_tag_ram_way[tway_M3] <= 1;
