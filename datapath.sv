@@ -7,7 +7,7 @@ module datapath(
     //inst
     output wire [31:0] PC_IF1,  //指令地址
     output wire        inst_enF,  //使能
-    (*mark_debug = "true"*)input wire  [31:0] instrF2,  //注：instr ram时钟取反
+    input wire  [31:0] instrF2,  //注：instr ram时钟取反
     input wire         i_cache_stall,
 
     //data
@@ -33,13 +33,14 @@ module datapath(
 
     //--------InstFetch2 stage----------
 	wire [31:0] PcPlus4F2, PcPlus8F2;    //pc
-    (*mark_debug = "true"*) wire [31:0] PcF2;    //pc
+    wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
 	//----------decode stage---------
 	wire[5:0] aluopD;
 	wire[7:0] alucontrolD;
-	wire [31:0] instrD;  //指令
-    wire [31:0] PcD, PcPlus4D, PcPlus8D;  //pc
+	(*mark_debug = "true"*)wire [31:0] instrD;  //指令
+    (*mark_debug = "true"*)wire [31:0] PcD;
+    wire [31:0] PcPlus4D, PcPlus8D;  //pc
     wire [31:0] src_a1D, src_b1D,src_aD, src_bD; //alu输入（操作数
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号

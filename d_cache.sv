@@ -10,7 +10,7 @@ module d_cache#(
     input         cpu_data_en     , 
     input         cpu_data_wr      , // whether is store type
     input  [1 :0] cpu_data_size    , // from the addr ,write size data 
-    (*mark_debug = "true"*) input  [31:0] cpu_data_addr    ,
+    input  [31:0] cpu_data_addr    ,
     input  [31:0] cpu_data_wdata   ,
     (*mark_debug = "true"*) output [31:0] cpu_data_rdata   ,
 
