@@ -181,10 +181,12 @@ module i_cache #(
                         i_arsize <= 3'd2; //4 bytes
                         i_arvalid <= 1'b1;  //read addr is valid
                         // Write ena
-                        wena_data_bank_way[tway_IF2] <= 4'hf;// write to instram
-                        wena_data_bank_way[~tway_IF2] <= 4'h0;
-                        wena_tag_ram_way <= {tway_IF2,~tway_IF2}; //write to tag
-                        cache_valid[index_IF2][tway_IF2] <= 1'b1;
+                        wena_data_bank_way[c_lru_IF2[1]] <= 4'hf;// write to instram
+                        wena_data_bank_way[~c_lru_IF2[1]] <= 4'h0;
+                        wena_tag_ram_way <= {c_lru_IF2[1],~c_lru_IF2[1]}; //write to tag
+                        cache_valid[index_IF2][c_lru_IF2[1]] <= 1'b1;
+                        cache_lru[index_IF2][c_lru_IF2[1]] <=1'b0;
+                        cache_lru[index_IF2][~c_lru_IF2[1]] <=1'b1;
                         axi_cnt <= 0;
                         state <= CACHE_REPLACE;
                     end
