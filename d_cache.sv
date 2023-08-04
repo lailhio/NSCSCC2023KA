@@ -15,16 +15,16 @@ module d_cache#(
     (*mark_debug = "true"*) output [31:0] cpu_data_rdata   ,
 
     //D CACHE
-    output reg [31:0] d_araddr,
+    (*mark_debug = "true"*)output reg [31:0] d_araddr,
     output reg [7:0] d_arlen,
     output reg [2:0] d_arsize,
-    output reg       d_arvalid,
-    input wire        d_arready,
+    (*mark_debug = "true"*)output reg       d_arvalid,
+    (*mark_debug = "true"*)input wire        d_arready,
 
     input wire [31:0] d_rdata,
     input wire        d_rlast,
-    input wire        d_rvalid,
-    output reg         d_rready,
+    (*mark_debug = "true"*)input wire        d_rvalid,
+    (*mark_debug = "true"*)output reg         d_rready,
     //write
     output reg [31:0] d_awaddr,
     output reg [7:0] d_awlen,
