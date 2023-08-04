@@ -83,7 +83,7 @@ module datapath(
     wire        regwriteM;  //寄存器写
     wire        memtoregM;  //写回寄存器选择信号
     wire [31:0] result1M, result2M;  // mem out
-    wire        pre_right;  // 预测正确
+    wire        pre_rightE;  // 预测正确
     wire        pred_take1M; // 预测
     wire        branchM; // 分支信号
     wire [31:0] pc_branch1M; //分支跳转地址
@@ -154,7 +154,7 @@ module datapath(
         .dec_sign1M(dec_sign1M), .dec_sign2M(dec_sign2M), 
         .dec_sign1M2(dec_sign1M2), .dec_sign2M2(dec_sign2M2), 
         .dec_sign1W(dec_sign1W), .dec_sign2W(dec_sign2W), 
-        .pre_right(pre_right), .pred_take1D(pred_take1D),
+        .pre_rightE(pre_rightE), .pred_take1D(pred_take1D),
 
         .rs1D(instr1D[25:21]), .rt1D(instr1D[20:16]),
         .rs2D(instr2D[25:21]), .rt2D(instr2D[20:16]),
@@ -191,7 +191,7 @@ module datapath(
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
         .branch1D(branch1D), .branch1E(branch1E), .branch2D(branch2D), .branch2E(branch2E), 
-        .pre_right(pre_right), .actual_take1E(actual_take1E), .actual_take2E(actual_take2E),
+        .pre_rightE(pre_rightE), .actual_take1E(actual_take1E), .actual_take2E(actual_take2E),
         .pred_take1D(pred_take1D), .pc_trapM(pc_trapM), .jump1D(jump1D), .jump2D(jump2D),
 
         .pc_exceptionM(pc_exceptionM), .PcPlus4E(PcPlus4E), .pc_branch1M(pc_branch1M), .pc_branch2M(pc_branch2M),
@@ -322,7 +322,7 @@ module datapath(
     );
     //分支预测结果
     
-    assign pre_right = ~(pred_take1E ^ actual_take1E) & ~(pred_take2E ^ actual_take2E); 
+    assign pre_rightE = ~pred_failedE; 
     assign pred_failedE = (pred_take1E ^ actual_take1E) | (pred_take2E ^ actual_take2E);
     assign pred_failed_masterE = pred_take1E ^ actual_take1E;
     assign pred_failed_slaveE = pred_take2E ^ actual_take2E;
