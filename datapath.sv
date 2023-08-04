@@ -221,13 +221,13 @@ module datapath(
     assign pc_branchD = {immD[29:0], 2'b00} + PcPlus4D;
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
-    //前推至ID阶段                                                          todo shamt
-    mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, instrD[10:6], 32'b0, 32'b0, forward_1D, src_a1D);
-    mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
-    //choose imm
-    mux8 #(32) mux8_imm(rd1D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, immD, forward_1D | {3{is_immD}}, src_bD);
+    //前推至ID阶段
+    mux5 #(32) mux5_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, forward_1D, src_a1D);
+    mux5 #(32) mux5_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, forward_2D, src_b1D);
     //choose jump
-    mux8 #(32) mux8_jump(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, PcPlus8D, forward_2D | {3{jumpD | branchD}}, src_aD);
+    mux8 #(32) mux8_jump(rd1D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, PcPlus8D, forward_1D | {3{jumpD | branchD}}, src_aD);
+    //choose imm
+    mux8 #(32) mux8_imm(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, immD, forward_2D | {3{is_immD}}, src_bD);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
