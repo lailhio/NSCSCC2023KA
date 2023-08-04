@@ -3,7 +3,7 @@ module i_cache #(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst, no_cache, icache_Ctl,
+    input wire clk, rst, no_icache, icache_Ctl,
     output wire i_stall,
     //mips core input
     input  [31:0] cpu_inst_addr    ,
@@ -73,7 +73,6 @@ module i_cache #(
 
     //FSM
     parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
-    reg [1:0] pre_state;
     reg [1:0] state;
     wire isIDLE, isReplace;
     assign isIDLE = state==IDLE;
@@ -99,7 +98,7 @@ module i_cache #(
     //output to mips core
     // first stage is not stall, and the second judge whether to stall
     reg [31:0] axi_inst_rdata;
-    assign cpu_inst_rdata   = pre_state != IDLE ? axi_inst_rdata : c_block_IF2[c_way[1]];
+    assign cpu_inst_rdata   = cpu_instr_ok ? axi_inst_rdata : c_block_IF2[c_way[1]];
 
     // axi cnt
     logic [LEN_LINE-1:2] axi_cnt;
@@ -121,7 +120,7 @@ module i_cache #(
             index_IF2 <= index;
             tag_IF2 <= tag;
             cpu_inst_en_IF2 <= cpu_inst_en;
-            no_cache_IF2 <= no_cache;
+            no_cache_IF2 <= no_icache;
             c_valid_IF2 <= cache_valid[index];
             c_lru_IF2    <= cache_lru[index];
         end
@@ -132,7 +131,6 @@ module i_cache #(
             cpu_instr_ok <= 0;
             state <= IDLE;
             cpu_inst_en_IF3 <= 0;
-            pre_state <= IDLE;
             index_IF3 <= 0;
             lineLoc_IF3 <= 0;
             tag_IF3 <= 0;
@@ -156,7 +154,6 @@ module i_cache #(
             axi_cnt <= 0;
         end
         else if (cache_en)begin
-            pre_state <= state;
             case(state)
                 IDLE: begin
                     cpu_inst_en_IF3 <= cpu_inst_en_IF2;
@@ -172,6 +169,8 @@ module i_cache #(
                         i_arlen  <= 0;
                         i_arsize <= 3'd2;
                         i_arvalid <= 1'b1;
+                        wena_data_bank_way <= '{default: '0};
+                        wena_tag_ram_way <= '{default: '0}; 
                         state <= NOCACHE;
                     end
                     else if (!hit) begin
@@ -208,7 +207,7 @@ module i_cache #(
                         i_rready <= 1'b0;
                         axi_inst_rdata <= i_rdata;
                     end
-                    else if (~i_rvalid & ~i_rready)begin
+                    else if (~i_rready)begin
                         cpu_instr_ok <=1;
                         state <= IDLE;
                     end
@@ -249,7 +248,6 @@ module i_cache #(
             endcase
         end
         else if(cache_en1)begin
-            pre_state <= state;
             cpu_instr_ok <= 0;
             no_cache_IF3 <= no_cache_IF2;
         end

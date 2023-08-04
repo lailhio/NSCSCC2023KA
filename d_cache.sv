@@ -3,16 +3,16 @@ module d_cache#(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst ,no_cache, i_stall, alu_stallE,
+    input wire clk, rst ,no_dcache, i_stall, alu_stallE,
     output wire d_stall,
     input [3:0]   data_sram_wen,
     //mips core
     input         cpu_data_en     , 
     input         cpu_data_wr      , // whether is store type
     input  [1 :0] cpu_data_size    , // from the addr ,write size data 
-    input  [31:0] cpu_data_addr    ,
+    (*mark_debug = "true"*) input  [31:0] cpu_data_addr    ,
     input  [31:0] cpu_data_wdata   ,
-    output [31:0] cpu_data_rdata   ,
+    (*mark_debug = "true"*) output [31:0] cpu_data_rdata   ,
 
     //D CACHE
     output reg [31:0] d_araddr,
@@ -71,7 +71,7 @@ module d_cache#(
     reg [LEN_INDEX-1:0] index_M2;
     reg [LEN_LINE-1:0] lineLoc_M2;
     // No Cache Should be Execute in M2
-    reg  no_cache_M2;
+    (*mark_debug = "true"*)reg  no_cache_M2;
     reg [3:0] data_sram_wen_M2;
     reg cpu_data_en_M2;
     reg cpu_data_wr_M2;
@@ -79,7 +79,7 @@ module d_cache#(
     reg [1:0] cpu_data_size_M2;
     reg [31:0] cpu_data_addr_M2;
 
-    reg no_cache_M3;
+    (*mark_debug = "true"*)reg no_cache_M3;
     reg [LEN_LINE-1:0] lineLoc_M3;
     reg [LEN_INDEX-1:0] index_M3;
     reg [LEN_TAG-1:0] tag_M3;
@@ -117,8 +117,7 @@ module d_cache#(
     reg cpu_data_ok;
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
-    reg [2:0] pre_state;
-    reg [2:0] state;
+    (*mark_debug = "true"*)reg [2:0] state;
     wire isIDLE;
     assign isIDLE = state==IDLE;
 
@@ -155,8 +154,8 @@ module d_cache#(
     wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
     wire cache_en = ~cpu_data_ok & data_en;
 
-    reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
+    (*mark_debug = "true"*)reg [31:0] axi_data_rdata;
+    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[c_way[1]];
 
 
     logic [1:0] wena_tag_ram_way;
@@ -215,7 +214,7 @@ module d_cache#(
             //Nocache Process
             cpu_data_wr_M2 <= cpu_data_wr;
             cpu_data_en_M2 <= cpu_data_en;
-            no_cache_M2 <= no_cache;
+            no_cache_M2 <= no_dcache;
             data_sram_wen_M2 <= data_sram_wen;
             cpu_data_wdata_M2 <= cpu_data_wdata;
             cpu_data_size_M2 <= cpu_data_size;
@@ -233,7 +232,6 @@ module d_cache#(
     always @(posedge clk) begin
         if(rst) begin
             state <= IDLE;
-            pre_state <= IDLE;
             index_M3 <= 0;
             lineLoc_M3 <= 0;
             tag_M3 <= 0;
@@ -274,8 +272,7 @@ module d_cache#(
             d_wlast <= 0;
             d_wvalid <= 0;
         end
-        else if(cache_en)begin          
-            pre_state <= state;  
+        else if(cache_en)begin         
             case(state)
             // 按照状态机编写
                 IDLE: begin 
@@ -465,7 +462,7 @@ module d_cache#(
                             d_rready <= 1'b0;
                             axi_data_rdata <= d_rdata;
                         end
-                        else if (~d_rvalid & ~d_rready)begin
+                        else if (~d_rready)begin
                             cpu_data_ok <=1;
                             state <= IDLE;
                         end
@@ -480,7 +477,6 @@ module d_cache#(
         else if (cache_en1)begin
             no_cache_M3 <= 0;
             cpu_data_ok <= 0;
-            pre_state <= state;
         end
     end
 

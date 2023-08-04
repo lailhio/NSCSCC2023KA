@@ -9,7 +9,7 @@ module mmu (
     input wire [3:0]   data_sram_wen,
     output wire        data_wr,
     output wire [1:0]  data_size,
-    output wire no_dcache    //是否经过d cache
+    (*mark_debug = "true"*)output wire no_dcache, no_icache    //是否经过d cache
 );
     wire inst_kseg0, inst_kseg1;
     wire data_kseg0, data_kseg1;
@@ -30,5 +30,6 @@ module mmu (
            {3'b0, data_vaddr[28:0]} : data_vaddr;
     
     assign no_dcache = data_kseg1 ? 1'b1 : 1'b0;
+    assign no_icache = inst_kseg1 ? 1'b1 : 1'b0;
 
 endmodule

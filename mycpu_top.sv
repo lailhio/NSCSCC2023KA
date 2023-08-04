@@ -52,7 +52,7 @@ module mycpu_top(
     output wire[31:0] debug_wb_rf_wdata
 );
     wire rst,clk;
-    wire no_cache;
+    wire no_dcache, no_icache;
     assign clk=aclk;
     assign rst=~aresetn;
 
@@ -144,13 +144,13 @@ module mycpu_top(
     mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
                 .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
                 .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
-                .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_cache));
+                .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_dcache), .no_icache(no_icache));
     
 
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_cache(no_cache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
+        .no_dcache(no_dcache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
         .data_sram_wen(data_sram_wen),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
@@ -176,7 +176,7 @@ module mycpu_top(
 
     i_cache i_cache(
         .clk(clk), .rst(rst),
-        .no_cache(1'b0), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
+        .no_icache(no_icache), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
         
         .cpu_inst_en(cpu_inst_en),
         .cpu_inst_addr(cpu_inst_addr),

@@ -2,7 +2,7 @@
 
 module instdec(
     input wire [31:0] instr,
-    output reg [127:0] ascii
+    (*mark_debug = "true"*)output reg [47:0] ascii
     );
 
     //Instruct Divide
@@ -50,7 +50,7 @@ module instdec(
                     `MTHI: ascii = "MTHI";
                     `MTLO: ascii = "MTLO";
                     `JALR: ascii = "JALR";
-                    `SYSCALL: ascii = "SYSCALL";
+                    `SYSCALL: ascii = "SYSC";
                     `BREAK: ascii = "BREAK";
                     default: ascii ="N-R";
                 endcase
