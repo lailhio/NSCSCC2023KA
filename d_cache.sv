@@ -129,8 +129,8 @@ module d_cache#(
     assign data_wr_en = isIDLE ? cpu_data_wr_M2: cpu_data_wr_M3;
     assign data_en = isIDLE ? cpu_data_en_M2 : cpu_data_en_M3;
     // hit and miss
-    assign c_way[0] = c_valid_M2[0] & (~|(c_tag_M2[0] ^ tag_M2));
-    assign c_way[1] = c_valid_M2[1] & (~|(c_tag_M2[1] ^ tag_M2));
+    assign c_way[0] = c_valid_M2[0] & (c_tag_M2[0] == tag_M2);
+    assign c_way[1] = c_valid_M2[1] & (c_tag_M2[1] == tag_M2);
 
     assign hit = |c_way & isIDLE & ~no_cache_M2;
     assign miss = ~hit;
