@@ -131,7 +131,8 @@ module d_cache#(
     // hit and miss
     assign c_way[0] = c_valid_M2[0] & (~|(c_tag_M2[0] ^ tag_M2));
     assign c_way[1] = c_valid_M2[1] & (~|(c_tag_M2[1] ^ tag_M2));
-    assign hit = |c_way & isIDLE;
+
+    assign hit = |c_way & isIDLE & ~no_cache_M2;
     assign miss = ~hit;
 
     // load and store
@@ -149,9 +150,10 @@ module d_cache#(
     logic [LEN_LINE:2] cache_buff_cnt;
     reg buff_last;
 
-    assign d_stall = no_cache_res ? (data_en & ~cpu_data_ok) : (~hit & data_en & ~cpu_data_ok);
-    // (~i_stall | d_stall) & (~alu_stallE | data_wr_en);
-    wire cache_en = ~i_stall & (~alu_stallE | data_wr_en) | (data_en &  ~cpu_data_ok & ((no_cache_res | ~hit )));
+    assign d_stall = ~hit  & ~cpu_data_ok & data_en;
+    //  & ~(i_stall & isIDLE)
+    wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
+    wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;
     assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
@@ -206,7 +208,7 @@ module d_cache#(
             c_dirty_M2 <= 2'b00;
             c_lru_M2 <= 2'b00;
         end
-        else if(cache_en)begin
+        else if(cache_en1)begin
             lineLoc_M2 <= lineLoc;
             index_M2 <= index;
             tag_M2 <= tag;
@@ -272,7 +274,7 @@ module d_cache#(
             d_wlast <= 0;
             d_wvalid <= 0;
         end
-        else if(data_en & cache_en)begin          
+        else if(cache_en)begin          
             pre_state <= state;  
             case(state)
             // 按照状态机编写
@@ -285,7 +287,6 @@ module d_cache#(
                     lineLoc_M3 <= lineLoc_M2;
                     no_cache_M3 <= no_cache_M2;
                     tag_M3 <= tag_M2;
-                    cpu_data_ok <= 0;
                     cpu_data_en_M3 <= cpu_data_en_M2;
                     cpu_data_wr_M3 <= cpu_data_wr_M2;
                     cpu_data_wdata_M3 <= cpu_data_wdata_M2;
@@ -293,7 +294,7 @@ module d_cache#(
                     cpu_data_addr_M3 <= cpu_data_addr_M2;
                     data_sram_wen_M3 <= data_sram_wen_M2;
                     if (no_cache_M2) begin
-                        if(store) begin
+                        if(cpu_data_wr_M2) begin
                             d_wstrb <= data_sram_wen_M2;
                             d_awlen  <= 0;
                             d_awaddr <= cpu_data_addr_M2;
@@ -306,11 +307,13 @@ module d_cache#(
                             d_arsize <= 3'd2;
                             d_arvalid <= 1'b1;
                         end
+                        wena_data_bank_way <= '{default: '0};
+                        wena_tag_ram_way <= '{default: '0}; 
                         state <= NOCACHE;
                     end
                     else if (hit) begin
                         state <= IDLE;
-                        if(store) begin
+                        if(cpu_data_wr_M2) begin
                             cache_dirty[index_M2][c_way[1]] <= 1'b1;
                         end
                         cache_lru[index_M2][c_way[1]] <=1'b0;
@@ -321,6 +324,8 @@ module d_cache#(
                             state <= CACHE_WRITEBACK;
                             d_awaddr <= {c_tag_M2[c_lru_M2[1]], index_M2,{LEN_LINE{1'b0}}};
                             d_awlen <= NR_WORDS - 1;
+                            wena_data_bank_way <= '{default: '0};
+                            wena_tag_ram_way <= '{default: '0}; 
                             d_awsize <= 3'd2;
                             axi_cnt <= 1;
                         end
@@ -335,7 +340,7 @@ module d_cache#(
                             wena_tag_ram_way <= {c_lru_M2[1],~c_lru_M2[1]}; //write to tag
                             axi_cnt <= 0;
                         end
-                        if(store) begin
+                        if(cpu_data_wr_M2) begin
                             cache_dirty[index_M2][c_lru_M2[1]] <= 1'b1;
                         end
                         tway_M3 <= c_lru_M2[1];
@@ -390,6 +395,8 @@ module d_cache#(
                         d_arlen <= NR_WORDS - 1;
                         d_arsize <= 3'd2;
                         d_arvalid <= 1'b1;
+                        d_wlast <= 1'b0;
+                        buff_last <= 0;
                         axi_cnt <= 0 ;
                         wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
                         wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
@@ -470,10 +477,8 @@ module d_cache#(
                 // end
             endcase
         end
-        else begin
-            if(~data_en & cpu_data_ok)begin
-                no_cache_M3 <= 0;
-            end
+        else if (cache_en1)begin
+            no_cache_M3 <= 0;
             cpu_data_ok <= 0;
             pre_state <= state;
         end
@@ -487,8 +492,8 @@ module d_cache#(
             (
             .clka   (clk),
             .clkb   (clk),
-            .ena    (cache_en),
-            .enb    (cache_en),
+            .ena    (1'b1),
+            .enb    (cache_en1 | isCACHE_WRITEBACK),
             .addra  (index_Res),
             .dina   (tag_compare),
             .wea    (wena_tag_hitway[i]),
@@ -499,8 +504,8 @@ module d_cache#(
             (
             .clka   (clk),
             .clkb   (clk),
-            .ena    (cache_en),
-            .enb    (cache_en),
+            .ena    (1'b1),
+            .enb    (cache_en1 | isCACHE_WRITEBACK),
             .addra  ({index_Res, (hit & store ? lineLoc_M2[LEN_LINE-1:2] : axi_cnt)}),
             .dina   (data_write),
             .wea    (wena_data_hitway[i]),

@@ -180,7 +180,7 @@ module datapath(
 
     //--------------------------------------Fetch------------------------------------------------
     
-    assign inst_enF = ~flush_exception_masterM & ~pc_errorF & ~(pred_failed_masterE) & ~stallDblank;
+    assign inst_enF = ~flush_exception_masterM & ~pc_errorF & ~pred_failedE ;
     // pc+4
     assign PcFlopF = {PC_IF1[31:3], 3'b0};
     assign PcPlus4F = PcFlopF + 4;
@@ -211,6 +211,7 @@ module datapath(
     assign inst1_validF2 = {32{inst_enF2}}&inst1_F2;  // Discard Not Valid
     assign inst2_validF2 = {32{inst_enF2}}&inst2_F2;  // Discard Not Valid
     assign delayslot_masterF2 = branch2D | jump2D; //通过前一条指令，判断是否是延迟槽
+    assign delayslot_slaveD = branch1D | jump1D; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
 
 
@@ -237,7 +238,6 @@ module datapath(
     // 立即数左移2 + pc+4得到分支跳转地址   
     assign pc_branch1D = {immd1D[29:0], 2'b00} + PcPlus4D; 
     assign pc_branch2D = {immd2D[29:0], 2'b00} + PcPlus8D; 
-    assign delayslot_slaveD = branch1D | jump1D; //通过前一条指令，判断是否是延迟槽
     //选择writeback寄存器     rd             rt
     mux3 #(5) mux3_regdst1(instr1D[15:11], instr1D[20:16], 5'd31, dec_sign1D.regdst, dec_sign1D.writereg);
     mux3 #(5) mux3_regdst2(instr2D[15:11], instr2D[20:16], 5'd31, dec_sign2D.regdst, dec_sign2D.writereg);
