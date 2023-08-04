@@ -10,9 +10,9 @@ module d_cache#(
     input         cpu_data_en     , 
     input         cpu_data_wr      , // whether is store type
     input  [1 :0] cpu_data_size    , // from the addr ,write size data 
-    (*mark_debug = "true"*) input  [31:0] cpu_data_addr    ,
+    input  [31:0] cpu_data_addr    ,
     input  [31:0] cpu_data_wdata   ,
-    (*mark_debug = "true"*) output [31:0] cpu_data_rdata   ,
+    output [31:0] cpu_data_rdata   ,
 
     //D CACHE
     output reg [31:0] d_araddr,
@@ -71,7 +71,7 @@ module d_cache#(
     reg [LEN_INDEX-1:0] index_M2;
     reg [LEN_LINE-1:0] lineLoc_M2;
     // No Cache Should be Execute in M2
-    (*mark_debug = "true"*)reg  no_cache_M2;
+    reg  no_cache_M2;
     reg [3:0] data_sram_wen_M2;
     reg cpu_data_en_M2;
     reg cpu_data_wr_M2;
@@ -79,7 +79,7 @@ module d_cache#(
     reg [1:0] cpu_data_size_M2;
     reg [31:0] cpu_data_addr_M2;
 
-    (*mark_debug = "true"*)reg no_cache_M3;
+    reg no_cache_M3;
     reg [LEN_LINE-1:0] lineLoc_M3;
     reg [LEN_INDEX-1:0] index_M3;
     reg [LEN_TAG-1:0] tag_M3;
@@ -117,7 +117,7 @@ module d_cache#(
     reg cpu_data_ok;
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
-    (*mark_debug = "true"*)reg [2:0] state;
+    reg [2:0] state;
     wire isIDLE;
     assign isIDLE = state==IDLE;
 
@@ -154,7 +154,7 @@ module d_cache#(
     wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
     wire cache_en = ~cpu_data_ok & data_en;
 
-    (*mark_debug = "true"*)reg [31:0] axi_data_rdata;
+    reg [31:0] axi_data_rdata;
     assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[c_way[1]];
 
 

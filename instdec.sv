@@ -2,7 +2,7 @@
 
 module instdec(
     input wire [31:0] instr,
-    (*mark_debug = "true"*)output reg [47:0] ascii
+    output reg [47:0] ascii
     );
 
     //Instruct Divide
