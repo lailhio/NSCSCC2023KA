@@ -90,8 +90,7 @@ module i_cache #(
 
     assign c_way[0] = c_valid_IF2[0] & ((c_tag_IF2[0] == tag_IF2));
     assign c_way[1] = c_valid_IF2[1] & ((c_tag_IF2[1] == tag_IF2));
-    wire   cache_hit_available = hit  & !no_cache_IF2;
-    assign i_stall = (~isIDLE | (!cache_hit_available & inst_en)) & ~cpu_instr_ok;
+    assign i_stall = (~isIDLE | ~hit | no_cache_IF2 ) & inst_en & ~cpu_instr_ok;
     wire cache_en = ~icache_Ctl | i_stall; 
     //output to mips core
     // first stage is not stall, and the second judge whether to stall
