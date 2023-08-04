@@ -225,9 +225,9 @@ module datapath(
     mux8 #(32) mux8_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, instrD[10:6], 32'b0, 32'b0, forward_1D, src_a1D);
     mux8 #(32) mux8_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, 32'b0, forward_2D, src_b1D);
     //choose imm
-    mux2 #(32) mux2_imm(src_b1D, immD ,is_immD,  src_bD);
+    mux8 #(32) mux8_imm(rd1D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, immD, forward_1D | {3{is_immD}}, src_bD);
     //choose jump
-    mux2 #(32) mux2_jump(src_a1D,PcPlus4F2, jumpD | branchD,src_aD);
+    mux8 #(32) mux8_jump(rd2D, resultW, resultM2, resultM, aluoutE, 32'b0, 32'b0, PcPlus8D, forward_2D | {3{jumpD | branchD}}, src_aD);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
