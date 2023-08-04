@@ -76,7 +76,6 @@ module datapath(
     wire [31:0] aluoutE; //alu输出
     wire [4 :0] writeregE; //写寄存器号
     wire        branchE; //分支信号
-    wire [31:0] pc_branchE;  //分支跳转pc
 
     wire [31:0] instrE;
     wire [31:0] pc_jumpE;  //jump pc
