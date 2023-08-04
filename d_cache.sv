@@ -150,10 +150,10 @@ module d_cache#(
     logic [LEN_LINE:2] cache_buff_cnt;
     reg buff_last;
 
-    assign d_stall = (no_cache_M2 | ~isIDLE | ~hit ) & ~cpu_data_ok & data_en;
-    // (~i_stall | d_stall) & (~alu_stallE | data_wr_en);
+    assign d_stall = ~hit  & ~cpu_data_ok & data_en;
+    //  & ~(i_stall & isIDLE)
     wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
-    wire cache_en = ((no_cache_M2 | ~isIDLE | ~hit ) & ~cpu_data_ok & data_en);
+    wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;
     assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
@@ -274,7 +274,7 @@ module d_cache#(
             d_wlast <= 0;
             d_wvalid <= 0;
         end
-        else if(data_en & cache_en)begin          
+        else if(cache_en)begin          
             pre_state <= state;  
             case(state)
             // 按照状态机编写
@@ -287,7 +287,6 @@ module d_cache#(
                     lineLoc_M3 <= lineLoc_M2;
                     no_cache_M3 <= no_cache_M2;
                     tag_M3 <= tag_M2;
-                    cpu_data_ok <= 0;
                     cpu_data_en_M3 <= cpu_data_en_M2;
                     cpu_data_wr_M3 <= cpu_data_wr_M2;
                     cpu_data_wdata_M3 <= cpu_data_wdata_M2;
@@ -396,6 +395,8 @@ module d_cache#(
                         d_arlen <= NR_WORDS - 1;
                         d_arsize <= 3'd2;
                         d_arvalid <= 1'b1;
+                        d_wlast <= 1'b0;
+                        buff_last <= 0;
                         axi_cnt <= 0 ;
                         wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
                         wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
@@ -476,10 +477,8 @@ module d_cache#(
                 // end
             endcase
         end
-        else begin
-            if(~data_en & cpu_data_ok)begin
-                no_cache_M3 <= 0;
-            end
+        else if (cache_en1)begin
+            no_cache_M3 <= 0;
             cpu_data_ok <= 0;
             pre_state <= state;
         end

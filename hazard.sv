@@ -6,8 +6,8 @@ module hazard(
 	input wire d_cache_stall,
     input wire alu_stallE, 
 
-    input wire flush_pred_failedM, flush_exceptionM, jumpD,
-    input wire branchD, branchM, pre_right, pred_takeD,
+    input wire flush_pred_failedE, flush_exceptionM, jumpD,
+    input wire branchD, branchE, pre_right, pred_takeD,
 
     input wire is_mfcE, // cp0 read sign
     input wire hilotoregE, //hilo read sign
@@ -49,7 +49,7 @@ module hazard(
                         3'b000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
-    wire branch_ok =  (~branchM  | branchM & pre_right) & branchD & pred_takeD ;
+    wire branch_ok =  pred_takeD ;
     
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
@@ -65,9 +65,9 @@ module hazard(
     assign stallW =  ~flush_exceptionM &(id_cache_stall | alu_stallE);
 
     assign flushF = 1'b0;
-    assign flushF2 = flush_exceptionM | flush_pred_failedM | ((jumpD | branch_ok) & ~stallF2); 
-    assign flushD = flush_exceptionM | flush_pred_failedM; 
-    assign flushE = flush_exceptionM | ((flush_pred_failedM | stallDblank) & ~stallE ) ; 
+    assign flushF2 = flush_exceptionM | flush_pred_failedE | ((jumpD | branch_ok) & ~stallF2); 
+    assign flushD = flush_exceptionM | (flush_pred_failedE & ~stallD); 
+    assign flushE = flush_exceptionM | (stallDblank & ~stallE ) ; 
     assign flushM = flush_exceptionM;
     assign flushM2 = flush_exceptionM |(~stallM2 & Blank_SL);
     assign flushW = 1'b0;

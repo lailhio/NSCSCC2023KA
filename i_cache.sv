@@ -47,6 +47,7 @@ module i_cache #(
     reg [LEN_LINE-1:0] lineLoc_IF3;
     reg [LEN_INDEX-1:0] index_IF3;
     reg [LEN_TAG-1:0] tag_IF3;
+    reg  no_cache_IF3;
     reg tway_IF3;
     reg  cpu_inst_en_IF3;
     
@@ -85,13 +86,16 @@ module i_cache #(
     assign inst_en = isIDLE ? cpu_inst_en_IF2 : cpu_inst_en_IF3;
 
     // hit Control
-    assign hit = |c_way & isIDLE;  //* cache line
+    assign hit = |c_way & isIDLE & ~no_cache_IF2;  //* cache line
     assign miss = ~hit;
 
     assign c_way[0] = c_valid_IF2[0] & ((c_tag_IF2[0] == tag_IF2));
     assign c_way[1] = c_valid_IF2[1] & ((c_tag_IF2[1] == tag_IF2));
-    assign i_stall = (~isIDLE | ~hit | no_cache_IF2 ) & inst_en & ~cpu_instr_ok;
-    wire cache_en = ~icache_Ctl | i_stall; 
+
+    assign i_stall = ~hit  & ~cpu_instr_ok & inst_en;
+
+    wire cache_en1 =  ~(i_stall | icache_Ctl);
+    wire cache_en = ~cpu_instr_ok & inst_en; 
     //output to mips core
     // first stage is not stall, and the second judge whether to stall
     reg [31:0] axi_inst_rdata;
@@ -112,7 +116,7 @@ module i_cache #(
             c_valid_IF2 <= 0;
             c_lru_IF2 <= 0;
         end
-        else if(cache_en)begin
+        else if(cache_en1)begin
             lineLoc_IF2 <= lineLoc;
             index_IF2 <= index;
             tag_IF2 <= tag;
@@ -151,11 +155,10 @@ module i_cache #(
             // clear axi status
             axi_cnt <= 0;
         end
-        else if (inst_en & cache_en)begin
+        else if (cache_en)begin
             pre_state <= state;
             case(state)
                 IDLE: begin
-                    cpu_instr_ok <= 1'b0;
                     cpu_inst_en_IF3 <= cpu_inst_en_IF2;
                     index_IF3 <= index_IF2;
                     lineLoc_IF3 <= lineLoc_IF2;
@@ -245,9 +248,10 @@ module i_cache #(
                 // end
             endcase
         end
-        else if(cache_en)begin
+        else if(cache_en1)begin
             pre_state <= state;
             cpu_instr_ok <= 0;
+            no_cache_IF3 <= no_cache_IF2;
         end
     end
 
@@ -259,8 +263,8 @@ module i_cache #(
             (
             .clka   (clk),
             .clkb   (clk),
-            .ena    (wena_tag_ram_way[i]),
-            .enb    (cache_en),
+            .ena    (1'b1),
+            .enb    (cache_en1),
             .addra  (index_IF3),
             .dina   (tag_IF3),
             .wea    (wena_tag_ram_way[i]),
@@ -272,7 +276,7 @@ module i_cache #(
             .clka   (clk),
             .clkb   (clk),
             .ena    (1'b1),
-            .enb    (cache_en),
+            .enb    (cache_en1),
             .addra  ({index_IF3,axi_cnt[LEN_LINE-1:2]}),
             .dina   (i_rdata),
             .wea    (wena_data_bank_way[i]),

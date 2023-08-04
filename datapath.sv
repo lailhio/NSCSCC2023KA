@@ -27,25 +27,24 @@ module datapath(
     );
 	
 	//--------InstFetch1 stage----------
-	wire [31:0] PcPlus4F;    //pc
+	wire [31:0] PcPlus4F, PcPlus8F;    //pc
     
     wire pc_errorF;  // pc错误
 
     //--------InstFetch2 stage----------
-	wire [31:0] PcPlus4F2;    //pc
+	wire [31:0] PcPlus4F2, PcPlus8F2;    //pc
     wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
 	//----------decode stage---------
 	wire[5:0] aluopD;
 	wire[7:0] alucontrolD;
 	wire [31:0] instrD;  //指令
-    wire [31:0] PcD, PcPlus4D;  //pc
+    wire [31:0] PcD, PcPlus4D, PcPlus8D;  //pc
     wire [31:0] src_a1D, src_b1D,src_aD, src_bD; //alu输入（操作数
     wire [31:0] rd1D, rd2D, immD, pc_branchD, pc_jumpD;  //寄存器读出数据 立即数 pc分支 跳转
     wire        pred_takeD, branchD, jumpD;  //立即数扩展 分支预测 branch jump信号
-    wire        flush_pred_failedM;  //分支预测失败
+    wire        flush_pred_failedE;  //分支预测失败
 
-    wire        jump_conflictD;  //jump冲突
     wire [2 :0] branch_judge_controlD; //分支判断控制
 	wire 		sign_exD;          //立即数是否为符号扩展
 	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> $ra
@@ -67,7 +66,7 @@ module datapath(
     wire [2:0]  forward_1D;
     wire [2:0]  forward_2D;
 	//-------execute stage----------
-	wire [31:0] pcE, pcplus4E; //pc pc+4 寄存器号 写内存 立即数
+	wire [31:0] pcE, PcPlus4E, PcPlus8E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
     wire [7 :0] alucontrolE;  //alu控制信号
@@ -81,10 +80,8 @@ module datapath(
 
     wire [31:0] instrE;
     wire [31:0] pc_jumpE;  //jump pc
-    wire        jump_conflictE; //jump冲突
     wire        regwriteE;	//寄存器写
     // wire        alu_stallE;  //alu暂停
-    wire        flush_jump_conflictE;  //jump冲突
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
@@ -113,11 +110,9 @@ module datapath(
     wire        regwriteM;  //寄存器写
     wire        memtoregM;  //写回寄存器选择信号
     wire [31:0] resultM;  // mem out
-    wire        actual_takeM;  //分支预测 真实结果
     wire        pre_right;  // 预测正确
-    wire        pred_takeM; // 预测
     wire        branchM; // 分支信号
-    wire [31:0] pc_branchM; //分支跳转地址
+    wire [31:0] pc_branchE; //分支跳转地址
 
     wire [31:0] result_rdataM2;
     wire [31:0] hilo_outM;  //hilo输出
@@ -171,17 +166,18 @@ module datapath(
     // Todo : jal wrong
     //--------------------------------------Fetch------------------------------------------------
     
-    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedM & ~flush_jump_conflictE & ~stallDblank;
+    assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedE;
     // pc+4
     assign PcPlus4F = PC_IF1 + 4;
+    assign PcPlus8F = PC_IF1 + 8;
     assign pc_errorF = ((PC_IF1[1:0] == 2'b0)) ? 1'b0 : 1'b1; 
     // pc reg
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
-        .branchD(branchD), .branchM(branchM), .pre_right(pre_right), .actual_takeM(actual_takeM),
+        .branchD(branchD), .branchE(branchE), .pre_right(pre_right), .actual_takeE(actual_takeE),
         .pred_takeD(pred_takeD), .pc_trapM(pc_trapM), .jumpD(jumpD),
 
-        .pc_exceptionM(pc_exceptionM), .pcplus4E(pcplus4E), .pc_branchM(pc_branchM),
+        .pc_exceptionM(pc_exceptionM), .PcPlus8E(PcPlus8E), .pc_branchE(pc_branchE),
         .pc_jumpD(pc_jumpD), .pc_branchD(pc_branchD), .PcPlus4F(PcPlus4F),
 
         .pc(PC_IF1)
@@ -191,7 +187,8 @@ module datapath(
 	//----------------------------------------InstFetch2------------------------------------------------
     wire inst_enF2;
     wire [31:0] instr_validF2;
-    flopstrc #(32) flopPcplusF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
+    flopstrc #(32) flopPcplus4F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
+    flopstrc #(32) flopPcplus8F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus8F),.out(PcPlus8F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
@@ -200,7 +197,8 @@ module datapath(
 
 
 	//----------------------------------------Decode------------------------------------------------
-    flopstrc #(32) flopPcplusD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcPlus4F2),.out(PcPlus4D));
+    flopstrc #(32) flopPcplus4D(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcPlus4F2),.out(PcPlus4D));
+    flopstrc #(32) flopPcplus8D(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcPlus8F2),.out(PcPlus8D));
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcF2),.out(PcD));
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instr_validF2),.out(instrD));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
@@ -264,7 +262,8 @@ module datapath(
     flopstrc #(32) flopSrcb1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
     flopstrc #(32) flopSrcaE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_aD),.out(src_aE));
     flopstrc #(32) flopSrcbE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_bD),.out(src_bE));
-    flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcPlus4D),.out(pcplus4E));
+    flopstrc #(32) flopPcplus4E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcPlus4D),.out(PcPlus4E));
+    flopstrc #(32) flopPcplus8E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcPlus8D),.out(PcPlus8E));
     flopstrc #(32) flopPcbranchE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(pc_branchD),.out(pc_branchE));
     flopstrc #(7) flopSign1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({branchD,pred_takeD,is_in_delayslot_iD,regwriteD,riD,breakD,hilotoregD}),
@@ -295,6 +294,9 @@ module datapath(
         .rt_valueE(src_b1E),
         .actual_takeE(actual_takeE)
     );
+    //分支预测结果
+    assign pre_right = ~flush_pred_failedE; 
+    assign flush_pred_failedE = pred_takeE ^ actual_takeE;
     
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
 	//-------------------------------------Memory----------------------------------------
@@ -303,9 +305,9 @@ module datapath(
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopPcbM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pc_branchE),.out(pc_branchM));
-    flopstrc #(9) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,pred_takeE,branchE,is_in_delayslot_iE,actual_takeE,mem_readE,mem_writeE,memtoregE,breakE}),
-        .out({regwriteM,pred_takeM,branchM,is_in_delayslot_iM,actual_takeM,mem_readM,mem_writeM,memtoregM,breakM}));
+    flopstrc #(7) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({regwriteE,branchE,is_in_delayslot_iE,mem_readE,mem_writeE,memtoregE,breakE}),
+        .out({regwriteM,branchM,is_in_delayslot_iM,mem_readM,mem_writeM,memtoregM,breakM}));
     flopstrc #(7) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,hilotoregE}),
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,hilotoregM}));
@@ -338,7 +340,7 @@ module datapath(
     exception exception(
         .rst(rst),.ext_int(ext_int),
         //异常信号
-        .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), 
+        .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .trap(trapM), 
         .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
         //异常寄存器
         .cp0_status(cp0_statusM2), .cp0_cause(cp0_causeM2), .cp0_epc(cp0_epcM2),
@@ -359,9 +361,6 @@ module datapath(
         .status_o(cp0_statusM2) , .cause_o(cp0_causeM2) ,
         .epc_o(cp0_epcM2), .data_o(cp0_outM2)
     );
-    //分支预测结果
-    assign pre_right = ~flush_pred_failedM; 
-    assign flush_pred_failedM = pred_takeM ^ actual_takeM;
 	//-------------------------------------Memory2-------------------------------------------------
     wire is_mfcM2, mem_writeM2; // for debug
     // todo M2 flop
@@ -395,10 +394,10 @@ module datapath(
         .alu_stallE(alu_stallE),
 
         .jumpD                  (jumpD),
-        .flush_pred_failedM     (flush_pred_failedM),
+        .flush_pred_failedE     (flush_pred_failedE),
         .flush_exceptionM       (flush_exceptionM),
 
-        .branchD(branchD), .branchM(branchM), .pre_right(pre_right), .pred_takeD(pred_takeD),
+        .branchD(branchD), .branchE(branchE), .pre_right(pre_right), .pred_takeD(pred_takeD),
 
         .rsD(instrD[25:21]),
         .rtD(instrD[20:16]),
