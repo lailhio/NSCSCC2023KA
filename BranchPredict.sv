@@ -1,4 +1,6 @@
 `include "defines2.vh"
+`timescale 1ns / 1ps
+
 module BranchPredict(
     input wire clk, rst,
     
@@ -8,8 +10,8 @@ module BranchPredict(
     input wire [31:0] instrD,
     input wire [31:0] immD,
 
-    input wire [31:0] pcF,
-    input wire [31:0] pcM,
+    input wire [31:0] PcF2,
+    input wire [31:0] pcE,
     input wire branchE,
     input wire actual_takeE,
 
@@ -24,8 +26,8 @@ module BranchPredict(
 	assign rs = instrD[25:21];
 	assign rt = instrD[20:16];
 	assign funct = instrD[5:0];
-    assign branchD = ( (~|(op_code ^ `REGIMM_INST)) & (~|(instrD[19:17] ^ 3'b000) | (~|(instrD[19:17] ^ 3'b001))) ) //6'b000001 = EXE_REGIMM
-                    | (~|(op_code[5:2] ^ 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
+    assign branchD = ( ((op_code == `REGIMM_INST)) & ((instrD[19:17] == 3'b000) | ((instrD[19:17] == 3'b001))) ) //6'b000001 = EXE_REGIMM
+                    | ((op_code[5:2] == 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
                                                     // 3'b000 -> BLTZ BLTZAL BGEZAL BGEZ
                                                     // 3'b001 -> BGEZALL BGEZL BLTZALL BLTZL
 
@@ -40,7 +42,7 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] BHT_index;
     wire [(PHT_DEPTH-1):0] BHR_value;
 
-    assign BHT_index = pcF[11:2];     
+    assign BHT_index = PcF2[11:2];     
     assign BHR_value = BHT[BHT_index];  
     assign PHT_index = BHR_value;
 
@@ -51,7 +53,7 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] update_BHT_index;
     wire [(PHT_DEPTH-1):0] update_BHR_value;
 
-    assign update_BHT_index = pcM[11:2];     
+    assign update_BHT_index = pcE[11:2];     
     assign update_BHR_value = BHT[update_BHT_index];  
     assign update_PHT_index = update_BHR_value;
 
