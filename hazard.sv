@@ -2,8 +2,8 @@
 
 
 module hazard(
-    input wire i_cache_stall,
-	input wire d_cache_stall,
+    (*mark_debug = "true"*)input wire i_cache_stall,
+	(*mark_debug = "true"*)input wire d_cache_stall,
     input wire alu_stallE, 
 
     input wire flush_pred_failedE, flush_exceptionM, jumpD,

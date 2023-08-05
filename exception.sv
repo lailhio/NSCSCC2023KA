@@ -12,7 +12,7 @@ module exception(
    output [31:0] except_type,
    output flush_exception,  //是否有异常?
    output [31:0] pc_exception,  //pc异常处理地址
-   output pc_trap,  //是否trap
+   (*mark_debug = "true"*)output pc_trap,  //是否trap
    output [31:0] badvaddrM  //pc修正
 );
 

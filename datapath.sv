@@ -85,7 +85,6 @@ module datapath(
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
 	wire        memtoregE, mem_readE, mem_writeE;
-    wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
 	wire        hilotoregE;//hilo到寄存器
 	wire        breakE, syscallE;
@@ -115,7 +114,6 @@ module datapath(
     wire [31:0] pc_branchE; //分支跳转地址
 
     wire [31:0] result_rdataM2;
-    wire [31:0] hilo_outM;  //hilo输出
 	wire		is_mfcM;
 
     wire [31:0] src_b1M;
