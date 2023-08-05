@@ -1,5 +1,4 @@
 `include "defines2.vh"
-`timescale 1ns / 1ps
 
 module alu(
     input wire clk, rst,stallE,flushE,

@@ -19,10 +19,10 @@ module tag_ram #(
     end
     
     always @(posedge clka) begin
-        if (ena) if (wea) ram[addra] <= dina;
+        if (ena & wea) ram[addra] <= dina;
     end
     
-    always @(posedge clkb) begin
+    always @(posedge clka) begin
         if (enb)
             doutb <= ram[addrb];
     end

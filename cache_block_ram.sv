@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module cache_block_ram #(
     parameter LEN_DATA = 32,
     parameter LEN_ADDR = 10
@@ -31,7 +29,7 @@ module cache_block_ram #(
     endgenerate
     
 
-    always @(posedge clkb) begin
+    always @(posedge clka) begin
         if (enb)
             doutb <= ram[addrb];
     end

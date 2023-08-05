@@ -1,6 +1,3 @@
-`timescale 1ns / 1ps
-
-
 module hazard(
     input wire i_cache_stall,
 	input wire d_cache_stall,

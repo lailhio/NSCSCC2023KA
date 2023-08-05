@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 module mul(
     input clk,
     input rst, flush,

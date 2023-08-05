@@ -1,5 +1,4 @@
 `include "defines2.vh"
-`timescale 1ns / 1ps
 
 module BranchPredict(
     input wire clk, rst,
