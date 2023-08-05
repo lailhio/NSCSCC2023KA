@@ -3,7 +3,7 @@ module d_cache#(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst ,no_dcache, i_stall, alu_stallE,
+    input wire clk, rst ,no_cache, i_stall, alu_stallE,
     output wire d_stall,
     input [3:0]   data_sram_wen,
     //mips core
@@ -117,6 +117,7 @@ module d_cache#(
     reg cpu_data_ok;
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
+    reg [2:0] pre_state;
     reg [2:0] state;
     wire isIDLE;
     assign isIDLE = state==IDLE;
@@ -155,7 +156,7 @@ module d_cache#(
     wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[c_way[1]];
+    assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
 
 
     logic [1:0] wena_tag_ram_way;
@@ -214,7 +215,7 @@ module d_cache#(
             //Nocache Process
             cpu_data_wr_M2 <= cpu_data_wr;
             cpu_data_en_M2 <= cpu_data_en;
-            no_cache_M2 <= no_dcache;
+            no_cache_M2 <= no_cache;
             data_sram_wen_M2 <= data_sram_wen;
             cpu_data_wdata_M2 <= cpu_data_wdata;
             cpu_data_size_M2 <= cpu_data_size;
@@ -232,6 +233,7 @@ module d_cache#(
     always @(posedge clk) begin
         if(rst) begin
             state <= IDLE;
+            pre_state <= IDLE;
             index_M3 <= 0;
             lineLoc_M3 <= 0;
             tag_M3 <= 0;
@@ -272,7 +274,8 @@ module d_cache#(
             d_wlast <= 0;
             d_wvalid <= 0;
         end
-        else if(cache_en)begin         
+        else if(cache_en)begin          
+            pre_state <= state;  
             case(state)
             // 按照状态机编写
                 IDLE: begin 
@@ -462,7 +465,7 @@ module d_cache#(
                             d_rready <= 1'b0;
                             axi_data_rdata <= d_rdata;
                         end
-                        else if (~d_rready)begin
+                        else if (~d_rvalid & ~d_rready)begin
                             cpu_data_ok <=1;
                             state <= IDLE;
                         end
@@ -477,6 +480,7 @@ module d_cache#(
         else if (cache_en1)begin
             no_cache_M3 <= 0;
             cpu_data_ok <= 0;
+            pre_state <= state;
         end
     end
 

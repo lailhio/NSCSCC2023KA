@@ -150,7 +150,7 @@ module mycpu_top(
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_dcache(no_dcache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
+        .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
         .data_sram_wen(data_sram_wen),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
@@ -176,7 +176,7 @@ module mycpu_top(
 
     i_cache i_cache(
         .clk(clk), .rst(rst),
-        .no_icache(no_icache), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
+        .no_cache(no_icache), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
         
         .cpu_inst_en(cpu_inst_en),
         .cpu_inst_addr(cpu_inst_addr),
@@ -256,8 +256,8 @@ module mycpu_top(
 
     //ascii
     //use for debug
-    // instdec instdec(
-    //     .instr(cpu_inst_rdata)
-    // );
+    instdec instdec(
+        .instr(cpu_inst_rdata)
+    );
 
 endmodule
