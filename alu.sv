@@ -280,7 +280,7 @@ module alu(
     end
     always @(*) begin
         case(alucontrolE)
-            `MULT_CONTROL, `MULTU_CONTROL, `MUL_CONTROL  : begin
+            `MULT_CONTROL, `MULTU_CONTROL  : begin
                 hilo_in_muldiv = aluout_mul;
             end
             `DIV_CONTROL, `DIVU_CONTROL :begin
