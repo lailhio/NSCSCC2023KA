@@ -100,7 +100,7 @@ module datapath(
 
 	// cp0	
     wire [31:0] except_typeM;  // 异常类型
-    wire        flush_exception_masterM;  // 发生异常时需要刷新流水线
+    wire        flush_exception_masterM, flush_exception_slaveM;  // 发生异常时需要刷新流水线
     wire [31:0] pc_exceptionM; //异常处理的地址0xbfc0_0380，若为eret指令 则为返回地址
     wire        pc_trapM; // 发生异常时pc特殊处理
     wire [31:0] badvaddrM;
@@ -128,7 +128,7 @@ module datapath(
     wire stall_slaveD, stall_slaveE, stall_slaveM, stall_slaveM2, stall_slaveW;
 
     wire flushF, flushF2, flush_masterD, flush_masterE, flush_masterM, flush_masterM2, flushW;
-    wire flush_slaveD, flush_slaveE, flush_slaveM, flush_slaveM2;
+    wire flush_slaveD, flush_slaveE, flush_slaveM, flush_slaveM2, fulsh_ex;
 //------------------------------------------Data------------------------------------------
 	//--------------------debug---------------------
     assign debug_wb_pc          = pcW;
@@ -148,6 +148,7 @@ module datapath(
         .jump1D (jump1D), .jump2D (jump2D), .branch1D(branch1D), branch2D(branch2D),
         .pred_failed_masterE(pred_failed_masterE), .pred_failed_slaveE(pred_failed_slaveE),
         .flush_exception_masterM(flush_exception_masterM), .flush_exception_slaveM(flush_exception_slaveM),
+        .fulsh_ex(fulsh_ex), 
 
         .dec_sign1D(dec_sign1D), .dec_sign2D(dec_sign2D), 
         .dec_sign1E(dec_sign1E), .dec_sign2E(dec_sign2E), 
@@ -180,7 +181,7 @@ module datapath(
 
     //--------------------------------------Fetch------------------------------------------------
     
-    assign inst_enF = ~(flush_exception_masterM | flush_exception_slaveM) & ~pc_errorF & ~pred_failedE ;
+    assign inst_enF = ~(fulsh_ex) & ~pc_errorF & ~pred_failedE ;
     // pc+4
     assign PcFlopF = {PC_IF1[31:3], 3'b0};
     assign PcPlus4F = PcFlopF + 4;
@@ -280,6 +281,7 @@ module datapath(
         .pc_jump1D(pc_jump1D), pc_jump2D(pc_jump2D) 
     );
 	//----------------------------------Execute------------------------------------
+    //-----------------------master---------------------------
     flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(PcD),.out(pcE));
     flopstrc #(32) flopInstE(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(instr1D),.out(instrE));
     flopstrc #(32) flopSrca1E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),.in(src1_a1D),.out(src1_a1E));
@@ -297,14 +299,15 @@ module datapath(
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stall_masterE),.flush(flush_masterE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
+    //-----------------------slave---------------------------
     //-----------------------ExFlop---------------------
 	//ALU
     alu aluitem(
         //input
-        .clk(clk),.rst(rst),.stall_masterE(stall_masterE),.flush_masterE(flush_masterE),
-        .src1_aE(src1_aE), .src1_bE(src1_bE),
-        .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
-        .mfhiE(mfhiE), .mfloE(mfloE), .flush_exception_masterM(flush_exception_masterM), .DivMulEnE(DivMulEnE), 
+        .clk(clk),.rst(rst),.flush_slaveE(flush_slaveE),.flush_masterE(flush_masterE),
+        .src1_aE(src1_aE), .src1_bE(src1_bE), .src2_aE(src2_aE), .src2_bE(src2_bE),
+        .alucontrolE(alucontrolE),
+        .flush_exception_masterM(fulsh_ex), .DivMulEnE(DivMulEnE), 
         //output
         .alustallE(alu_stallE),
         .aluout1E(aluout1E) , .overflowE(overflowE), .trapE(trapE)
@@ -346,7 +349,7 @@ module datapath(
     // 可合并
     flopstrc #(1) flopTrapM(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(trapE),.out(trapM));
     //----------------------MemoryFlop------------------------
-    assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exception_masterM;; //意外刷新时需要
+    assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exception_masterM; //意外刷新时需要
     // Assign Logical
     mem_control mem_control(
         .instrM(instrM), .instrM2(instrM2), .addressM(aluout1M), .addressM2(aluout1M2),

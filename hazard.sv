@@ -7,7 +7,7 @@ module hazard(
     input wire alu_stallE, 
     input wire master_only_oneD, slave_only_oneD,
 
-    input wire pred_failed_masterE, pred_failed_slaveE, flush_exception_masterM, flush_exception_slaveM
+    input wire pred_failed_masterE, pred_failed_slaveE, flush_exception_masterM, flush_exception_slaveM, fulsh_ex,
     input wire jump1D, jump2D, branch1D, branch2D, branch1E, branch2E, pred_take1D, pred_take2D,
 
     input ctrl_sign dec_sign1D, dec_sign2D, dec_sign1E, dec_sign2E, 
@@ -72,10 +72,10 @@ module hazard(
     wire branch2_ok = branch2D & pred_take2D;
     wire pc_change2D = (jump2D | branch2_ok)
 
-    wire fulsh_ex = flush_exception_masterM | flush_exception_slaveM;
+    assign fulsh_ex = flush_exception_masterM | flush_exception_slaveM;
     wire only_one = master_only_oneD | slave_only_oneD 
                 | (dec_sign1D.regwrite & (rs2D == dec_sign1D.writereg | rt2D == dec_sign1D.writereg))
-                | (dec_sign2D.hilo_read_to_reg & dec_sign1D.DivMulEn);
+                | (dec_sign2D.hilo_read & dec_sign1D.DivMulEn);
     wire muldiv_conflict = dec_sign1D.DivMulEn & dec_sign2D.DivMulEn;
     wire pred_failed = pred_failed_masterE | pred_failed_slaveE;
     

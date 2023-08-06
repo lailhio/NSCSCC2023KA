@@ -18,18 +18,18 @@ module maindec(
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
-	assign shamtD = instrD[10:6];
+	assign v 1 = instrD[10:6];
 
 	assign dec_sign.sign_ex = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
-	assign dec_sign.hilo_read_to_reg = ~(|(opD ^ `R_TYPE)) & (~(|(functD[5:2] ^ 4'b0100)) & ~functD[0]);
 
 	// 似乎只有这两条
 	assign dec_sign.cp0_write = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MTC0));
-	assign dec_sign.cp0_read_to_reg = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MFC0));
-	
+	assign dec_sign.cp0_read = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MFC0));
+
 	assign dec_sign.mfhi = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
 	assign dec_sign.mflo = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
+	
 	assign dec_sign.eret = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `ERET));
 	assign dec_sign.breaks = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign dec_sign.syscall = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
@@ -55,6 +55,46 @@ module maindec(
 			default: dec_sign.DivMulEn = 1'b0;
 		endcase
 	end
+
+	always @(*) begin
+		case(opD)
+			`R_TYPE:begin
+				case (functD)
+					`MFHI, `MFLO : 
+						dec_sign.hilo_read = 1'b1;
+					default: dec_sign.hilo_read = 1'b0;
+				endcase
+			end
+			`SPECIAL2_INST:begin
+				case (functD)
+					`MADD, `MADDU, `MSUB, `MSUBU:	
+						dec_sign.hilo_read = 1'b1;
+					default: dec_sign.hilo_read = 1'b0;
+				endcase
+			end
+			default: dec_sign.hilo_read = 1'b0;
+		endcase
+	end
+	always @(*) begin
+		case(opD)
+			`R_TYPE:begin
+				case (functD)
+					`MTHI, `MTLO : 
+						dec_sign.hilo_write = 1'b1;
+					default: dec_sign.hilo_write = 1'b0;
+				endcase
+			end
+			`SPECIAL2_INST:begin
+				case (functD)
+					`MADD, `MADDU, `MSUB, `MSUBU:	
+						dec_sign.hilo_write = 1'b1;
+					default: dec_sign.hilo_write = 1'b0;
+				endcase
+			end
+			default: dec_sign.hilo_write = 1'b0;
+		endcase
+	end
+
 	always @(*) begin
 		only_oneD_inst = 1'b0;
 		case(opD)
@@ -490,102 +530,27 @@ module maindec(
 
 	// read_rs\rt
 	always @(*) begin
-        dec_sign.read_rs = 1'b0;
-        dec_sign.read_rt = 1'b0;
 		case(opD)
             // R
 			`R_TYPE:begin
-				dec_sign.read_rs = 1'b1;
-                dec_sign.read_rt = 1'b1;
 				case(functD)
-					// 算数运算指令
-					`ADD : begin
+					`MULT, `MULTU, `DIV, `DIVU, `TEQ, `TGE, `TGEU, `TNE, `TLT, `TLTU,
+					`ADD , `ADDU , `SUB , `SUBU , `SLTU , `SLT , `AND , `NOR , `OR , `XOR , `SLLV,
+					`SRAV, `MOVN, `MOVZ, `SRLV : begin
+						dec_sign.read_rs = 1'b1;
+						dec_sign.read_rt = 1'b1;
 					end
-                    `ADDU : begin
-					end
-                    `SUB : begin
-					end
-                    `SUBU : begin
-					end
-                    `SLTU : begin
-					end
-                    `SLT  : begin
-					end
-					`AND : begin
-					end
-                    `NOR : begin
-					end
-                    `OR : begin
-					end
-                    `XOR : begin
-					end
-					`SLLV : begin
-					end
-                    `SLL : begin
+					`SLL, `SRL, `SRA: begin
                         dec_sign.read_rs = 1'b0;
+						dec_sign.read_rt = 1'b1;
 					end
-                    `SRAV : begin
-					end
-                    `SRA : begin
-                        dec_sign.read_rs = 1'b0;
-					end
-					`MOVN : begin
-					end
-                    `MOVZ : begin
-					end
-					`MFHI : begin
+					`MFHI , `SYSCALL, `BREAK, `MFLO:  begin
                         dec_sign.read_rs = 1'b0;
                         dec_sign.read_rt = 1'b0;
 					end
-                     `MFLO : begin
-                        dec_sign.read_rs = 1'b0;
+					`JR , `MTHI , `MTLO, `JALR: begin
+						dec_sign.read_rs = 1'b1;
                         dec_sign.read_rt = 1'b0;
-					end
-					`SRL: begin
-						dec_sign.read_rs = 1'b0;
-					end
-					`SRLV: begin
-					end
-					// 乘除hilo、自陷、jr不需要使用寄存器和存储器
-					`JR : begin
-                        dec_sign.read_rt = 1'b0;
-					end
-                    `MULT : begin
-					end
-                    `MULTU : begin
-					end
-                    `DIV : begin
-					end
-                    `DIVU : begin
-					end
-                    `MTHI : begin
-                        dec_sign.read_rt = 1'b0;
-					end
-                    `MTLO : begin
-                        dec_sign.read_rt = 1'b0;
-					end
-					`SYSCALL : begin
-                        dec_sign.read_rs = 1'b0;
-                        dec_sign.read_rt = 1'b0;
-					end
-                    `BREAK : begin
-                        dec_sign.read_rs = 1'b0;
-                        dec_sign.read_rt = 1'b0;
-					end
-					`TEQ : begin
-					end
-                    `TGE : begin
-					end
-                    `TGEU : begin
-					end
-                    `TNE : begin
-					end
-					`TLT : begin
-					end
-                    `TLTU : begin
-					end
-					`JALR: begin
-						dec_sign.read_rt = 1'b0;
 					end
 					default: begin
                         dec_sign.read_rs = 1'b0;
@@ -594,190 +559,104 @@ module maindec(
 				endcase
 			end
 
-	        // 运算
-			`ADDI:	begin
+	        // 运算// 访存指令，写寄存器
+			`LUI, `J, `JAL: begin
+				dec_sign.read_rs = 1'b0;
+				dec_sign.read_rt = 1'b0;
+			end
+			`ADDI, `ADDIU, `SLTI, `SLTIU, `ANDI, `LUI, `XORI, `ORI, `BGTZ, `BLEZ,
+			`LW , `LB , `LBU , `LH , `LHU , `LWL , `LWR , `LL:	begin
 				dec_sign.read_rs = 1'b1;
+				dec_sign.read_rt = 1'b0;
 			end
-            `ADDIU:	begin
-				dec_sign.read_rs = 1'b1;
-			end
-			`SLTI:	begin
-				dec_sign.read_rs = 1'b1;
-			end
-			`SLTIU:	begin
-				dec_sign.read_rs = 1'b1;
-			end
-			`ANDI:	begin
-				dec_sign.read_rs = 1'b1;
-			end
-			`LUI:	begin
-			end
-			`XORI:	begin
-				dec_sign.read_rs = 1'b1;
-			end
-			`ORI:	begin
-				dec_sign.read_rs = 1'b1;
-			end
-			`BEQ : begin
+			`BEQ, `BNE: begin
 				dec_sign.read_rs = 1'b1;
                 dec_sign.read_rt = 1'b1;
             end
-            `BNE : begin
+			`SW, `SB, `SH, `SWL, `SWR: begin
 				dec_sign.read_rs = 1'b1;
-                dec_sign.read_rt = 1'b1;
-            end
-            `BLEZ : begin
-				dec_sign.read_rs = 1'b1;
-            end
-            `BGTZ: begin
-				dec_sign.read_rs = 1'b1;
+				dec_sign.read_rt = 1'b1;
 			end
 
             // 移位
 			`REGIMM_INST: begin
-				dec_sign.read_rs = 1'b1;
 				case(rtD)
-					`BGEZAL : begin
-					end
-                    `BLTZAL: begin
-					end
-					`BGEZ: begin
-					end
-                    `BLTZ: begin
-					end
-					`TEQI: begin
-					end
-					`TGEI: begin
-					end
-					`TGEIU: begin
-					end
-					`TLTI: begin
-					end
-					`TLTIU: begin
-					end
-					`TNEI: begin
+					`BGEZAL, `BLTZAL, `BGEZ, `BLTZ, `TEQI, `TGEI, `TGEIU, `TLTI
+					`TLTIU, `TNEI: begin
+						dec_sign.read_rs = 1'b1;
+                		dec_sign.read_rt = 1'b0;
 					end
 					default:begin
                         dec_sign.read_rs = 1'b0;
+                		dec_sign.read_rt = 1'b0;
 					end
 				endcase
-			end
-			
-	        // 访存指令，写寄存器
-			`LW: begin
-			end
-            `LB: begin
-			end
-            `LBU: begin
-			end
-            `LH: begin
-			end
-            `LHU: begin
-			end
-            `LWL: begin
-			end
-            `LWR: begin
-			end
-            `LL: begin
-			end
-            // 访存指令，读寄存器
-			`SW: begin
-                dec_sign.read_rt = 1'b1;
-			end
-            `SB: begin
-                dec_sign.read_rt = 1'b1;
-			end
-            `SH: begin
-                dec_sign.read_rt = 1'b1;
-			end
-            `SWL: begin
-                dec_sign.read_rt = 1'b1;
-			end
-            `SWR: begin
-                dec_sign.read_rt = 1'b1;
-			end
-			// `SC: begin
-            //  dec_sign.read_rt = 1'b1;
-			// end			
-
-	        //  J type
-			`J: begin
-			end
-			`JAL: begin
 			end
 
             // COP0
 			`COP0_INST:begin
 				case(rsD)
 					`MTC0: begin
+                        dec_sign.read_rs = 1'b0;
 						dec_sign.read_rt = 1'b1;
-					end
-					`MFC0: begin
 					end
 					//注意eret
 					default: begin
+                        dec_sign.read_rs = 1'b0;
+                		dec_sign.read_rt = 1'b0;
 					end
 				endcase
 			end
 
             // 特殊指令
 			`SPECIAL2_INST: begin
-				dec_sign.read_rs = 1'b1;
 				case(functD)
-					`CLO: begin
+					`CLO, `CLZ: begin
+						dec_sign.read_rs = 1'b1;
+                		dec_sign.read_rt = 1'b0;
 					end
-					`CLZ: begin
-					end
-					`MUL: begin
-						dec_sign.read_rt = 1'b1;
-					end
-					`MADD:	begin
-						dec_sign.read_rt = 1'b1;
-					end
-					`MADDU:	begin
-						dec_sign.read_rt = 1'b1;
-					end
-					`MSUB:	begin
-						dec_sign.read_rt = 1'b1;
-					end
-					`MSUBU:	begin
+					`MUL, `MADD, `MADDU, `MSUB, `MSUBU: begin
+						dec_sign.read_rs = 1'b1;
 						dec_sign.read_rt = 1'b1;
 					end
 					default: begin
                         dec_sign.read_rs = 1'b0;
+                		dec_sign.read_rt = 1'b0;
 					end
 				endcase
 			end
-
             // 特殊指令
 			`SPECIAL3_INST: begin
 				case(functD)
 					`BSHFL: begin
-						dec_sign.read_rt = 1'b1;
 						case(shamtD)
-							`SEB: begin
-							end
-							`SEH: begin
-							end
-							`WSBH: begin
+							`SEB, `SEH, `WSBH: begin
+                       			dec_sign.read_rs = 1'b0;
+								dec_sign.read_rt = 1'b1;
 							end
 							default: begin
+                       			dec_sign.read_rs = 1'b0;
 								dec_sign.read_rt = 1'b0;
 							end
 						endcase
 					end
 					`EXT: begin
 						dec_sign.read_rs = 1'b1;
+						dec_sign.read_rt = 1'b0;
 					end
 					`INS: begin
 						dec_sign.read_rs = 1'b1;
 						dec_sign.read_rt = 1'b1;
 					end
 					default: begin
+						dec_sign.read_rs = 1'b0;
+						dec_sign.read_rt = 1'b0;
 					end
 				endcase
 			end
 			default: begin
+				dec_sign.read_rs = 1'b0;
+				dec_sign.read_rt = 1'b0;
 			end
 		endcase
 	end

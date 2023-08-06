@@ -791,17 +791,15 @@ typedef struct packed{
     logic mem_write;
     logic memtoreg;         	//result选择 0->aluout, 1->read_data
     logic hilo_write;
-    logic hilo_read_to_reg;
+    logic hilo_read;
     logic ri;
     logic breaks; 
     logic syscall; 
     logic eret;
     logic cp0_write;
-    logic cp0_read_to_reg;
+    logic cp0_read;
     logic DivMulEn;
-        
-    logic mfhi;
-    logic mflo;
+    
     logic is_mfc;   //为mfc0
 	logic [4:0] writereg;//写寄存器号
     logic [7:0] alucontrol;
