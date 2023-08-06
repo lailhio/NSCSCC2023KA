@@ -180,7 +180,7 @@ module datapath(
 
     //--------------------------------------Fetch------------------------------------------------
     
-    assign inst_enF = ~flush_exception_masterM & ~pc_errorF & ~pred_failedE ;
+    assign inst_enF = ~(flush_exception_masterM | flush_exception_slaveM) & ~pc_errorF & ~pred_failedE ;
     // pc+4
     assign PcFlopF = {PC_IF1[31:3], 3'b0};
     assign PcPlus4F = PcFlopF + 4;
@@ -190,13 +190,12 @@ module datapath(
     // pc reg
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
-        .branch1D(branch1D), .branch1E(branch1E), .branch2D(branch2D), .branch2E(branch2E), 
-        .pre_rightE(pre_rightE), .actual_take1E(actual_take1E), .actual_take2E(actual_take2E),
-        .pred_take1D(pred_take1D), .pc_trapM(pc_trapM), .jump1D(jump1D), .jump2D(jump2D),
+        .actual_take1E(actual_take1E), .actual_take2E(actual_take2E), .pred_take1E(pred_take1E), .pred_take2E(pred_take2E),
+        .pred_take1D(pred_take1D), .pred_take2D(pred_take2D), .pc_trapM(pc_trapM), .jump1D(jump1D), .jump2D(jump2D),
 
-        .pc_exceptionM(pc_exceptionM), .PcPlus4E(PcPlus4E), .pc_branch1M(pc_branch1M), .pc_branch2M(pc_branch2M),
+        .pc_exceptionM(pc_exceptionM), .pc_branch1E(pc_branch1E), .pc_branch2E(pc_branch2E),
         .pc_jump1D(pc_jump1D), .pc_branch1D(pc_branch1D), .pc_jump2D(pc_jump2D), .pc_branch2D(pc_branch2D), 
-        .PcPlus4F(PcPlus4F), .PcPlus8F(PcPlus8F), 
+        .PcPlus8F(PcPlus8F), .PcPlus8E(PcPlus8E), .PcPlus12E(PcPlus12E), 
 
         .pc(PC_IF1)
     );
@@ -204,25 +203,29 @@ module datapath(
 	//----------------------------------------InstFetch2------------------------------------------------
     wire inst_enF2;
     wire [31:0] inst1_validF2, inst2_validF2;
+    flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcFlopF),.out(PcF2));
     flopstrc #(32) flopPcplus4F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus4F),.out(PcPlus4F2));
     flopstrc #(32) flopPcplus8F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus8F),.out(PcPlus8F2));
-    flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcFlopF),.out(PcF2));
+    flopstrc #(32) flopPcplus12F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus12F),.out(PcPlus12F2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
-    assign inst1_validF2 = {32{inst_enF2}}&inst1_F2;  // Discard Not Valid
-    assign inst2_validF2 = {32{inst_enF2}}&inst2_F2;  // Discard Not Valid
+    assign inst1_validF2 = {32{inst_enF2}} & inst1_F2;  // Discard Not Valid
+    assign inst2_validF2 = {32{inst_enF2}} & inst2_F2;  // Discard Not Valid
     assign delayslot_masterF2 = branch2D | jump2D; //通过前一条指令，判断是否是延迟槽
     assign delayslot_slaveD = branch1D | jump1D; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
 
 
 	//----------------------------------------Decode------------------------------------------------
-    flopstrc #(32) flopPcplusD(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),.in(PcPlus4F2),.out(PcPlus4D));
-    flopstrc #(32) flopPcplus8D(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),.in(PcPlus8F2),.out(PcPlus8D));
+    //-----------------------master---------------------------
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),.in(PcF2),.out(PcD));
+    flopstrc #(32) flopPcplus8D(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),.in(PcPlus8F2),.out(PcPlus8D));
     flopstrc #(32) flopInst1D(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),.in(inst1_validF2),.out(instr1D));
-    flopstrc #(32) flopInst2D(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),.in(inst2_validF2),.out(instr2D));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stall_masterD),.flush(flush_masterD),
         .in(delayslot_masterF2),.out(delayslot_masterD));
+    //-----------------------slave---------------------------
+    flopstrc #(32) flopPcplus4D(.clk(clk),.rst(rst),.stall(stall_slaveD),.flush(flush_slaveD),.in(PcPlus4F2),.out(PcPlus4D));
+    flopstrc #(32) flopPcplus12D(.clk(clk),.rst(rst),.stall(stall_slaveD),.flush(flush_slaveD),.in(PcPlus12F2),.out(PcPlus12D));
+    flopstrc #(32) flopInst2D(.clk(clk),.rst(rst),.stall(stall_slaveD),.flush(flush_slaveD),.in(inst2_validF2),.out(instr2D));
     //-----------------------DecodeFlop----------------------------------
 	maindec main_dec1(.instrD(instr1D),.dec_sign(dec_sign1D), .only_oneD_inst(master_only_oneD));
 	maindec main_dec2(.instrD(instr2D),.dec_sign(dec_sign2D), .only_oneD_inst(slave_only_oneD));

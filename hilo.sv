@@ -1,34 +1,30 @@
 `include "defines2.vh"
 
-module hilo(
-   input wire        clk,rst,
-   input wire [1:0] hilo_selectE,
-   input wire        we, //both write lo and hi
-   input wire  mfhiE,mfloE,
-   input wire [63:0] hilo_in,  //存入hilo的值
-   
-   output wire [63:0] hilo_out
-   );
-   // hilo寄存器
-   reg [31:0] hilo_hi;
-   reg [31:0] hilo_lo;
+module hilo_reg(
+        input wire clk,
+        input wire rst,
+        input wire we,
+        input wire [63:0] hilo_in,
+        output wire[63:0] hilo_out // hilo当前的值
+    );
 
-   // 更新
-   always @(posedge clk) begin
-      if(rst)
-         {hilo_hi,hilo_lo} <= 0;
-      else if(we)begin
-         case(hilo_selectE)
-            2'b01, 2'b00: {hilo_hi,hilo_lo}<=hilo_in;
-            2'b11:   hilo_hi<=hilo_in[63:32];
-            2'b10:    hilo_lo<=hilo_in[31:0];
-         endcase
-      end
-   end
-   
+    reg [63:0] hilo_reg;
 
-   // 若为mfhi指令 读hilo高32位  若为mflo指令读hilo低32位
-   assign hilo_out = {hilo_hi, hilo_lo};
+    // 写寄存器
+	always_ff @(posedge clk) begin
+        if(rst) begin
+            hilo_reg <= 0;
+        end
+        else if (we) begin
+            hilo_reg <= hilo_in;
+        end
+        else begin
+            hilo_reg <= hilo_reg;
+        end
+    end
 
-   // assign hilo_out = ({32{mfhiE}} & hilo_hi) | ({32{mfloE}} & hilo_lo);
+	// 读寄存器：前MUL后MF*这种需要在MUL的M阶段，返回给MF*的E阶段数据
+    // M阶段数据前推
+	assign hilo_out = hilo_reg;
+
 endmodule

@@ -1,11 +1,11 @@
 `include "defines2.vh"
 
-module alu_new(
+module alu_top(
     input wire clk, rst,stall_masterE,flush_masterE,
-    input wire [31:0] md_src_a1, md_src_b1,
+    input wire [31:0] src1_aE, src1_bE,
     input wire [7:0] alucontrolE1, 
     // input wire [4:0] sa1, msbd1,
-    input wire [31:0] md_src_a2, md_src_b2,
+    input wire [31:0] src2_aE, src2_bE,
     input wire [7:0] alucontrolE2, 
     // input wire [4:0] sa1, msbd1,
     input wire flush_exception_masterM, DivMulEnE,//mfhiE, mfloE, 
@@ -21,8 +21,8 @@ module alu_new(
     
     wire [63:0] hilo_outE;
     wire [31:0] aluout_temp1, aluout_temp2;
-    alu1 alu_1(clk, rst, md_src_a1, md_src_b1, alucontrolE1, hilo_outE, aluout_temp1, overflowE1, trapE1);
-    alu2 alu_2(clk, rst, md_src_a2, md_src_b2, alucontrolE2, hilo_outE, aluout_temp2, overflowE2, trapE2);
+    alu alu_1(clk, rst, src1_aE, src1_bE, alucontrolE1, hilo_outE, aluout_temp1, overflowE1, trapE1);
+    alu alu_2(clk, rst, src2_aE, src2_bE, alucontrolE2, hilo_outE, aluout_temp2, overflowE2, trapE2);
     
     //支持两指令同读hilo、读写hilo、仅一条操作hilo，不支持写读。
     //支持两指令全部复写hilo
@@ -52,21 +52,16 @@ module alu_new(
     wire hilo_writeE;
     reg hilo_writeE_temp;
     assign hilo_writeE = (alucontrolE1==`MTHI_CONTROL) | (alucontrolE1==`MTLO_CONTROL) | (alucontrolE2==`MTHI_CONTROL) | (alucontrolE2==`MTLO_CONTROL) | hilo_writeE_temp;
-    assign re_wite_hi = (alucontrolE2==`MTHI_CONTROL) ? md_src_a2 : (alucontrolE1==`MTHI_CONTROL) & ~two_is_md_hilo ? md_src_a1 : hilo_in_muldiv_temp[63:32];
-    assign re_wite_lo = (alucontrolE2==`MTLO_CONTROL) ? md_src_a2 : (alucontrolE1==`MTLO_CONTROL) & ~two_is_md_hilo ? md_src_a1 : hilo_in_muldiv_temp[31:0];
+    assign re_wite_hi = (alucontrolE2==`MTHI_CONTROL) ? src2_aE : (alucontrolE1==`MTHI_CONTROL) & ~two_is_md_hilo ? src1_aE : hilo_in_muldiv_temp[63:32];
+    assign re_wite_lo = (alucontrolE2==`MTLO_CONTROL) ? src2_aE : (alucontrolE1==`MTLO_CONTROL) & ~two_is_md_hilo ? src1_aE : hilo_in_muldiv_temp[31:0];
     assign hilo_in_muldiv = {re_wite_hi,re_wite_lo};
 
     //乘除法,不支持两指令同时乘除
     wire [31:0] md_src_a, md_src_b;
     wire [7:0] md_alucontrol;
-    wire [31:0] aluout_md;
-    assign md_src_a = two_is_md_hilo ? md_src_a2 : one_is_md_hilo ? md_src_a1 : 32'b0;
-    assign md_src_b = two_is_md_hilo ? md_src_b2 : one_is_md_hilo ? md_src_b1 : 32'b0;
+    assign md_src_a = two_is_md_hilo ? src2_aE : one_is_md_hilo ? src1_aE : 32'b0;
+    assign md_src_b = two_is_md_hilo ? src2_bE : one_is_md_hilo ? src1_bE : 32'b0;
     assign md_alucontrol = two_is_md_hilo ? alucontrolE2 : one_is_md_hilo ? alucontrolE1 : 8'b0;
-
-    //实际输出port
-    assign aluoutE1 = one_is_md ? aluout_md : aluout_temp1;
-    assign aluoutE2 = two_is_md ? aluout_md : aluout_temp2;
 
     wire [63:0] aluout_div; 
     wire [63:0] aluout_mul;
@@ -130,7 +125,6 @@ module alu_new(
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     hilo_writeE_temp = 1'b1;
-                    aluout_md = aluout_mul[31:0];
                 end
                 else begin
                     mul_startE = 1'b1;
@@ -212,9 +206,9 @@ module alu_new(
     mul mul(
 		.clk(clk),
 		.rst(rst),
-        .flush(flush_masterE),
-		.opdata1_i(md_src_a),  
-		.opdata2_i(md_src_b),  
+        .flush(flushE),
+		.opdata1_i(src_aE),  
+		.opdata2_i(src_bE),  
 		.start_i(mul_startE),
 		.signed_mul_i(mul_sign),   
 
@@ -226,9 +220,9 @@ module alu_new(
 	div div(
 		.clk(clk),
 		.rst(rst),
-        .flush(flush_masterE),
-		.opdata1_i(md_src_a),  //divident
-		.opdata2_i(md_src_b),  //divisor
+        .flush(flushE),
+		.opdata1_i(src_aE),  //divident
+		.opdata2_i(src_bE),  //divisor
 		.start_i(div_startE),
         .annul_i(0),
 		.signed_div_i(div_sign),   //1 signed
@@ -239,6 +233,6 @@ module alu_new(
 	);
 
 // hilo
-    hilo_new hilo(clk,rst, hilo_writeE & ~flush_exception_masterM , hilo_in_muldiv , hilo_outE );
+    hilo hilo(clk,rst , hilo_writeE & ~flush_exceptionM  , hilo_in_muldiv, hilo_outE );
 
 endmodule
