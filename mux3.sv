@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module mux3 #(parameter WIDTH = 8)(
 	input wire[WIDTH-1:0] d0,d1,d2,
 	input wire[1:0] s,

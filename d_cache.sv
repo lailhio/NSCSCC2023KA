@@ -71,6 +71,19 @@ module d_cache#(
     reg [LEN_INDEX-1:0] index_M2;
     reg [LEN_LINE-1:0] lineLoc_M2;
     // No Cache Should be Execute in M2
+    typedef struct packed {
+        logic [31:0]    waddr;
+        logic [2:0]     wsize;
+        logic [3:0]     wstrb;
+        logic [31:0]    wdata; // note: data should place at correct place. (like axi)
+    } store_buffer_entry;
+    parameter SIZE_STORE_BUFFER = 4;
+    typedef struct packed {
+        logic [$clog2(SIZE_STORE_BUFFER)-1:0] ptr_begin;
+        logic [$clog2(SIZE_STORE_BUFFER)-1:0] ptr_end;
+        logic axi_busy;
+    } store_buffer_control;
+
     reg  no_cache_M2;
     reg [3:0] data_sram_wen_M2;
     reg cpu_data_en_M2;
@@ -115,6 +128,7 @@ module d_cache#(
     //判断是否命中
     wire hit, miss;
     reg cpu_data_ok;
+    reg FristReq;
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
     reg [2:0] pre_state;
@@ -150,7 +164,13 @@ module d_cache#(
     logic [LEN_LINE:2] cache_buff_cnt;
     reg buff_last;
 
-    assign d_stall = ~hit  & ~cpu_data_ok & data_en;
+    store_buffer_entry store_buffer[SIZE_STORE_BUFFER-1:0];
+    store_buffer_control store_buffer_ctrl;
+    wire store_buffer_has_next = store_buffer_ctrl.ptr_begin != store_buffer_ctrl.ptr_end;
+    wire store_buffer_busy = store_buffer_has_next | store_buffer_ctrl.axi_busy;
+    wire store_buffer_full = (store_buffer_ctrl.ptr_end + 1'd1) == store_buffer_ctrl.ptr_begin;
+    
+    assign d_stall = (~hit  & ~cpu_data_ok & data_en) | store_buffer_full ;
     //  & ~(i_stall & isIDLE)
     wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
     wire cache_en = ~cpu_data_ok & data_en;
@@ -182,6 +202,7 @@ module d_cache#(
                                 (axi_cnt == lineLoc_M3[LEN_LINE-1:2] & store)?  write_cache_data:  d_rdata;
                                 
     
+    wire isNO_CACHE = state==NOCACHE;
     wire isCACHE_REPLACE = state==CACHE_REPLACE;
     wire isCACHE_WRITEBACK = state==CACHE_WRITEBACK;
     wire isSAVERES = state==SAVE_RES;
@@ -198,6 +219,9 @@ module d_cache#(
             cpu_data_wr_M2 <= 0;
             cpu_data_en_M2 <= 0;
             //Nocache Process
+            store_buffer <= '{default: '0};
+            // clear store buffer
+            store_buffer_ctrl <= 0;
             no_cache_M2 <= 0;
             data_sram_wen_M2 <= 0;
             cpu_data_wdata_M2 <= 0;
@@ -209,23 +233,52 @@ module d_cache#(
             c_lru_M2 <= 2'b00;
         end
         else if(cache_en1)begin
-            lineLoc_M2 <= lineLoc;
-            index_M2 <= index;
-            tag_M2 <= tag;
             //Nocache Process
-            cpu_data_wr_M2 <= cpu_data_wr;
-            cpu_data_en_M2 <= cpu_data_en;
-            no_cache_M2 <= no_cache;
-            data_sram_wen_M2 <= data_sram_wen;
-            cpu_data_wdata_M2 <= cpu_data_wdata;
-            cpu_data_size_M2 <= cpu_data_size;
-            cpu_data_addr_M2 <= cpu_data_addr;
-            c_dirty_M2[0] <= cache_dirty[index][0];
-            c_dirty_M2[1] <= cache_dirty[index][1];
-            c_valid_M2[0] <= cache_valid[index][0];
-            c_valid_M2[1] <= cache_valid[index][1];
-            c_lru_M2   [0] <= cache_lru   [index][0];
-            c_lru_M2   [1] <= cache_lru   [index][1];
+            if (no_cache & cpu_data_wr) begin
+                store_buffer[store_buffer_ctrl.ptr_end] <= '{
+                    waddr: cpu_data_addr,
+                    wsize: {1'b0,cpu_data_size},
+                    wstrb: data_sram_wen,
+                    wdata: cpu_data_wdata
+                };
+                store_buffer_ctrl.ptr_end <= store_buffer_ctrl.ptr_end + 1;
+
+                index_M2 <= 0;
+                lineLoc_M2 <= 0;
+                tag_M2 <= 0;
+                cpu_data_wr_M2 <= 0;
+                cpu_data_en_M2 <= 0;
+                //Nocache Process
+                // clear store buffer
+                no_cache_M2 <= 0;
+                data_sram_wen_M2 <= 0;
+                cpu_data_wdata_M2 <= 0;
+                cpu_data_size_M2 <= 0;
+                cpu_data_addr_M2 <= 32'hbfc;
+                
+                c_valid_M2 <= 2'b00;
+                c_dirty_M2 <= 2'b00;
+                c_lru_M2 <= 2'b00;
+            end
+            else begin
+                lineLoc_M2 <= lineLoc;
+                index_M2 <= index;
+                tag_M2 <= tag;
+                cpu_data_wr_M2 <= cpu_data_wr;
+                cpu_data_en_M2 <= cpu_data_en;
+                no_cache_M2 <= no_cache;
+                data_sram_wen_M2 <= data_sram_wen;
+                cpu_data_wdata_M2 <= cpu_data_wdata;
+                cpu_data_size_M2 <= cpu_data_size;
+                cpu_data_addr_M2 <= cpu_data_addr;
+                c_dirty_M2[0] <= cache_dirty[index][0];
+                c_dirty_M2[1] <= cache_dirty[index][1];
+                c_valid_M2[0] <= cache_valid[index][0];
+                c_valid_M2[1] <= cache_valid[index][1];
+                c_lru_M2   [0] <= cache_lru   [index][0];
+                c_lru_M2   [1] <= cache_lru   [index][1];
+            end
+            
         end
     end
 
@@ -273,215 +326,220 @@ module d_cache#(
             d_wstrb <= 0;
             d_wlast <= 0;
             d_wvalid <= 0;
+            FristReq <=0;
         end
-        else if(cache_en)begin          
-            pre_state <= state;  
-            case(state)
-            // 按照状态机编写
-                IDLE: begin 
-                    c_tag_M3 <= c_tag_M2;
-                    c_dirty_M3 <=  c_dirty_M2;
-                    c_lru_M3 <=  c_lru_M2;
-                    c_valid_M3 <= c_valid_M2;
-                    index_M3 <= index_M2;
-                    lineLoc_M3 <= lineLoc_M2;
-                    no_cache_M3 <= no_cache_M2;
-                    tag_M3 <= tag_M2;
-                    cpu_data_en_M3 <= cpu_data_en_M2;
-                    cpu_data_wr_M3 <= cpu_data_wr_M2;
-                    cpu_data_wdata_M3 <= cpu_data_wdata_M2;
-                    cpu_data_size_M3 <= cpu_data_size_M2;
-                    cpu_data_addr_M3 <= cpu_data_addr_M2;
-                    data_sram_wen_M3 <= data_sram_wen_M2;
-                    if (no_cache_M2) begin
-                        if(cpu_data_wr_M2) begin
-                            d_wstrb <= data_sram_wen_M2;
-                            d_awlen  <= 0;
-                            d_awaddr <= cpu_data_addr_M2;
-                            d_awsize <= {1'b0,cpu_data_size_M2};
-                            d_awvalid <= 1'b1;
-                        end
-                        else begin
+        else begin
+            if (store_buffer_busy) begin
+                if (store_buffer_ctrl.axi_busy) begin // To implement SC memory ordering, if store buffer busy, axi is unseable.
+                    if (d_awvalid & d_awready) begin
+                        d_awvalid <= 0;
+                        d_wvalid <= 1'b1;
+                        d_wlast <= 1'b1;
+                    end
+                    if (d_wvalid & d_wready) begin
+                        d_wvalid <= 0;
+                        d_wlast <= 0;
+                    end
+                    if (d_bvalid & d_bready) begin
+                        store_buffer_ctrl.axi_busy <= 1'b0;
+                    end
+                end
+                else begin
+                    d_awaddr <= store_buffer[store_buffer_ctrl.ptr_begin].waddr;
+                    d_awlen <= 0;
+                    d_awsize <= store_buffer[store_buffer_ctrl.ptr_begin].wsize;
+                    d_awvalid <= 1'b1;
+                    d_wdata <= store_buffer[store_buffer_ctrl.ptr_begin].wdata;
+                    d_wstrb <= store_buffer[store_buffer_ctrl.ptr_begin].wstrb;
+                    
+                    store_buffer_ctrl.ptr_begin <= store_buffer_ctrl.ptr_begin + 1;
+                    store_buffer_ctrl.axi_busy <= 1'b1;
+                end
+            end
+
+            if(cache_en)begin          
+                pre_state <= state;  
+                case(state)
+                // 按照状态机编写
+                    IDLE: begin 
+                        c_tag_M3 <= c_tag_M2;
+                        c_dirty_M3 <=  c_dirty_M2;
+                        c_lru_M3 <=  c_lru_M2;
+                        c_valid_M3 <= c_valid_M2;
+                        index_M3 <= index_M2;
+                        lineLoc_M3 <= lineLoc_M2;
+                        no_cache_M3 <= no_cache_M2;
+                        tag_M3 <= tag_M2;
+                        cpu_data_en_M3 <= cpu_data_en_M2;
+                        cpu_data_wr_M3 <= cpu_data_wr_M2;
+                        cpu_data_wdata_M3 <= cpu_data_wdata_M2;
+                        cpu_data_size_M3 <= cpu_data_size_M2;
+                        cpu_data_addr_M3 <= cpu_data_addr_M2;
+                        data_sram_wen_M3 <= data_sram_wen_M2;
+                        if (no_cache_M2) begin
                             d_araddr <= cpu_data_addr_M2;
                             d_arlen  <= 0;
                             d_arsize <= 3'd2;
-                            d_arvalid <= 1'b1;
+                            FristReq <= 0;
+                            state <= NOCACHE;
                         end
-                        wena_data_bank_way <= '{default: '0};
-                        wena_tag_ram_way <= '{default: '0}; 
-                        state <= NOCACHE;
+                        else if (hit) begin
+                            state <= IDLE;
+                            if(cpu_data_wr_M2) begin
+                                cache_dirty[index_M2][c_way[1]] <= 1'b1;
+                            end
+                            cache_lru[index_M2][c_way[1]] <=1'b0;
+                            cache_lru[index_M2][~c_way[1]] <=1'b1;
+                        end
+                        else begin
+                            if (miss & dirty)begin
+                                state <= CACHE_WRITEBACK;
+                                d_awaddr <= {c_tag_M2[c_lru_M2[1]], index_M2,{LEN_LINE{1'b0}}};
+                                d_awlen <= NR_WORDS - 1;
+                                wena_data_bank_way <= '{default: '0};
+                                wena_tag_ram_way <= '{default: '0}; 
+                                d_awsize <= 3'd2;
+                                axi_cnt <= 1;
+                            end
+                            else if (miss & clean)begin
+                                state <= CACHE_REPLACE;
+                                d_araddr <= {tag_M2, index_M2,{LEN_LINE{1'b0}}};
+                                d_arlen <= NR_WORDS - 1;
+                                d_arsize <= 3'd2;
+                                d_arvalid <= 1'b1;
+                                wena_data_bank_way[c_lru_M2[1]] <= 4'hf;// write to instram
+                                wena_data_bank_way[~c_lru_M2[1]] <= 4'h0;// write to instram
+                                wena_tag_ram_way <= {c_lru_M2[1],~c_lru_M2[1]}; //write to tag
+                                axi_cnt <= 0;
+                            end
+                            if(cpu_data_wr_M2) begin
+                                cache_dirty[index_M2][c_lru_M2[1]] <= 1'b1;
+                            end
+                            tway_M3 <= c_lru_M2[1];
+                            cache_lru[index_M2][c_lru_M2[1]] <=1'b0;
+                            cache_lru[index_M2][~c_lru_M2[1]] <=1'b1;
+                            cache_valid[index_M2][c_lru_M2[1]] <= 1'b1;
+                            cache_buff_cnt <=0;
+                            buff_last <= 0;
+                        end
                     end
-                    else if (hit) begin
-                        state <= IDLE;
-                        if(cpu_data_wr_M2) begin
-                            cache_dirty[index_M2][c_way[1]] <= 1'b1;
+                    CACHE_WRITEBACK: begin              
+                        if (!store_buffer_busy) begin
+                            d_wstrb <= 4'b1111; // 写哪几位
+                            if (cache_buff_cnt != NR_WORDS) begin
+                                // not first time, todo addr
+                                cache_buff_cnt <= cache_buff_cnt + 1;
+                            end
+                            else begin
+                                buff_last <= 1;
+                            end
+                            if (cache_buff_cnt != 0 &  ~buff_last) begin
+                                // write to buffer
+                                wdata_buffer[cache_buff_cnt-1] <= c_block_M2[tway_M3];
+                            end
+                            if (cache_buff_cnt == 1) begin
+                                // write to buffer
+                                d_wdata <= c_block_M2[tway_M3];
+                                d_awvalid <= 1'b1;
+                            end
                         end
-                        cache_lru[index_M2][c_way[1]] <=1'b0;
-                        cache_lru[index_M2][~c_way[1]] <=1'b1;
-                    end
-                    else begin
-                        if (miss & dirty)begin
-                            state <= CACHE_WRITEBACK;
-                            d_awaddr <= {c_tag_M2[c_lru_M2[1]], index_M2,{LEN_LINE{1'b0}}};
-                            d_awlen <= NR_WORDS - 1;
-                            wena_data_bank_way <= '{default: '0};
-                            wena_tag_ram_way <= '{default: '0}; 
-                            d_awsize <= 3'd2;
-                            axi_cnt <= 1;
+                        
+                        if (d_awvalid & d_awready) begin
+                            // First Time
+                            d_awvalid <= 1'b0;
+                            d_wvalid <=1'b1;
+                            d_wlast <=1'b0;
                         end
-                        else if (miss & clean)begin
-                            state <= CACHE_REPLACE;
-                            d_araddr <= {tag_M2, index_M2,{LEN_LINE{1'b0}}};
+                        if (d_wvalid & d_wready) begin
+                            // write one word every wready 
+                            if (d_wlast) begin
+                                d_wvalid <= 1'b0;
+                                d_wlast <= 1'b0;
+                            end
+                            else begin
+                                d_wdata <=  wdata_buffer[axi_cnt];
+                                axi_cnt <= axi_cnt + 1;
+                                if (axi_cnt  == NR_WORDS - 1) begin
+                                    d_wlast <= 1'b1;
+                                end
+                            end
+                        end
+                        if (d_bvalid & d_bready) begin
+                            // write to cache 
+                            d_araddr <= {tag_M3, index_M3,{LEN_LINE{1'b0}}};
                             d_arlen <= NR_WORDS - 1;
                             d_arsize <= 3'd2;
                             d_arvalid <= 1'b1;
-                            wena_data_bank_way[c_lru_M2[1]] <= 4'hf;// write to instram
-                            wena_data_bank_way[~c_lru_M2[1]] <= 4'h0;// write to instram
-                            wena_tag_ram_way <= {c_lru_M2[1],~c_lru_M2[1]}; //write to tag
-                            axi_cnt <= 0;
-                        end
-                        if(cpu_data_wr_M2) begin
-                            cache_dirty[index_M2][c_lru_M2[1]] <= 1'b1;
-                        end
-                        tway_M3 <= c_lru_M2[1];
-                        cache_lru[index_M2][c_lru_M2[1]] <=1'b0;
-                        cache_lru[index_M2][~c_lru_M2[1]] <=1'b1;
-                        cache_valid[index_M2][c_lru_M2[1]] <= 1'b1;
-                        cache_buff_cnt <=0;
-                        buff_last <= 0;
-                    end
-                end
-                CACHE_WRITEBACK: begin              
-                    d_wstrb <= 4'b1111; // 写哪几位
-                    if (cache_buff_cnt != NR_WORDS) begin
-                        // not first time, todo addr
-                        cache_buff_cnt <= cache_buff_cnt + 1;
-                    end
-                    else begin
-                        buff_last <= 1;
-                    end
-                    if (cache_buff_cnt != 0 &  ~buff_last) begin
-                        // write to buffer
-                        wdata_buffer[cache_buff_cnt-1] <= c_block_M2[tway_M3];
-                    end
-                    if (cache_buff_cnt == 1) begin
-                        // write to buffer
-                        d_wdata <= c_block_M2[tway_M3];
-                        d_awvalid <= 1'b1;
-                    end
-                    if (d_awvalid & d_awready) begin
-                        // First Time
-                        d_awvalid <= 1'b0;
-                        d_wvalid <=1'b1;
-                        d_wlast <=1'b0;
-                    end
-                    if (d_wvalid & d_wready) begin
-                        // write one word every wready 
-                        if (d_wlast) begin
-                            d_wvalid <= 1'b0;
                             d_wlast <= 1'b0;
-                        end
-                        else begin
-                            d_wdata <=  wdata_buffer[axi_cnt];
-                            axi_cnt <= axi_cnt + 1;
-                            if (axi_cnt  == NR_WORDS - 1) begin
-                                d_wlast <= 1'b1;
-                            end
+                            buff_last <= 0;
+                            axi_cnt <= 0 ;
+                            wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
+                            wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
+                            wena_tag_ram_way[tway_M3] <= 1;
+                            cache_dirty[index_M3][tway_M3] <= 0;
+                            state <= CACHE_REPLACE;
                         end
                     end
-                    if (d_bvalid & d_bready) begin
-                        // write to cache 
-                        d_araddr <= {tag_M3, index_M3,{LEN_LINE{1'b0}}};
-                        d_arlen <= NR_WORDS - 1;
-                        d_arsize <= 3'd2;
-                        d_arvalid <= 1'b1;
-                        d_wlast <= 1'b0;
-                        buff_last <= 0;
-                        axi_cnt <= 0 ;
-                        wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
-                        wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
-                        wena_tag_ram_way[tway_M3] <= 1;
-                        cache_dirty[index_M3][tway_M3] <= 0;
+                    CACHE_REPLACE: begin
                         state <= CACHE_REPLACE;
-                    end
-                end
-                CACHE_REPLACE: begin
-                    state <= CACHE_REPLACE;
-                    if (d_arvalid) begin
-                        if (d_arready) begin
-                            d_arvalid <= 0;
-                            d_rready <= 1'b1;
-                        end
-                    end
-                    else begin
-                        if (d_rvalid & d_rready) begin
-                            if (!d_rlast) begin
-                                axi_cnt <= axi_cnt + 1;
-                                if(axi_cnt == lineLoc_M3[LEN_LINE-1:2]) 
-                                    axi_data_rdata <= d_rdata;
-                            end
-                            else begin
-                                d_rready <= 0;
-                                wena_data_bank_way[tway_M3] <= 0;
-                                wena_tag_ram_way[tway_M3] <= 0;
-                                if(axi_cnt == lineLoc_M3[LEN_LINE-1:2]) 
-                                    axi_data_rdata <= d_rdata;
-                            end
-                            if(store) cache_dirty[index_M3][tway_M3] <= 1;
-                        end
-                        else if (!d_rready) begin // wait the final data write to bram.
-                            state <= IDLE;
-                            cpu_data_ok <= 1;
-                        end
-                    end
-                end
-                NOCACHE: begin
-                    if(store)begin
-                        //No Burst
-                        if(d_awvalid & d_awready)begin
-                            d_awvalid <= 0;
-                            d_wvalid <= 1'b1;
-                            d_wlast <= 1'b1;
-                            d_wdata <= cpu_data_wdata_M3; 
-                        end
-                        if(d_wready & d_wvalid)begin
-                            d_wvalid <= 1'b0;
-                        end
-                        if(d_bvalid & d_bready)begin
-                            d_wlast <= 1'b0;
-                            state <= IDLE;
-                            cpu_data_ok <=1;
-                        end
-
-                    end
-                    else begin
                         if (d_arvalid) begin
                             if (d_arready) begin
                                 d_arvalid <= 0;
                                 d_rready <= 1'b1;
                             end
                         end
-                        else if (d_rvalid & d_rready) begin
-                            d_rready <= 1'b0;
-                            axi_data_rdata <= d_rdata;
-                        end
-                        else if (~d_rvalid & ~d_rready)begin
-                            cpu_data_ok <=1;
-                            state <= IDLE;
+                        else begin
+                            if (d_rvalid & d_rready) begin
+                                if (!d_rlast) begin
+                                    axi_cnt <= axi_cnt + 1;
+                                    if(axi_cnt == lineLoc_M3[LEN_LINE-1:2]) 
+                                        axi_data_rdata <= d_rdata;
+                                end
+                                else begin
+                                    d_rready <= 0;
+                                    wena_data_bank_way[tway_M3] <= 0;
+                                    wena_tag_ram_way[tway_M3] <= 0;
+                                    if(axi_cnt == lineLoc_M3[LEN_LINE-1:2]) 
+                                        axi_data_rdata <= d_rdata;
+                                end
+                                if(store) cache_dirty[index_M3][tway_M3] <= 1;
+                            end
+                            else if (!d_rready) begin // wait the final data write to bram.
+                                state <= IDLE;
+                                cpu_data_ok <= 1;
+                            end
                         end
                     end
-                end
-                // SAVE_RES:begin
-                //     if (~stallM2) 
-                //         state <= IDLE;
-                // end
-            endcase
+                    NOCACHE: begin
+                        if (!store_buffer_busy) begin
+                            if(~FristReq) begin
+                                d_arvalid <= 1'b1;
+                                FristReq <=1;
+                            end
+                            if (d_arvalid & d_arready) begin
+                                d_arvalid <= 0;
+                                d_rready <= 1'b1;
+                            end
+                            else if (d_rvalid & d_rready) begin
+                                d_rready <= 1'b0;
+                                axi_data_rdata <= d_rdata;
+                            end
+                            else if (~d_rvalid & ~d_rready)begin
+                                cpu_data_ok <=1;
+                                state <= IDLE;
+                            end
+                        end
+                    end
+                endcase
+            end
+            else if (cache_en1)begin
+                no_cache_M3 <= 0;
+                cpu_data_ok <= 0;
+                FristReq <= 0;
+                pre_state <= state;
+            end
         end
-        else if (cache_en1)begin
-            no_cache_M3 <= 0;
-            cpu_data_ok <= 0;
-            pre_state <= state;
-        end
+        
     end
 
     

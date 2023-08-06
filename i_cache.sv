@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module i_cache #(
     parameter LEN_LINE = 6,  // 32 Bytes
     parameter LEN_INDEX = 7, // 128 lines

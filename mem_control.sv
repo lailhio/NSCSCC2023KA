@@ -1,4 +1,5 @@
 `include "defines2.vh"
+`timescale 1ns / 1ps
 
 module mem_control(
     input wire [31:0] instrM,

@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module signext(
     input wire pcsrc,
 	input wire[15:0] a,

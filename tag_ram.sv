@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module tag_ram #(
     parameter LEN_DATA = 20,
     parameter LEN_ADDR = 10

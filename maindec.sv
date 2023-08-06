@@ -1,4 +1,5 @@
 `include "defines2.vh"
+`timescale 1ns / 1ps
 
 module maindec(
 		input wire[31:0] instrD,

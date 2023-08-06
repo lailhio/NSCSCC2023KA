@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module cpu_axi_interface
 (
     input wire clk, rst,
