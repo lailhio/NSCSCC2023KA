@@ -524,7 +524,7 @@ module d_cache#(
                                 d_rready <= 1'b0;
                                 axi_data_rdata <= d_rdata;
                             end
-                            else if (~d_rvalid & ~d_rready)begin
+                            else if (~d_rready & FristReq & ~d_arvalid)begin
                                 cpu_data_ok <=1;
                                 state <= IDLE;
                             end
