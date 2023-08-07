@@ -1,7 +1,7 @@
 `include "defines2.vh"
 
 module alu_top(
-    input wire clk, rst, flush_masterE, flush_slaveE, 
+    input wire clk, rst, flush_masterE, flush_slaveE, fulsh_ex, 
     input wire [31:0] src1_aE, src1_bE,
     input wire [31:0] src2_aE, src2_bE,
     input wire [7:0] alucontrolE1, 
@@ -9,10 +9,10 @@ module alu_top(
     input wire DivMulEn1, DivMulEn2,
     
     output wire alustallE,
-    output reg overflowE1,
-    output reg overflowE2,
-    output reg trapE1,
-    output reg trapE2, 
+    output reg overflow1E,
+    output reg overflow2E,
+    output reg trap1E,
+    output reg trap2E, 
     output reg [31:0] aluoutE1, 
     output reg [31:0] aluoutE2
 );
@@ -20,8 +20,8 @@ module alu_top(
     wire [63:0] hilo_outE;
     reg [31:0] MulDivOp1, MulDivOp2;
     reg flushE;
-    alu alu_1(clk, rst, src1_aE, src1_bE, alucontrolE1, aluout_mul, hilo_outE, aluoutE1, overflowE1, trapE1);
-    alu alu_2(clk, rst, src2_aE, src2_bE, alucontrolE2, aluout_mul, hilo_outE, aluoutE2, overflowE2, trapE2);
+    alu alu_1(clk, rst, src1_aE, src1_bE, alucontrolE1, aluout_mul, hilo_outE, aluoutE1, overflow1E, trap1E);
+    alu alu_2(clk, rst, src2_aE, src2_bE, alucontrolE2, aluout_mul, hilo_outE, aluoutE2, overflow2E, trap2E);
     
     
     //支持mthi、mtlo双发
@@ -280,6 +280,6 @@ module alu_top(
 	);
 
 // hilo
-    hilo hilo(clk,rst , hilo_writeE & ~flush_exceptionM  , hilo_in_muldiv, hilo_outE );
+    hilo hilo(clk,rst , hilo_writeE & ~fulsh_ex  , hilo_in_muldiv, hilo_outE );
 
 endmodule

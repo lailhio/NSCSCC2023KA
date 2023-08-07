@@ -126,7 +126,7 @@ module mycpu_top(
         .inst1_F2(cpu_inst1_rdata), .inst2_F2(cpu_inst2_rdata),
         .i_cache_stall(i_stall),
         //data
-    	.mem_addrM(virtual_data_addr),.mem_enM(cpu_data_en),
+    	.virtual_data_addr(virtual_data_addr),.mem_enM(cpu_data_en),
         .mem_rdataM2(cpu_data_rdata),
         .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
         .d_cache_stall(d_stall),

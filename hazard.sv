@@ -73,17 +73,21 @@ module hazard(
     wire pc_change2D = (jump2D | branch2_ok)
 
     assign fulsh_ex = flush_exception_masterM | flush_exception_slaveM;
-    wire only_one = master_only_oneD | slave_only_oneD 
-                | (dec_sign1D.regwrite & (rs2D == dec_sign1D.writereg | rt2D == dec_sign1D.writereg))
-                | (dec_sign2D.hilo_read & dec_sign1D.DivMulEn);
-    wire muldiv_conflict = dec_sign1D.DivMulEn & dec_sign2D.DivMulEn;
+    wire only_one = master_only_oneD | slave_only_oneD  | (dec_sign1D.regwrite 
+                & (dec_sign2D.read_rs & rs2D == dec_sign1D.writereg 
+                |  dec_sign2D.read_rt & rt2D == dec_sign1D.writereg))
+                | (dec_sign2D.hilo_read & dec_sign1D.hilo_write)
+                | (dec_sign2D.cp0_read & dec_sign1D.cp0_write);
+    wire muldiv_conflict = dec_sign1D.DivMulEn & dec_sign2D.DivMulEn & ~dec_sign2D.hilo_read;
     wire pred_failed = pred_failed_masterE | pred_failed_slaveE;
     
     assign longest_stall=id_cache_stall | alu_stallE;
 
     // Is mfc0 mfhilo lw and Operand is the same 
-    assign stallDblank= ((((~|(forward1_2D ^ 4'b0100)) | (~|(forward1_1D ^ 4'b0100))) & (is_mfcE | mem_readE)) 
-                | ((((~|(forward1_1D ^ 4'b0011))) | ((~|(forward1_2D ^ 4'b0011))))& (mem_readM)));
+    assign stallDblank= (((forward1_1D == 4'b1000 | forward1_1D == 4'b0100 | forward1_2D == 4'b1000 | forward1_2D == 4'b0100) & (dec_sign1E.is_mfc | dec_sign1E.mem_read))
+                        |((forward2_1D == 4'b1000 | forward2_1D == 4'b0100 | forward2_2D == 4'b1000 | forward2_2D == 4'b0100) & (dec_sign2E.is_mfc | dec_sign2E.mem_read))  
+                        |((forward1_1D == 4'b0011 | forward1_1D == 4'b0111 | forward1_2D == 4'b0011 | forward1_2D == 4'b0111)& (dec_sign1M.mem_read))
+                        |((forward2_1D == 4'b0011 | forward2_1D == 4'b0111 | forward2_2D == 4'b0011 | forward2_2D == 4'b0111)& (dec_sign1M.mem_read)));
 
     assign stallF = (~fulsh_ex & (id_cache_stall | alu_stallE | stallDblank | Blank_SL | only_one));
     assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL | only_one;
