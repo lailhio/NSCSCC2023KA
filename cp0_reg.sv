@@ -12,7 +12,7 @@ module cp0_reg(
 
 	input wire[5:0] int_i,
 
-	input wire[`RegBus] excepttype_i,
+	input wire[`RegBus] excepttype1_i,
 	input wire[`RegBus] current_inst_addr_i,
 	input wire is_in_delayslot_i,
 	input wire[`RegBus] bad_addr_i,
@@ -72,7 +72,7 @@ module cp0_reg(
 					default : /* default */;
 				endcase
 			end
-			case (excepttype_i)
+			case (excepttype1_i)
 				32'h00000001:begin // 中断（其实写入的cause)
 					if(is_in_delayslot_i == `InDelaySlot) begin
 						/* code */
