@@ -6,13 +6,14 @@ module mem_control(
     input wire [31:0] instrM2,
     input wire [31:0] addressM,  //save and load 
     input wire [31:0] addressM2,  //load address
+    input wire Blank_SL,
 
     input wire [31:0] data_wdataM, //要写的数据
     input wire [31:0] rt_valueM2,   //rt寄存器的值
     output wire [31:0] writedataM,  //真正写数据
-    output wire [3:0] mem_write_selectM,  //选择写哪一位
+    output wire [3:0] mem_write_selectM, mem_write_selectW,  //选择写哪一位
 
-    input wire [31:0] mem_rdataM2, //内存读出
+    input wire [31:0] mem_rdataM2, writedataW, //内存读出
     output wire [31:0] data_rdataM2,  // 实际读出
     output wire [31:0] data_addrM,
     output wire addr_error_sw, addr_error_lw
@@ -107,28 +108,32 @@ module mem_control(
                         | ( {32{instr_swr & addr_B3M}} & {4{data_wdataM[7:0]}});
                         // | ( {32{instr_sc}} & data_wdataM); //
 // rdata   
-    assign data_rdataM2 =  ( {32{instr_lw}}   & mem_rdataM2)                                                  //lw 直接读取字
-                        | ( {32{ instr_lh   & addr_W0M2}}  & { {16{mem_rdataM2[15]}},  mem_rdataM2[15:0]    })  //lh 分别从00 10开始读半字 读取后进行符号扩展
-                        | ( {32{ instr_lh   & addr_B2M2}}  & { {16{mem_rdataM2[31]}},  mem_rdataM2[31:16]   })
-                        | ( {32{ instr_lhu  & addr_W0M2}}  & {  16'b0,                mem_rdataM2[15:0]    })  //lhb 分别从00 10开始读半字 读取后进行0扩展
-                        | ( {32{ instr_lhu  & addr_B2M2}}  & {  16'b0,                mem_rdataM2[31:16]   })
-                        | ( {32{ instr_lb   & addr_W0M2}}  & { {24{mem_rdataM2[7]}},   mem_rdataM2[7:0]     })  //lb 分别从00 01 10 11开始取bytes 读取后进行符号扩展
-                        | ( {32{ instr_lb   & addr_B1M2}}  & { {24{mem_rdataM2[15]}},  mem_rdataM2[15:8]    })
-                        | ( {32{ instr_lb   & addr_B2M2}}  & { {24{mem_rdataM2[23]}},  mem_rdataM2[23:16]   })
-                        | ( {32{ instr_lb   & addr_B3M2}}  & { {24{mem_rdataM2[31]}},  mem_rdataM2[31:24]   })
-                        | ( {32{ instr_lbu  & addr_W0M2}}  & {  24'b0 ,               mem_rdataM2[7:0]     })  //lbu 分别从00 01 10 11开始取bytes 读取后进行0扩展
-                        | ( {32{ instr_lbu  & addr_B1M2}}  & {  24'b0 ,               mem_rdataM2[15:8]    })
-                        | ( {32{ instr_lbu  & addr_B2M2}}  & {  24'b0 ,               mem_rdataM2[23:16]   })
-                        | ( {32{ instr_lbu  & addr_B3M2}}  & {  24'b0 ,               mem_rdataM2[31:24]   })
-                        | ( {32{ instr_lwl  & addr_W0M2}}  & {  mem_rdataM2[7:0],           rt_valueM2[23:0]})
-                        | ( {32{ instr_lwl  & addr_B1M2}}  & {  mem_rdataM2[15:0],          rt_valueM2[15:0]})
-                        | ( {32{ instr_lwl  & addr_B2M2}}  & {  mem_rdataM2[23:0],          rt_valueM2[7:0]})
-                        | ( {32{ instr_lwl  & addr_B3M2}}  & mem_rdataM2)
-                        | ( {32{ instr_lwr  & addr_W0M2}}  & mem_rdataM2)
-                        | ( {32{ instr_lwr  & addr_B1M2}}  & {  rt_valueM2[31:24],         mem_rdataM2[31:8]})
-                        | ( {32{ instr_lwr  & addr_B2M2}}  & {  rt_valueM2[31:16],         mem_rdataM2[31:16]})
-                        | ( {32{ instr_lwr  & addr_B3M2}}  & {  rt_valueM2[31:8],          mem_rdataM2[31:24]});
-                        // | ( {32{instr_ll}}  & mem_rdataM2)
+
+    wire [31:0] wforward_rdata = mem_rdataM2 & ~({32{Blank_SL}} & {{8{mem_write_selectW[3]}}, {8{mem_write_selectW[2]}}, {8{mem_write_selectW[1]}}, {8{mem_write_selectW[0]}}}) | 
+                              writedataW & {32{Blank_SL}} & {{8{mem_write_selectW[3]}}, {8{mem_write_selectW[2]}}, {8{mem_write_selectW[1]}}, {8{mem_write_selectW[0]}}};
+    
+    assign data_rdataM2 =  ( {32{instr_lw}}   & wforward_rdata)                                                  //lw 直接读取字
+                        | ( {32{ instr_lh   & addr_W0M2}}  & { {16{wforward_rdata[15]}},  wforward_rdata[15:0]    })  //lh 分别从00 10开始读半字 读取后进行符号扩展
+                        | ( {32{ instr_lh   & addr_B2M2}}  & { {16{wforward_rdata[31]}},  wforward_rdata[31:16]   })
+                        | ( {32{ instr_lhu  & addr_W0M2}}  & {  16'b0,                wforward_rdata[15:0]    })  //lhb 分别从00 10开始读半字 读取后进行0扩展
+                        | ( {32{ instr_lhu  & addr_B2M2}}  & {  16'b0,                wforward_rdata[31:16]   })
+                        | ( {32{ instr_lb   & addr_W0M2}}  & { {24{wforward_rdata[7]}},   wforward_rdata[7:0]     })  //lb 分别从00 01 10 11开始取bytes 读取后进行符号扩展
+                        | ( {32{ instr_lb   & addr_B1M2}}  & { {24{wforward_rdata[15]}},  wforward_rdata[15:8]    })
+                        | ( {32{ instr_lb   & addr_B2M2}}  & { {24{wforward_rdata[23]}},  wforward_rdata[23:16]   })
+                        | ( {32{ instr_lb   & addr_B3M2}}  & { {24{wforward_rdata[31]}},  wforward_rdata[31:24]   })
+                        | ( {32{ instr_lbu  & addr_W0M2}}  & {  24'b0 ,               wforward_rdata[7:0]     })  //lbu 分别从00 01 10 11开始取bytes 读取后进行0扩展
+                        | ( {32{ instr_lbu  & addr_B1M2}}  & {  24'b0 ,               wforward_rdata[15:8]    })
+                        | ( {32{ instr_lbu  & addr_B2M2}}  & {  24'b0 ,               wforward_rdata[23:16]   })
+                        | ( {32{ instr_lbu  & addr_B3M2}}  & {  24'b0 ,               wforward_rdata[31:24]   })
+                        | ( {32{ instr_lwl  & addr_W0M2}}  & {  wforward_rdata[7:0],           rt_valueM2[23:0]})
+                        | ( {32{ instr_lwl  & addr_B1M2}}  & {  wforward_rdata[15:0],          rt_valueM2[15:0]})
+                        | ( {32{ instr_lwl  & addr_B2M2}}  & {  wforward_rdata[23:0],          rt_valueM2[7:0]})
+                        | ( {32{ instr_lwl  & addr_B3M2}}  & wforward_rdata)
+                        | ( {32{ instr_lwr  & addr_W0M2}}  & wforward_rdata)
+                        | ( {32{ instr_lwr  & addr_B1M2}}  & {  rt_valueM2[31:24],         wforward_rdata[31:8]})
+                        | ( {32{ instr_lwr  & addr_B2M2}}  & {  rt_valueM2[31:16],         wforward_rdata[31:16]})
+                        | ( {32{ instr_lwr  & addr_B3M2}}  & {  rt_valueM2[31:8],          wforward_rdata[31:24]});
+                        // | ( {32{instr_ll}}  & wforward_rdata)
                         // | ( {32{instr_sc}}  & {31'b0, LLbit_out});
 
     // wire we = instr_ll;
