@@ -355,7 +355,7 @@ module datapath(
      // cp0 todo 
     cp0_reg cp0(
         .clk(clk) , .rst(rst),
-        .i_cache_stall(i_cache_stall), .we_i(cp0_writeM) ,
+        .stallM(stallM), .we_i(cp0_writeM) ,
         .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
         .data_i(src_b1M) , .int_i(ext_int),
         .excepttype_i(except_typeM) , .current_inst_addr_i(pcM),
