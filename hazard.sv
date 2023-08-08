@@ -8,20 +8,21 @@ module hazard(
     input wire master_only_oneD, slave_only_oneD,
 
     input wire pred_failed_masterE, pred_failed_slaveE, flush_exception_masterM, flush_exception_slaveM,
-    input wire jump1D, jump2D, branch1D, branch2D, branch1E, branch2E, pred_take1D, pred_take2D,
+    input wire jump1D, jump2D, pred_take1D, pred_take2D,
 
     input ctrl_sign dec_sign1D, dec_sign2D, dec_sign1E, dec_sign2E, 
     input ctrl_sign dec_sign1M, dec_sign2M, dec_sign1M2, dec_sign2M2, dec_sign1W, dec_sign2W, 
 
     input wire [4:0] rs1D, rs2D,// operand
-    input wire [4:0] rt1D, rs2D,
+    input wire [4:0] rt1D, rt2D,
     
     output wire stallF, stallF2, stall_masterD, stall_slaveD, stall_masterE, stall_slaveE, stall_masterM, stall_slaveM, 
-    output wire stall_masterM2, stall_masterW,
+    output wire stall_masterM2, stall_slaveM2, stall_masterW, stall_slaveW, 
     output wire flushF, flushF2, flush_masterD, flush_masterE, flush_masterM, flush_masterM2, flushW,
+    output wire flush_slaveD, flush_slaveE, flush_slaveM, flush_slaveM2,
     output wire stallDblank, icache_Ctl, fulsh_ex, 
 
-    output wire [2:0] forward1_1D, forward1_2D, forward2_1D, forward2_2D
+    output wire [3:0] forward1_1D, forward1_2D, forward2_1D, forward2_2D
 );
     
     wire id_cache_stall, longest_stall;

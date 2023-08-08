@@ -36,7 +36,9 @@ module datapath(
 	wire [31:0] PcPlus4F2, PcPlus8F2, PcPlus12F2;    //pc
     wire [31:0] PcF2;    //pc
     wire        delayslot_masterF2, delayslot_slaveF2; // 此时的D阶段（即上一条指令）是否为跳转指令
+    wire pc_errorF2;
 	//----------decode stage---------
+    wire pc_errorD;
     ctrl_sign   dec_sign1D, dec_sign2D;
     wire        master_only_oneD, slave_only_oneD;
 	wire [31:0] instr1D, instr2D;  //指令
@@ -45,12 +47,13 @@ module datapath(
     wire [31:0] src2_a1D, src2_b1D,src2_aD, src2_bD; //alu输入（操作数
     wire [31:0] Mrd1D, Mrd2D, immd1D, pc_branch1D, pc_jump1D;  //寄存器读出数据 立即数 pc分支 跳转
     wire [31:0] Srd1D, Srd2D, immd2D, pc_branch2D, pc_jump2D;  //寄存器读出数据 立即数 pc分支 跳转
-    wire        pred_take1D, branch1D, branch2D, jump1D, jump2D;  //立即数扩展 分支预测 branch jump信号
+    wire        pred_take1D, pred_take2D, branch1D, branch2D, jump1D, jump2D;  //立即数扩展 分支预测 branch jump信号
 
     wire        delayslot_masterD, delayslot_slaveD;//指令是否在延迟槽
-    wire [2:0]  forward1_1D, forward2_1D;
-    wire [2:0]  forward1_2D, forward2_2D;
+    wire [3:0]  forward1_1D, forward2_1D;
+    wire [3:0]  forward1_2D, forward2_2D;
 	//-------execute stage----------
+    wire pc_errorE;
     ctrl_sign   dec_sign1E, dec_sign2E;
 	wire [31:0] pcE, PcPlus4E, PcPlus8E, PcPlus12E; //pc pc+4 寄存器号 写内存 立即数
 
@@ -73,14 +76,13 @@ module datapath(
     wire        trap1E ,trap2E; //自陷
 	
 	//----------mem stage--------
+    wire pc_errorM;
     ctrl_sign   dec_sign1M, dec_sign2M;
 	wire [31:0] pcM, PcPlus4M;  // pc
-    wire [31:0] aluout1M; //alu输出
+    wire [31:0] aluout1M, aluout2M; //alu输出
     wire [31:0] instr1M, instr2M;  //指令
     wire [31:0] result1M, result2M;  // mem out
     wire [31:0] pc_branch1M, pc_branch2M; //分支跳转地址
-
-
     wire [31:0] src1_b1M, src2_b1M;
     //异常处理信号 exception
     wire        overflow1M, overflow2M;  //算数溢出
@@ -95,7 +97,8 @@ module datapath(
     wire        pc_trap1M, pc_trap2M; // 发生异常时pc特殊处理
     wire [31:0] badvaddr1M, badvaddr2M;
     wire        delayslot_masterM, delayslot_slaveM;
-    //------writeback stage----------
+    //------Memory2 stage----------
+    wire pc_errorM2;
     ctrl_sign   dec_sign1M2, dec_sign2M2;
     wire [31:0] result_rdataM2;
 	wire [31:0] result1_cdataM2, result2_cdataM2;
@@ -105,6 +108,7 @@ module datapath(
     wire [31:0] instr1M2, instr2M2;
     wire [31:0] cp0_statusM2, cp0_causeM2, cp0_epcM2, cp0_out1M2, cp0_out2M2;
 	//------writeback stage----------
+    wire pc_errorW;
     ctrl_sign   dec_sign1W, dec_sign2W;
 	wire [31:0] result1W, result2W;
     wire [31:0] pcW, PcPlus4W;
@@ -126,9 +130,9 @@ module datapath(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
         .alu_stallE(alu_stallE),
-        .master_only_oneD(master_only_oneD), slave_only_oneD(slave_only_oneD), 
+        .master_only_oneD(master_only_oneD), .slave_only_oneD(slave_only_oneD), 
 
-        .jump1D (jump1D), .jump2D (jump2D), .branch1D(branch1D), branch2D(branch2D),
+        .jump1D (jump1D), .jump2D (jump2D), 
         .pred_failed_masterE(pred_failed_masterE), .pred_failed_slaveE(pred_failed_slaveE),
         .flush_exception_masterM(flush_exception_masterM), .flush_exception_slaveM(flush_exception_slaveM),
         .fulsh_ex(fulsh_ex), 
@@ -138,7 +142,7 @@ module datapath(
         .dec_sign1M(dec_sign1M), .dec_sign2M(dec_sign2M), 
         .dec_sign1M2(dec_sign1M2), .dec_sign2M2(dec_sign2M2), 
         .dec_sign1W(dec_sign1W), .dec_sign2W(dec_sign2W), 
-        .pred_take1D(pred_take1D),
+        .pred_take1D(pred_take1D), .pred_take2D(pred_take2D),
 
         .rs1D(instr1D[25:21]), .rt1D(instr1D[20:16]),
         .rs2D(instr2D[25:21]), .rt2D(instr2D[20:16]),
@@ -174,9 +178,11 @@ module datapath(
     pc_reg pc(
         .clk(clk), .rst(rst), .stallF(stallF),
         .actual_take1E(actual_take1E), .actual_take2E(actual_take2E), .pred_take1E(pred_take1E), .pred_take2E(pred_take2E),
-        .pred_take1D(pred_take1D), .pred_take2D(pred_take2D), .pc_trapM(pc_trapM), .jump1D(jump1D), .jump2D(jump2D),
+        .pred_take1D(pred_take1D), .pred_take2D(pred_take2D), .pc_trap1M(pc_trap1M),  .pc_trap2M(pc_trap2M), 
+        .jump1D(jump1D), .jump2D(jump2D),
 
-        .pc_exceptionM(pc_exceptionM), .pc_branch1E(pc_branch1E), .pc_branch2E(pc_branch2E),
+        .pc_exception1M(pc_exception1M), .pc_exception2M(pc_exception2M),
+        .pc_branch1E(pc_branch1E), .pc_branch2E(pc_branch2E),
         .pc_jump1D(pc_jump1D), .pc_branch1D(pc_branch1D), .pc_jump2D(pc_jump2D), .pc_branch2D(pc_branch2D), 
         .PcPlus8F(PcPlus8F), .PcPlus8E(PcPlus8E), .PcPlus12E(PcPlus12E), 
 
@@ -241,13 +247,13 @@ module datapath(
     mux2 #(32) mux2_immd1(src1_b1D, immd1D ,dec_sign1D.is_imm,  src1_bD);
     mux2 #(32) mux2_immd2(src2_b1D, immd2D ,dec_sign2D.is_imm,  src2_bD);
     //choose jump
-    mux2 #(32) mux2_jump(src1_a1D, PcPlus8D, jump1D | branch1D, src1_aD);
-    mux2 #(32) mux2_jump(src2_a1D, PcPlus12D, jump2D | branch2D, src2_aD);
+    mux2 #(32) mux2_jump1(src1_a1D, PcPlus8D, jump1D | branch1D, src1_aD);
+    mux2 #(32) mux2_jump2(src2_a1D, PcPlus12D, jump2D | branch2D, src2_aD);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
-        .flush_masterD(flush_masterD),.stall_masterD(stall_masterD), .flush_slaveD(flush_slaveD), stall_slaveD(stall_slaveD),
-        .instr1D(instr1D), .instr2D(instr2D), .PcF2(PcF2), PcPlus4F2(PcPlus4F2), .pcE(pcE), .PcPlus4E(PcPlus4E),
+        .flush_masterD(flush_masterD),.stall_masterD(stall_masterD), .flush_slaveD(flush_slaveD), .stall_slaveD(stall_slaveD),
+        .instr1D(instr1D), .instr2D(instr2D), .PcF2(PcF2), .PcPlus4F2(PcPlus4F2), .pcE(pcE), .PcPlus4E(PcPlus4E),
         .branch1E(branch1E), .branch2E(branch2E),  .actual_take1E(actual_take1E), .actual_take2E(actual_take2E),
 
         .branch1D(branch1D), .branch2D(branch2D),
@@ -260,7 +266,7 @@ module datapath(
         .src1_a1D(src1_a1D), .src2_a1D(src2_a1D),
 
         .jump1D(jump1D), .jump2D(jump2D),
-        .pc_jump1D(pc_jump1D), pc_jump2D(pc_jump2D) 
+        .pc_jump1D(pc_jump1D), .pc_jump2D(pc_jump2D) 
     );
 	//----------------------------------Execute------------------------------------
     //-----------------------master---------------------------
@@ -295,12 +301,13 @@ module datapath(
         //input
         .clk(clk),.rst(rst),.flush_slaveE(flush_slaveE),.flush_masterE(flush_masterE),
         .src1_aE(src1_aE), .src1_bE(src1_bE), .src2_aE(src2_aE), .src2_bE(src2_bE),
-        .alucontrolE1(dec_sign1E.alucontrol), alucontrolE2(dec_sign2E.alucontrol), 
+        .alucontrolE1(dec_sign1E.alucontrol), .alucontrolE2(dec_sign2E.alucontrol), 
         .fulsh_ex(fulsh_ex), .DivMulEn1(dec_sign1E.DivMulEn), .DivMulEn2(dec_sign2E.DivMulEn), 
+        .instr1E(instr1E), .instr2E(instr2E),
         //output
         .alustallE(alu_stallE),.overflow1E(overflow1E), .overflow2E(overflow2E),
         .trap1E(trap1E), .trap2E(trap2E),
-        .aluout1E(aluout1E), .aluout2E(aluout2E)
+        .aluoutE1(aluout1E), .aluoutE2(aluout2E)
     );
     
 	//在execute阶段得到真实branch跳转情况
@@ -350,12 +357,12 @@ module datapath(
     mem_control mem_control(
         .instr1M(instr1M), .instr1M2(instr1M2), .address1M(aluout1M), .address1M2(aluout1M2),
         .instr2M(instr2M), .instr2M2(instr2M2), .address2M(aluout2M), .address2M2(aluout2M2),
-        .mem_sel(mem_sel),
+        .mem_sel(mem_sel), .Blank_SL(Blank_SL),
         
         .data_wdata1M(src1_b1M),.data_wdata2M(src2_b1M),    //原始的wdata
-        .rt_valueM2(data_wdata2M),
+        .rt_valueM2(data_srcM2),
         .writedataM(writedataM), .writedataW(writedataW),   //新的wdata
-        .mem_write_selectM(mem_write_selectM), mem_write_selectW(mem_write_selectW),
+        .mem_write_selectM(mem_write_selectM), .mem_write_selectW(mem_write_selectW),
         .data_addrM(virtual_data_addrM), .data_srcM(data_srcM),
         .mem_rdataM2(mem_rdataM2), .data_rdataM2(result_rdataM2),
 
@@ -372,7 +379,7 @@ module datapath(
         //异常信号
         .ri(dec_sign1M.ri), .break_exception(dec_sign1M.breaks), .syscall(dec_sign1M.syscall), 
         .overflow(overflow1M), .addrErrorSw(addrErrorSw1M), .addrErrorLw(addrErrorLw1M), 
-        .pcError(pcErrorM), .eretM(dec_sign1M.eret),
+        .pcError(pcErrorM), .eretM(dec_sign1M.eret), .trap(trap1M),
         //异常寄存器
         .cp0_status(cp0_statusM2), .cp0_cause(cp0_causeM2), .cp0_epc(cp0_epcM2),
         //记录出错地址
@@ -387,7 +394,7 @@ module datapath(
         //异常信号
         .ri(dec_sign2M.ri), .break_exception(dec_sign2M.breaks), .syscall(dec_sign2M.syscall), 
         .overflow(overflow2M), .addrErrorSw(addrErrorSw2M), .addrErrorLw(addrErrorLw2M), 
-        .pcError(pcErrorM), .eretM(dec_sign2M.eret),
+        .pcError(pcErrorM), .eretM(dec_sign2M.eret), .trap(trap2M),
         //异常寄存器
         .cp0_status(cp0_statusM2), .cp0_cause(cp0_causeM2), .cp0_epc(cp0_epcM2),
         //记录出错地址
@@ -405,7 +412,7 @@ module datapath(
         .data1_i(src1_b1M), .data2_i(src2_b1M), .int_i(ext_int),
         .excepttype1_i(except_type1M) , .excepttype2_i(except_type2M), 
         .current_inst_addr1_i(pcM), .current_inst_addr2_i(PcPlus4M),
-        .delayslot_master(delayslot_masterM) , .delayslot_master(delayslot_masterM), 
+        .is_in_delayslot1_i(delayslot_masterM) , .is_in_delayslot2_i(delayslot_slaveM), 
         .bad_addr1_i(badvaddr1M), .bad_addr2_i(badvaddr2M),
         .status_o(cp0_statusM2) , .cause_o(cp0_causeM2) ,
         .epc_o(cp0_epcM2), .data1_o(cp0_out1M2), .data2_o(cp0_out2M2)

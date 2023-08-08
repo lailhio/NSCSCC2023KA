@@ -4,10 +4,10 @@ module alu(
     input wire clk, rst,
     input wire [31:0] src_aE, src_bE,
     input wire [7:0] alucontrolE, 
+    input wire [4:0] sa, msbd,
     input wire [63:0] aluout_mul,
     input wire [63:0] hilo_outE,
 
-    output wire alustallE,
     output reg [31:0] aluoutE, 
     output reg overflowE,
     output reg trapE
@@ -95,7 +95,7 @@ module alu(
                 end
                 else aluoutE = 32'b0;
             end
-            `MUL_CONTROL: aluoutE = aluout_mul;
+            `MUL_CONTROL: aluoutE = aluout_mul[31:0];
             
             `TEQ_CONTROL, `TGE_CONTROL, `TGEU_CONTROL, `TNE_CONTROL,
             `TLT_CONTROL, `TLTU_CONTROL : begin

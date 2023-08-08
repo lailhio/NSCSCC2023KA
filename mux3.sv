@@ -6,5 +6,5 @@ module mux3 #(parameter WIDTH = 8)(
 
 	assign y = (s == 2'b00) ? d0 :
 				(s == 2'b01) ? d1:
-				(s == 2'b10) ? d2: d0;
+				(s == 2'b10) ? d2: d2;
 endmodule

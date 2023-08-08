@@ -561,7 +561,7 @@ module maindec(
 				dec_sign.read_rs = 1'b0;
 				dec_sign.read_rt = 1'b0;
 			end
-			`ADDI, `ADDIU, `SLTI, `SLTIU, `ANDI, `LUI, `XORI, `ORI, `BGTZ, `BLEZ,
+			`ADDI, `ADDIU, `SLTI, `SLTIU, `ANDI, `XORI, `ORI, `BGTZ, `BLEZ,
 			`LW , `LB , `LBU , `LH , `LHU , `LWL , `LWR , `LL:	begin
 				dec_sign.read_rs = 1'b1;
 				dec_sign.read_rt = 1'b0;

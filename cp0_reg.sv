@@ -324,7 +324,7 @@ module cp0_reg(
 					data1_o = `ZeroWord;
 				end
 			endcase
-			case (raddr_i)
+			case (raddr2_i)
 				`CP0_REG_COUNT:begin 
 					data2_o = count_o;
 				end

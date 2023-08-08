@@ -4,9 +4,9 @@ module pc_reg(
     input wire actual_take1E, actual_take2E, 
     input wire pred_take1D, pred_take2D,
 
-    input wire pc_trapM,   //是否发生异常
+    input wire pc_trap1M, pc_trap2M,  //是否发生异常
     input wire jump1D, jump2D, 
-    input wire [31:0] pc_exceptionM,            //异常的跳转地址
+    input wire [31:0] pc_exception1M, pc_exception2M,           //异常的跳转地址
     input wire [31:0] pc_branch1E, pc_branch2E,            //预测不跳，实际跳转 将pc_next指向pc_branchD传到M阶段的值
     input wire [31:0] pc_jump1D, pc_jump2D,     //D阶段jump不冲突跳转的地址（rs寄存器或立即数）
     input wire [31:0] pc_branch1D, pc_branch2D,              //D阶段  预测跳转的跳转地址（PC+offset）
@@ -16,8 +16,10 @@ module pc_reg(
     reg [31:0] next_pc;
     // todo
     always @(*) begin
-        if(pc_trapM) //发生异常
-            next_pc = pc_exceptionM;
+        if(pc_trap1M) //发生异常
+            next_pc = pc_exception1M;
+        else if(pc_trap2M)
+            next_pc = pc_exception2M;
         else begin
             case({jump1D, jump2D, pred_take1D, pred_take2D, pred_take1E, pred_take2E, actual_take1E, actual_take2E})
                 8'b00000000: next_pc = PcPlus8F; 
