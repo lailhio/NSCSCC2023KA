@@ -56,13 +56,13 @@ module mycpu_top(
     assign clk=aclk;
     assign rst=~aresetn;
     //inst
-    wire [31:0]   virtual_instr_addr;  //指令地址
+    wire [31:0]   virtual_instr_addrF;  //指令地址
     wire          cpu_inst_en;  //使能
     wire          i_stall;
 
     //data
     wire        cpu_data_en;                    
-    wire [31:0] virtual_data_addr;     //写地址
+    wire [31:0] virtual_data_addrM;     //写地址
     wire [3 :0] data_sram_wen;      //写使能
     wire         d_stall, icache_Ctl, alu_stallE;
     //cpu
@@ -122,11 +122,11 @@ module mycpu_top(
 		.clk(clk),.rst(rst),
 		.ext_int(ext_int),
         //instruction
-    	.PC_IF1(virtual_instr_addr), .inst_enF(cpu_inst_en), 
+    	.PC_IF1(virtual_instr_addrF), .inst_enF(cpu_inst_en), 
         .inst1_F2(cpu_inst1_rdata), .inst2_F2(cpu_inst2_rdata),
         .i_cache_stall(i_stall),
         //data
-    	.virtual_data_addr(virtual_data_addr),.mem_enM(cpu_data_en),
+    	.virtual_data_addrM(virtual_data_addrM),.mem_enM(cpu_data_en),
         .mem_rdataM2(cpu_data_rdata),
         .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
         .d_cache_stall(d_stall),
@@ -139,8 +139,8 @@ module mycpu_top(
         .debug_wb_rf_wdata(debug_wb_rf_wdata)
 	);
 
-    mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
-                .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
+    mmu Mmu_Trans(.inst_vaddr(virtual_instr_addrF), .inst_paddr(cpu_inst_addr),
+                .data_vaddr(virtual_data_addrM), .data_paddr(cpu_data_addr),
                 .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
                 .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_cache));
     

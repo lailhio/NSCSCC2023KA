@@ -23,14 +23,14 @@
 module regfile(
 	input wire clk,rst,
 	input wire stall_masterW,
-	input wire we3, we4
-	input wire[4:0] r1a1,r1a2, r2a1, r2a2, wa3, wa4
-	input wire[31:0] wd3, wd4
+	input wire we3, we4,
+	input wire[4:0] r1a1,r1a2, r2a1, r2a2, wa3, wa4,
+	input wire[31:0] wd3, wd4,
 	output wire[31:0] r1d1, r1d2, r2d1, r2d2
     );
 
 	reg [31:0] rf[31:0];
-	always @(posedge (clk)) begin
+	always @(posedge clk) begin
 		if(rst) rf <= '{default: '0};
 		else if(~stall_masterW) begin
 			if(we3) rf[wa3] <= wd3;

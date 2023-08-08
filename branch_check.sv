@@ -1,4 +1,5 @@
 
+`timescale 1ns / 1ps
 module branch_check (
     input wire [2:0] branch_judge_controlE,
     input wire [31:0] rs_valueE, rt_valueE,

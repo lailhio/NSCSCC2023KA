@@ -18,7 +18,7 @@ module maindec(
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
-	assign v 1 = instrD[10:6];
+	assign shamtD = instrD[10:6];
 
 	assign dec_sign.sign_ex = (|(opD[5:2] ^ 4'b0011));		//0表示无符号拓展，1表示有符号
 
@@ -26,9 +26,6 @@ module maindec(
 	// 似乎只有这两条
 	assign dec_sign.cp0_write = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MTC0));
 	assign dec_sign.cp0_read = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MFC0));
-
-	assign dec_sign.mfhi = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
-	assign dec_sign.mflo = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
 	
 	assign dec_sign.eret = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `ERET));
 	assign dec_sign.breaks = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
@@ -581,7 +578,7 @@ module maindec(
             // 移位
 			`REGIMM_INST: begin
 				case(rtD)
-					`BGEZAL, `BLTZAL, `BGEZ, `BLTZ, `TEQI, `TGEI, `TGEIU, `TLTI
+					`BGEZAL, `BLTZAL, `BGEZ, `BLTZ, `TEQI, `TGEI, `TGEIU, `TLTI,
 					`TLTIU, `TNEI: begin
 						dec_sign.read_rs = 1'b1;
                 		dec_sign.read_rt = 1'b0;

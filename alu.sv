@@ -1,5 +1,5 @@
 `include "defines2.vh"
-
+`timescale 1ns / 1ps
 module alu(
     input wire clk, rst,
     input wire [31:0] src_aE, src_bE,
@@ -45,7 +45,7 @@ module alu(
 
             `LUI_CONTROL:       aluoutE = {src_bE[15:0], 16'b0};
 
-            `MFHI_CONTROL,:begin
+            `MFHI_CONTROL:begin
                 aluoutE = hilo_outE[63:32];
             end
             `MFLO_CONTROL:begin

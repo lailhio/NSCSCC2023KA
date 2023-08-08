@@ -1,5 +1,5 @@
 `include "defines2.vh"
-
+`timescale 1ns / 1ps
 module alu_top(
     input wire clk, rst, flush_masterE, flush_slaveE, fulsh_ex, 
     input wire [31:0] src1_aE, src1_bE,

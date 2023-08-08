@@ -4,7 +4,7 @@ module jump_control (
     input wire [31:0] src1_a1D, src2_a1D, 
 
     output wire jump1D, jump2D,         
-    output wire [31:0] pc_jump1D, pc_jump2D,        
+    output wire [31:0] pc_jump1D, pc_jump2D  
 );
     wire jr1, j1;
     wire jr2, j2;
