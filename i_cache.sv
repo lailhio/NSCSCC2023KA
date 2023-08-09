@@ -74,11 +74,10 @@ module i_cache #(
     reg [LEN_TAG-1:0]   c_tag_IF3  [1:0];
 
     //FSM
-    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
-    reg [1:0] pre_state;
+    parameter IDLE = 2'b11, CACHE_REPLACE = 2'b01, NOCACHE =2'b00;
     reg [1:0] state;
     wire isIDLE, isReplace;
-    assign isIDLE = state==IDLE;
+    assign isIDLE = state[1];
     assign isReplace = state==CACHE_REPLACE;
     
     // hit miss and way
@@ -108,8 +107,8 @@ module i_cache #(
     assign cache_inst1_rdata = lineLoc_IF2[2] ? 32'b0: c_block_IF2[c_way[1]][31:0];
     assign cache_inst2_rdata = c_block_IF2[c_way[1]][63:32];
     
-    assign cpu_inst1_rdata   = pre_state != IDLE ? axi_inst1_rdata : cache_inst1_rdata;
-    assign cpu_inst2_rdata   = pre_state != IDLE ? axi_inst2_rdata : cache_inst2_rdata;
+    assign cpu_inst1_rdata   = cpu_instr_ok ? axi_inst1_rdata : cache_inst1_rdata;
+    assign cpu_inst2_rdata   = cpu_instr_ok ? axi_inst2_rdata : cache_inst2_rdata;
 
     // axi cnt
     logic [LEN_LINE-1:2] axi_cnt;
@@ -142,7 +141,6 @@ module i_cache #(
             cpu_instr_ok <= 0;
             state <= IDLE;
             cpu_inst_en_IF3 <= 0;
-            pre_state <= IDLE;
             index_IF3 <= 0;
             lineLoc_IF3 <= 0;
             tag_IF3 <= 0;
@@ -168,7 +166,6 @@ module i_cache #(
             axi_cnt <= 0;
         end
         else if (cache_en)begin
-            pre_state <= state;
             case(state)
                 IDLE: begin
                     cpu_instr_ok <= 1'b0;
@@ -252,11 +249,11 @@ module i_cache #(
                                 wena_data_bank_way[tway_IF3] <= 0;
                                 wena_tag_ram_way[tway_IF3] <= 0;
                             end
-                            if(axi_cnt[LEN_LINE-1:3] == lineLoc_IF3[LEN_LINE-1:3])  begin
+                            if(axi_cnt[LEN_LINE-1:3] == lineLoc_IF3[LEN_LINE-1:3] & ~inst2_Ren)  begin
                                 inst2_Ren <= 1;
                                 axi_inst1_rdata <= lineLoc_IF3[2] ? 32'b0 : i_rdata;
                             end
-                            else if(inst2_Ren)begin
+                            if(inst2_Ren)begin
                                 inst2_Ren <= 0;
                                 axi_inst2_rdata <= i_rdata;
                             end
@@ -275,7 +272,6 @@ module i_cache #(
             endcase
         end
         else if(cache_en1)begin
-            pre_state <= state;
             cpu_instr_ok <= 0;
         end
     end

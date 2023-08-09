@@ -150,7 +150,7 @@ module datapath(
 //------------------------------------------Data------------------------------------------
 	//--------------------debug---------------------
     assign debug_wb_pc          = (clk) ? pcW : PcPlus4W;
-    assign debug_wb_rf_wen      = (clk) ? {4{dec_sign1W.regwrite & ~stall_masterW}}: {4{dec_sign2W.regwrite & ~stall_slaveW}};
+    assign debug_wb_rf_wen      = (rst) ? 4'b0000 : ((clk) ? {4{dec_sign1W.regwrite & ~stall_masterW}}: {4{dec_sign2W.regwrite & ~stall_slaveW}});
     assign debug_wb_rf_wnum     = (clk) ? dec_sign1W.writereg : dec_sign2W.writereg;
     assign debug_wb_rf_wdata    = (clk) ? result1W : result2W;
 //------------------------------------------Hazard-------------------------------------------
@@ -384,27 +384,20 @@ module datapath(
 	flopstrc #(32) flopAlu1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(aluout1E),.out(aluout1M));
 	flopstrc #(32) flopRtvalue1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(src1_b1E),.out(src1_b1M));
 	flopstrc #(32) flopInstr1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(instr1E),.out(instr1M));
-    flopstrc #(9) flopSign11M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),
-        .in({regwrite1E, mem_read1E, mem_write1E, memtoreg1E, break1E, delayslot_masterE, overflow1E, trap1E, pc_errorE}),
-        .out({regwrite1M, mem_read1M, mem_write1M, memtoreg1M, break1M, delayslot_masterM, overflow1M, trap1M, pc_errorM}));
-    flopstrc #(6) flopSign12M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),
-        .in({ri1E,syscall1E,eret1E,cp0_write1E,cp0_read1E,is_mfc1E}),
-        .out({ri1M,syscall1M,eret1M,cp0_write1M,cp0_read1M,is_mfc1M}));
-    flopstrc #(7) flopWritereg1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),
-        .in({writereg1E,overflow1E,trap1E}),.out({writereg1M,overflow1M,trap1M}));
+    flopstrc #(4) flopSign1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),
+        .in({delayslot_masterE, overflow1E, trap1E, pc_errorE}),
+        .out({delayslot_masterM, overflow1M, trap1M, pc_errorM}));
+    flopctrl flopctrl1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(dec_sign1E),.out(dec_sign1M));
     //-----------------------slave---------------------------
+	flopstrc #(32) flopPcPlus4M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(PcPlus4E),.out(PcPlus4M));
 	flopstrc #(32) flopPcPlus4M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(PcPlus4E),.out(PcPlus4M));
 	flopstrc #(32) flopAlu2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(aluout2E),.out(aluout2M));
 	flopstrc #(32) flopRtvalue2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(src2_b1E),.out(src2_b1M));
 	flopstrc #(32) flopInstr2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(instr2E),.out(instr2M));
-    flopstrc #(8) flopSign21M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),
-        .in({regwrite2E, mem_read2E, mem_write2E, memtoreg2E, break2E, delayslot_slaveE, overflow2E, trap2E}),
-        .out({regwrite2M, mem_read2M, mem_write2M, memtoreg2M, break2M, delayslot_slaveM, overflow2M, trap2M}));
-    flopstrc #(6) flopSign22M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),
-        .in({ri2E,syscall2E,eret2E,cp0_write2E,cp0_read2E,is_mfc2E}),
-        .out({ri2M,syscall2M,eret2M,cp0_write2M,cp0_read2M,is_mfc2M}));
-    flopstrc #(7) flopWritereg2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),
-        .in({writereg2E,overflow2E,trap2E}),.out({writereg2M,overflow2M,trap2M}));
+    flopstrc #(3) flopSign2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),
+        .in({delayslot_slaveE, overflow2E, trap2E}),
+        .out({delayslot_slaveM, overflow2M, trap2M}));
+    flopctrl flopctrl2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(dec_sign2E),.out(dec_sign2M));
     //----------------------MemoryFlop------------------------
     wire [31:0] data_srcM;
     assign mem_enM = (mem_read1M | mem_read2M | mem_write1M | mem_write2M) & ~fulsh_ex; //意外刷新时需要
@@ -487,12 +480,12 @@ module datapath(
     flopstrc #(32) flopWdataM2(.clk(clk),.rst(rst),.stall(stall_masterM2),.flush(flush_masterM2),.in(writedataM),.out(writedataM2));
 	flopstrc #(32) flopInstr1M2(.clk(clk),.rst(rst),.stall(stall_masterM2),.flush(flush_masterM2),.in(instr1M),.out(instr1M2));
 	flopstrc #(32) flopRes1M2(.clk(clk),.rst(rst),.stall(stall_masterM2),.flush(flush_masterM2),.in(result1M),.out(result1_cdataM2));
-    flopctrl flopctrl1M2(.clk(clk),.rst(rst),.stall(stall_masterM2),.flush(flush_masterM2),.in(dec_sign1E),.out(dec_sign1M));
+    flopctrl flopctrl1M2(.clk(clk),.rst(rst),.stall(stall_masterM2),.flush(flush_masterM2),.in(dec_sign1M),.out(dec_sign1M2));
     //-----------------------slave---------------------------
 	flopstrc #(32) flopPc2M2(.clk(clk),.rst(rst),.stall(stall_slaveM2),.flush(flush_slaveM2),.in(PcPlus4M),.out(PcPlus4M2));
 	flopstrc #(32) flopInstr2M2(.clk(clk),.rst(rst),.stall(stall_slaveM2),.flush(flush_slaveM2),.in(instr2M),.out(instr2M2));
 	flopstrc #(32) flopRes2M2(.clk(clk),.rst(rst),.stall(stall_slaveM2),.flush(flush_slaveM2),.in(result2M),.out(result2_cdataM2));
-    flopctrl flopctrl2M2(.clk(clk),.rst(rst),.stall(stall_slaveM2),.flush(flush_slaveM2),.in(dec_sign2E),.out(dec_sign2M));
+    flopctrl flopctrl2M2(.clk(clk),.rst(rst),.stall(stall_slaveM2),.flush(flush_slaveM2),.in(dec_sign2M),.out(dec_sign2M2));
 	//------------------Memory2_Flop--------------------------
     mux2 #(32) mux2_memtoreg1(result1_cdataM2,result_rdataM2, mem_read1M2,result1M2);
     mux2 #(32) mux2_memtoreg2(result2_cdataM2,result_rdataM2, mem_read2M2,result2M2);
