@@ -107,6 +107,7 @@ module maindec(
 					`MOVN, `MOVZ,
 					`MFHI, `MFLO : begin
 						aluop=`R_TYPE_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b1000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 					end
@@ -114,12 +115,14 @@ module maindec(
 						// ROTR
 						if(instrD[21]) begin
 							aluop = `ROTR_OP;
+							dec_sign.writereg = rdD;
 							{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b1000;
 							{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 						end
 						// SRL
 						else begin
 							aluop = `R_TYPE_OP;
+							dec_sign.writereg = rdD;
 							{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b1000;
 							{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 						end
@@ -128,12 +131,14 @@ module maindec(
 						// ROTRZ
 						if(instrD[6]) begin
 							aluop = `ROTRV_OP;
+							dec_sign.writereg = rdD;
 							{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b1000;
 							{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 						end
 						// SRLV
 						else begin
 							aluop = `R_TYPE_OP;
+							dec_sign.writereg = rdD;
 							{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b1000;
 							{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 						end
@@ -144,17 +149,20 @@ module maindec(
 					`TEQ, `TGE, `TGEU, `TNE,
 					`TLT, `TLTU : begin
 						aluop=`R_TYPE_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b0;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 					end
 					`JALR: begin
 						aluop=`R_TYPE_OP;
+						dec_sign.writereg = 5'd31;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm} =  4'b1100;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write} =  3'b0;
 					end
 					default: begin
 						aluop=`USELESS_OP;
 						dec_sign.ri  =  1'b1;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -165,6 +173,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`ADDI_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -172,6 +181,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`SLTI_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -179,6 +189,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`SLTIU_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -186,6 +197,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`ADDIU_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -193,6 +205,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`ANDI_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -200,6 +213,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`LUI_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -207,6 +221,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`XORI_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -214,6 +229,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`ORI_OP;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -223,6 +239,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`USELESS_OP;
+				dec_sign.writereg = rdD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -233,6 +250,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`USELESS_OP;
+						dec_sign.writereg = 5'd31;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1100;//要写31号寄存器
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -240,6 +258,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`USELESS_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -247,6 +266,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`TEQI_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -254,6 +274,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`TGEI_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -261,6 +282,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`TGEIU_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -268,6 +290,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`TLTI_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -275,6 +298,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`TLTIU_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -282,6 +306,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`TNEI_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -289,6 +314,7 @@ module maindec(
 						dec_sign.is_mfc=1'b0;
 						dec_sign.ri  =  1'b1;
 						aluop=`USELESS_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -301,6 +327,7 @@ module maindec(
 				dec_sign.is_mfc=1'b0;
 				aluop=`MEM_OP;
 				only_oneD_inst = 1;
+				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b110;
 			end
@@ -309,6 +336,7 @@ module maindec(
 				dec_sign.is_mfc=1'b0;
 				aluop=`MEM_OP;
 				only_oneD_inst = 1;
+				dec_sign.writereg = rdD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0001;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b001;
 			end
@@ -326,6 +354,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				aluop=`USELESS_OP;
 				dec_sign.is_mfc=1'b0;
+				dec_sign.writereg = rdD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -334,6 +363,7 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`USELESS_OP;
+				dec_sign.writereg = 5'd31;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1100;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
@@ -345,6 +375,7 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc=1'b0;
 						aluop=`MTC0_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -352,12 +383,14 @@ module maindec(
 						dec_sign.ri=1'b0;
 						dec_sign.is_mfc = 1'b1;
 						aluop=`MFC0_OP;
+						dec_sign.writereg = rtD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1010;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
 					default: begin
 						dec_sign.is_mfc=1'b0;
 						aluop=`USELESS_OP;
+						dec_sign.writereg = rdD;
 						dec_sign.ri  =  |(instrD[25:0] ^ `ERET);
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
@@ -371,6 +404,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `CLO_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -378,6 +412,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `CLZ_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -385,6 +420,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `MUL_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -392,6 +428,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `MADD_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -399,6 +436,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `MADDU_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -406,6 +444,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `MSUB_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -413,6 +452,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `MSUBU_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -420,6 +460,7 @@ module maindec(
 						dec_sign.ri  =  1'b1;
 						dec_sign.is_mfc=1'b0;
 						aluop=`USELESS_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -434,6 +475,7 @@ module maindec(
 								dec_sign.ri = 1'b0;
 								dec_sign.is_mfc = 1'b0;
 								aluop = `SEB_OP;
+								dec_sign.writereg = rdD;
 								{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 								{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 							end
@@ -441,6 +483,7 @@ module maindec(
 								dec_sign.ri = 1'b0;
 								dec_sign.is_mfc = 1'b0;
 								aluop = `SEH_OP;
+								dec_sign.writereg = rdD;
 								{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 								{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 							end
@@ -448,6 +491,7 @@ module maindec(
 								dec_sign.ri = 1'b0;
 								dec_sign.is_mfc = 1'b0;
 								aluop = `WSBH_OP;
+								dec_sign.writereg = rdD;
 								{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1000;
 								{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 							end
@@ -455,6 +499,7 @@ module maindec(
 								dec_sign.ri  =  1'b1;
 								dec_sign.is_mfc=1'b0;
 								aluop=`USELESS_OP;
+								dec_sign.writereg = rdD;
 								{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 								{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 							end
@@ -464,6 +509,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `EXT_OP;
+						dec_sign.writereg = rtD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1010;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -471,6 +517,7 @@ module maindec(
 						dec_sign.ri = 1'b0;
 						dec_sign.is_mfc = 1'b0;
 						aluop = `INS_OP;
+						dec_sign.writereg = rtD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1010;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -478,6 +525,7 @@ module maindec(
 						dec_sign.ri  =  1'b1;
 						dec_sign.is_mfc=1'b0;
 						aluop=`USELESS_OP;
+						dec_sign.writereg = rdD;
 						{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0000;
 						{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 					end
@@ -488,6 +536,7 @@ module maindec(
 				dec_sign.ri  =  1;
 				dec_sign.is_mfc=1'b0;
 				aluop =`USELESS_OP;
+				dec_sign.writereg = rdD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end

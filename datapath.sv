@@ -230,9 +230,6 @@ module datapath(
     // 立即数左移2 + pc+4得到分支跳转地址   
     assign pc_branch1D = {immd1D[29:0], 2'b00} + PcPlus4D; 
     assign pc_branch2D = {immd2D[29:0], 2'b00} + PcPlus8D; 
-    //选择writeback寄存器     rd             rt
-    mux3 #(5) mux3_regdst1(instr1D[15:11], instr1D[20:16], 5'd31, dec_sign1D.regdst, dec_sign1D.writereg);
-    mux3 #(5) mux3_regdst2(instr2D[15:11], instr2D[20:16], 5'd31, dec_sign2D.regdst, dec_sign2D.writereg);
     // Forward 1
     mux9 #(32) mux9_forward1_1D(Mrd1D, result1W, result1M2, result1M, aluout1E, result2W, result2M2, result2M, aluout2E,  
                                 forward1_1D, src1_a1D);
