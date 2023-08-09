@@ -306,29 +306,25 @@ module datapath(
     flopstrc #(7) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,branchE,is_in_delayslot_iE,mem_readE,mem_writeE,memtoregE,breakE}),
         .out({regwriteM,branchM,is_in_delayslot_iM,mem_readM,mem_writeM,memtoregM,breakM}));
-    flopstrc #(6) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE}),
-        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM}));
+    flopstrc #(7) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,hilotoregE}),
+        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,hilotoregM}));
     flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE}),.out({writeregM,overflowM}));
     // 可合并
     flopstrc #(1) flopTrapM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(trapE),.out(trapM));
     //----------------------MemoryFlop------------------------
-    wire mem_readM2;
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
     // Assign Logical
-    wire Blank_SL = ((aluoutM2[31:2] == aluoutW[31:2])) & mem_writeW &  mem_readM2 & aluoutM2[31:29] != 3'b101;
     mem_control mem_control(
         .instrM(instrM), .instrM2(instrM2), .addressM(aluoutM), .addressM2(aluoutM2),
-        .Blank_SL(Blank_SL),
     
         .data_wdataM(src_b1M),    //原始的wdata
         .rt_valueM2(src_b1M2),
-        .writedataM(writedataM),.writedataW(writedataW),    //新的wdata
+        .writedataM(writedataM),    //新的wdata
         .mem_write_selectM(mem_write_selectM),
-        .mem_write_selectW(mem_write_selectW), 
         .data_addrM(mem_addrM),
-        .mem_rdataM2(mem_rdataM2), .data_rdataM2(result_rdataM2), 
+        .mem_rdataM2(mem_rdataM2), .data_rdataM2(result_rdataM2),
 
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  
     );
@@ -336,7 +332,7 @@ module datapath(
     
     //后两位不为0
     assign pcErrorM = (pcM[1:0] != 2'b00);  
-
+    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据 Todo
     mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM2, is_mfcM, resultM);
      //异常处理
     exception exception(
@@ -365,37 +361,31 @@ module datapath(
     );
 	//-------------------------------------Memory2-------------------------------------------------
     wire is_mfcM2, mem_writeM2; // for debug
-    wire [3:0] mem_write_selectM2;
-    wire [31:0] writedataM2;
     // todo M2 flop
-
-	flopstrc #(14) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
-            .in({writeregM, regwriteM ,memtoregM, mem_readM, mem_writeM, is_mfcM, mem_write_selectM}),
-            .out({writeregM2, regwriteM2, memtoregM2, mem_readM2, mem_writeM2, is_mfcM2, mem_write_selectM2}));
+	flopstrc #(9) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
+            .in({writeregM, regwriteM ,memtoregM, mem_writeM, is_mfcM}),
+            .out({writeregM2, regwriteM2, memtoregM2, mem_writeM2, is_mfcM2}));
 	flopstrc #(32) flopAluoutM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(aluoutM),.out(aluoutM2));
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
-    flopstrc #(32) flopwdataM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(writedataM),.out(writedataM2));
 	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(pcM),.out(pcM2));
 	flopstrc #(32) flopInstrM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(instrM),.out(instrM2));
     flopstrc #(32) flopRtvalueM2(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1M),.out(src_b1M2));
 	//------------------Memory2_Flop--------------------------
-    mux2 #(32) mux2_memtoreg(resultori_M2, result_rdataM2, memtoregM2, resultM2);
+    mux2 #(32) mux2_memtoreg(resultori_M2,result_rdataM2, memtoregM2,resultM2);
 	//-------------------------------------Write_Back-------------------------------------------------
-    wire mem_writeW;
-    wire [3:0] mem_write_selectW;
+    wire is_mfcW;
     wire [31:0] instrW; // for debug
-    wire [31:0] writedataW;
-	flopstrc #(11) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
-            .in({writeregM2, regwriteM2, mem_writeM2, mem_write_selectM2}),
-            .out({writeregW, regwriteW, mem_writeW, mem_write_selectW}));
+	flopstrc #(7) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
+            .in({writeregM2,regwriteM2,is_mfcM2}),
+            .out({writeregW,regwriteW,is_mfcW}));
 	flopstrc #(32) flopInstrW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(instrM2),.out(instrW));
 	flopstrc #(32) flopPcW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(pcM2),.out(pcW));
 	flopstrc #(32) flopAluoutW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(aluoutM2),.out(aluoutW));
-    flopstrc #(32) flopwdataW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(writedataM2),.out(writedataW));
 	flopstrc #(32) flopResW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM2),.out(resultW));
 	//------------------Write_Back_Flop--------------------------
 
 	//hazard detection
+    wire Blank_SL = ((aluoutM[31:2] == aluoutM2[31:2])) & mem_writeM2 &  mem_readM;
 	hazard hazard0(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
@@ -422,6 +412,7 @@ module datapath(
         .mem_readE(mem_readE),
         .mem_readM(mem_readM),
         
+        .Blank_SL(Blank_SL),
         .stallF(stallF), .stallF2(stallF2), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallM2(stallM2), .stallW(stallW),
         .flushF(flushF), .flushF2(flushF2), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushM2(flushM2), .flushW(flushW),
         .longest_stall(longest_stall), .stallDblank(stallDblank), .icache_Ctl(icache_Ctl), 
