@@ -86,8 +86,8 @@ module hazard(
     // Is mfc0 mfhilo lw and Operand is the same 
     assign stallDblank= (((forward1_1D == 4'b1000 | forward1_1D == 4'b0100 | forward1_2D == 4'b1000 | forward1_2D == 4'b0100) & (dec_sign1E.is_mfc | dec_sign1E.mem_read))
                         |((forward2_1D == 4'b1000 | forward2_1D == 4'b0100 | forward2_2D == 4'b1000 | forward2_2D == 4'b0100) & (dec_sign2E.is_mfc | dec_sign2E.mem_read))  
-                        |((forward1_1D == 4'b0011 | forward1_1D == 4'b0111 | forward1_2D == 4'b0011 | forward1_2D == 4'b0111)& (mem_read1M))
-                        |((forward2_1D == 4'b0011 | forward2_1D == 4'b0111 | forward2_2D == 4'b0011 | forward2_2D == 4'b0111)& (mem_read2M)));
+                        |((forward1_1D == 4'b0011 | forward1_1D == 4'b0111 | forward1_2D == 4'b0011 | forward1_2D == 4'b0111)& (dec_sign1M.mem_read))
+                        |((forward2_1D == 4'b0011 | forward2_1D == 4'b0111 | forward2_2D == 4'b0011 | forward2_2D == 4'b0111)& (dec_sign2M.mem_read)));
 
     assign stallF = ~fulsh_ex & (id_cache_stall | alu_stallE | stallDblank  | only_one);
     assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank  | only_one;
