@@ -2,6 +2,7 @@
 
 module maindec(
 		input wire[31:0] instrD,
+		input wire[31:0] instr2D,
 
 		output ctrl_sign dec_sign,
 		output reg only_oneD_inst
@@ -491,6 +492,9 @@ module maindec(
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
 		endcase
+		if(!instr2D)begin
+			only_oneD_inst = 0;
+		end
 	end
 	always @(*) begin
 		case(opD)
@@ -566,14 +570,10 @@ module maindec(
 				dec_sign.read_rs = 1'b1;
 				dec_sign.read_rt = 1'b0;
 			end
-			`BEQ, `BNE: begin
+			`BEQ, `BNE, `SW, `SB, `SH, `SWL, `SWR: begin
 				dec_sign.read_rs = 1'b1;
                 dec_sign.read_rt = 1'b1;
             end
-			`SW, `SB, `SH, `SWL, `SWR: begin
-				dec_sign.read_rs = 1'b1;
-				dec_sign.read_rt = 1'b1;
-			end
 
             // 移位
 			`REGIMM_INST: begin
@@ -656,5 +656,9 @@ module maindec(
 				dec_sign.read_rt = 1'b0;
 			end
 		endcase
+		if(!instrD) begin
+			dec_sign.read_rs = 1'b0;
+			dec_sign.read_rt = 1'b0;
+		end
 	end
 endmodule

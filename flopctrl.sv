@@ -7,9 +7,8 @@ module flopctrl(
     );
 	always @(posedge clk) begin
 		if(rst | flush) begin
-			out <= 0;
+			out <= '{default:'0};
 		end else if(~stall) begin
-			/* code */
 			out <= in;
 		end
 	end

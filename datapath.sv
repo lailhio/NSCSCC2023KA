@@ -216,8 +216,8 @@ module datapath(
     flopstrc #(32) flopPcplus12D(.clk(clk),.rst(rst),.stall(stall_slaveD),.flush(flush_slaveD),.in(PcPlus12F2),.out(PcPlus12D));
     flopstrc #(32) flopInst2D(.clk(clk),.rst(rst),.stall(stall_slaveD),.flush(flush_slaveD),.in(inst2_validF2),.out(instr2D));
     //-----------------------DecodeFlop----------------------------------
-	maindec main_dec1(.instrD(instr1D),.dec_sign(dec_sign1D), .only_oneD_inst(master_only_oneD));
-	maindec main_dec2(.instrD(instr2D),.dec_sign(dec_sign2D), .only_oneD_inst(slave_only_oneD));
+	maindec main_dec1(.instrD(instr1D), .instr2D(instr2D), .dec_sign(dec_sign1D), .only_oneD_inst(master_only_oneD));
+	maindec main_dec2(.instrD(instr2D), .instr2D(instr1D), .dec_sign(dec_sign2D), .only_oneD_inst(slave_only_oneD));
 
     //扩展立即数
     signext signex1(dec_sign1D.sign_ex,instr1D[15:0],immd1D);
