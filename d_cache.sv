@@ -140,6 +140,7 @@ module d_cache#(
     // hit and miss
     assign c_way[0] = c_valid_M2[0] & (c_tag_M2[0] == tag_M2);
     assign c_way[1] = c_valid_M2[1] & (c_tag_M2[1] == tag_M2);
+    wire waychoose = c_tag_M2[1] == tag_M2;
 
     assign hit = |c_way & isIDLE & ~no_cache_M2;
     assign miss = ~hit;
@@ -173,7 +174,7 @@ module d_cache#(
     wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
+    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[waychoose];
 
 
     logic [1:0] wena_tag_ram_way;
@@ -183,10 +184,10 @@ module d_cache#(
     // hit and write
     wire [1:0] wena_tag_hitway;
     assign  wena_tag_hitway = hit & store ?
-            {{c_way[1]}, {~c_way[1]}} : wena_tag_ram_way; // 4 bytes
+            {{waychoose}, {~waychoose}} : wena_tag_ram_way; // 4 bytes
     wire [3:0] wena_data_hitway [NR_WAYS-1:0];
     assign  wena_data_hitway = hit & store ?
-            {{data_sram_wen_M2 & {4{c_way[1]}}}, {data_sram_wen_M2 & {4{~c_way[1]}}}} : wena_data_bank_way; // 4 bytes
+            {{data_sram_wen_M2 & {4{waychoose}}}, {data_sram_wen_M2 & {4{~waychoose}}}} : wena_data_bank_way; // 4 bytes
     // write back part
     wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
 
@@ -385,10 +386,10 @@ module d_cache#(
                         else if (hit) begin
                             state <= IDLE;
                             if(cpu_data_wr_M2) begin
-                                cache_dirty[index_M2][c_way[1]] <= 1'b1;
+                                cache_dirty[index_M2][waychoose] <= 1'b1;
                             end
-                            cache_lru[index_M2][c_way[1]] <=1'b0;
-                            cache_lru[index_M2][~c_way[1]] <=1'b1;
+                            cache_lru[index_M2][waychoose] <=1'b0;
+                            cache_lru[index_M2][~waychoose] <=1'b1;
                         end
                         else begin
                             if (miss & dirty)begin
