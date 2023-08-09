@@ -73,11 +73,10 @@ module i_cache #(
     reg [LEN_TAG-1:0]   c_tag_IF3  [1:0];
 
     //FSM
-    parameter IDLE = 2'b00, CACHE_REPLACE = 2'b01, NOCACHE =2'b10;
-    reg [1:0] pre_state;
+    parameter IDLE = 2'b11, CACHE_REPLACE = 2'b01, NOCACHE =2'b00;
     reg [1:0] state;
     wire isIDLE, isReplace;
-    assign isIDLE = state==IDLE;
+    assign isIDLE = state[1];
     assign isReplace = state==CACHE_REPLACE;
     
     // hit miss and way
@@ -100,7 +99,7 @@ module i_cache #(
     //output to mips core
     // first stage is not stall, and the second judge whether to stall
     reg [31:0] axi_inst_rdata;
-    assign cpu_inst_rdata   = pre_state != IDLE ? axi_inst_rdata : c_block_IF2[c_way[1]];
+    assign cpu_inst_rdata   = cpu_instr_ok ? axi_inst_rdata : c_block_IF2[c_way[1]];
 
     // axi cnt
     logic [LEN_LINE-1:2] axi_cnt;
@@ -133,7 +132,6 @@ module i_cache #(
             cpu_instr_ok <= 0;
             state <= IDLE;
             cpu_inst_en_IF3 <= 0;
-            pre_state <= IDLE;
             index_IF3 <= 0;
             lineLoc_IF3 <= 0;
             tag_IF3 <= 0;
@@ -157,7 +155,6 @@ module i_cache #(
             axi_cnt <= 0;
         end
         else if (cache_en)begin
-            pre_state <= state;
             case(state)
                 IDLE: begin
                     cpu_inst_en_IF3 <= cpu_inst_en_IF2;
@@ -250,7 +247,6 @@ module i_cache #(
             endcase
         end
         else if(cache_en1)begin
-            pre_state <= state;
             cpu_instr_ok <= 0;
             no_cache_IF3 <= no_cache_IF2;
         end

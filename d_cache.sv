@@ -126,7 +126,6 @@ module d_cache#(
     reg FristReq;
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
-    reg [2:0] pre_state;
     reg [2:0] state;
     wire isIDLE;
     assign isIDLE = state==IDLE;
@@ -140,7 +139,6 @@ module d_cache#(
     // hit and miss
     assign c_way[0] = c_valid_M2[0] & (c_tag_M2[0] == tag_M2);
     assign c_way[1] = c_valid_M2[1] & (c_tag_M2[1] == tag_M2);
-    wire waychoose = c_tag_M2[1] == tag_M2;
 
     assign hit = |c_way & isIDLE & ~no_cache_M2;
     assign miss = ~hit;
@@ -174,7 +172,7 @@ module d_cache#(
     wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[waychoose];
+    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[c_way[1]];
 
 
     logic [1:0] wena_tag_ram_way;
@@ -184,10 +182,10 @@ module d_cache#(
     // hit and write
     wire [1:0] wena_tag_hitway;
     assign  wena_tag_hitway = hit & store ?
-            {{waychoose}, {~waychoose}} : wena_tag_ram_way; // 4 bytes
+            {{c_way[1]}, {~c_way[1]}} : wena_tag_ram_way; // 4 bytes
     wire [3:0] wena_data_hitway [NR_WAYS-1:0];
     assign  wena_data_hitway = hit & store ?
-            {{data_sram_wen_M2 & {4{waychoose}}}, {data_sram_wen_M2 & {4{~waychoose}}}} : wena_data_bank_way; // 4 bytes
+            {{data_sram_wen_M2 & {4{c_way[1]}}}, {data_sram_wen_M2 & {4{~c_way[1]}}}} : wena_data_bank_way; // 4 bytes
     // write back part
     wire [LEN_PER_WAY-1 : 2] writeback_raddr = {index_M3,cache_buff_cnt[LEN_LINE-1:2]};
 
@@ -284,7 +282,6 @@ module d_cache#(
     always @(posedge clk) begin
         if(rst) begin
             state <= IDLE;
-            pre_state <= IDLE;
             index_M3 <= 0;
             lineLoc_M3 <= 0;
             tag_M3 <= 0;
@@ -357,8 +354,7 @@ module d_cache#(
                 end
             end
 
-            if(cache_en)begin          
-                pre_state <= state;  
+            if(cache_en)begin         
                 case(state)
                 // 按照状态机编写
                     IDLE: begin 
@@ -386,10 +382,10 @@ module d_cache#(
                         else if (hit) begin
                             state <= IDLE;
                             if(cpu_data_wr_M2) begin
-                                cache_dirty[index_M2][waychoose] <= 1'b1;
+                                cache_dirty[index_M2][c_way[1]] <= 1'b1;
                             end
-                            cache_lru[index_M2][waychoose] <=1'b0;
-                            cache_lru[index_M2][~waychoose] <=1'b1;
+                            cache_lru[index_M2][c_way[1]] <=1'b0;
+                            cache_lru[index_M2][~c_way[1]] <=1'b1;
                         end
                         else begin
                             if (miss & dirty)begin
@@ -536,7 +532,6 @@ module d_cache#(
                 no_cache_M3 <= 0;
                 cpu_data_ok <= 0;
                 FristReq <= 0;
-                pre_state <= state;
             end
         end
         
