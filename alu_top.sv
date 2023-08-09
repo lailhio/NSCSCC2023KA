@@ -247,7 +247,7 @@ module alu_top(
                     `MSUBU_CONTROL:  begin
                         hilo_in_muldiv = hilo_outE - aluout_mul;
                     end
-                    default: hilo_in_muldiv = 32'b0;
+                    default: hilo_in_muldiv = 64'b0;
                 endcase
             end
         endcase

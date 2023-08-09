@@ -337,7 +337,6 @@ module datapath(
     flopctrl flopctrl1M(.clk(clk),.rst(rst),.stall(stall_masterM),.flush(flush_masterM),.in(dec_sign1E),.out(dec_sign1M));
     //-----------------------slave---------------------------
 	flopstrc #(32) flopPcPlus4M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(PcPlus4E),.out(PcPlus4M));
-	flopstrc #(32) flopPcPlus4M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(PcPlus4E),.out(PcPlus4M));
 	flopstrc #(32) flopAlu2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(aluout2E),.out(aluout2M));
 	flopstrc #(32) flopRtvalue2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(src2_b1E),.out(src2_b1M));
 	flopstrc #(32) flopInstr2M(.clk(clk),.rst(rst),.stall(stall_slaveM),.flush(flush_slaveM),.in(instr2E),.out(instr2M));
