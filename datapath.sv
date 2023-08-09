@@ -307,10 +307,8 @@ module datapath(
     flopstrc #(7) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,hilotoregE}),
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,hilotoregM}));
-    flopstrc #(6) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({writeregE,overflowE}),.out({writeregM,overflowM}));
-    // 可合并
-    flopstrc #(1) flopTrapM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(trapE),.out(trapM));
+    flopstrc #(7) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({writeregE,overflowE,trapE}),.out({writeregM,overflowM,trapM}));
     //----------------------MemoryFlop------------------------
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
     // Assign Logical
