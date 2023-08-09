@@ -208,7 +208,7 @@ module datapath(
 	aludec ad(functD,aluopD,alucontrolD);
 	maindec md(instrD,
 		//output
-        sign_exD , regdstD, is_immD , regwriteD , mem_readD , mem_writeD , memtoregD,
+        sign_exD , regdstD, is_immD , regwriteD , writeregD, mem_readD , mem_writeD , memtoregD,
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
 
@@ -218,8 +218,6 @@ module datapath(
 	regfile rf(clk,rst,stallW,regwriteW,instrD[25:21],instrD[20:16],writeregW,resultW,rd1D,rd2D);
     // 立即数左移2 + pc+4得到分支跳转地址   
     assign pc_branchD = {immD[29:0], 2'b00} + PcPlus4D;
-    //选择writeback寄存器     rd             rt
-    mux3 #(5) mux3_regdst(instrD[15:11],instrD[20:16],5'd31,regdstD,  writeregD);
     //前推至ID阶段
     mux5 #(32) mux5_forward_1D(rd1D, resultW, resultM2, resultM, aluoutE, forward_1D, src_a1D);
     mux5 #(32) mux5_forward_2D(rd2D, resultW, resultM2, resultM, aluoutE, forward_2D, src_b1D);
