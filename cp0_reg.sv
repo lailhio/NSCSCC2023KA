@@ -4,7 +4,7 @@
 module cp0_reg(
 	input wire clk,
 	input wire rst,
-	input wire stall_masterM,
+	input wire stall_masterM2,
 	input wire we1_i, we2_i,
 	input[4:0] waddr1_i, waddr2_i,
 	input[4:0] raddr1_i, raddr2_i,	
@@ -43,36 +43,14 @@ module cp0_reg(
 			prid_o <= 32'b00000000010011000000000100000010;
 			timer_int_o <= `InterruptNotAssert;
 		end 
-		else  if (~(stall_masterM & (we1_i | we2_i)))begin
+		else  if (~(stall_masterM2 & (we1_i | we2_i)))begin
 			count <= count + 1;
 			cause_o[15:10] <= int_i;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin
 				/* code */
 				timer_int_o <= `InterruptAssert;
 			end
-			if(we1_i == `WriteEnable) begin
-				case (waddr1_i)
-					`CP0_REG_COUNT:begin 
-						count[32:1] <= data1_i;
-					end
-					`CP0_REG_COMPARE:begin 
-						compare_o <= data1_i;
-					end
-					`CP0_REG_STATUS:begin 
-						status_o <= data1_i;
-					end
-					`CP0_REG_CAUSE:begin 
-						cause_o[9:8] <= data1_i[9:8];
-						cause_o[23] <= data1_i[23];
-						cause_o[22] <= data1_i[22];
-					end
-					`CP0_REG_EPC:begin 
-						epc_o <= data1_i;
-					end
-					default :;
-				endcase
-			end
-			if(we2_i == `WriteEnable)begin
+			if(we2_i)begin
 				case (waddr2_i)
 					`CP0_REG_COUNT:begin 
 						count[32:1] <= data2_i;
@@ -90,6 +68,28 @@ module cp0_reg(
 					end
 					`CP0_REG_EPC:begin 
 						epc_o <= data2_i;
+					end
+					default :;
+				endcase
+			end
+			else if(we1_i) begin
+				case (waddr1_i)
+					`CP0_REG_COUNT:begin 
+						count[32:1] <= data1_i;
+					end
+					`CP0_REG_COMPARE:begin 
+						compare_o <= data1_i;
+					end
+					`CP0_REG_STATUS:begin 
+						status_o <= data1_i;
+					end
+					`CP0_REG_CAUSE:begin 
+						cause_o[9:8] <= data1_i[9:8];
+						cause_o[23] <= data1_i[23];
+						cause_o[22] <= data1_i[22];
+					end
+					`CP0_REG_EPC:begin 
+						epc_o <= data1_i;
 					end
 					default :;
 				endcase

@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.asm": "mips",
+        "*.c": "c",
+        "*.vh": "systemverilog",
+        "*.tcc": "cpp",
+        "fstream": "cpp",
+        "atomic": "cpp"
+    }
+}

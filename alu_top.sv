@@ -21,6 +21,7 @@ module alu_top(
     wire [63:0] hilo_outE;
     reg [31:0] MulDivOp1, MulDivOp2;
     reg flushE;
+    reg hilo_writeE;
                                                          // sa         msbd
     alu alu_1(clk, rst, src1_aE, src1_bE, alucontrolE1, instr1E[10:6], instr1E[15:11], aluout_mul, hilo_outE, aluoutE1, overflow1E, trap1E);
     alu alu_2(clk, rst, src2_aE, src2_bE, alucontrolE2, instr2E[10:6], instr2E[15:11], aluout_mul, hilo_outE, aluoutE2, overflow2E, trap2E);
@@ -28,7 +29,6 @@ module alu_top(
     
     //支持mthi、mtlo双发
     reg [63:0] hilo_in_muldiv;
-    reg hilo_writeE;
 
     //乘除法,不支持两指令同时乘除
 
@@ -47,16 +47,14 @@ module alu_top(
         div_sign =1'b0;
         mul_startE =1'b0;
         div_startE  =1'b0;
-        hilo_writeE = 1'b0;
-        case(alucontrolE1)
+        case(alucontrolE2)
             `MULT_CONTROL, `MADD_CONTROL, `MSUB_CONTROL: begin
                 mul_sign = 1'b1;
-                MulDivOp1 = src1_aE;
-                MulDivOp2 = src1_bE;
-                flushE = flush_masterE;
+                MulDivOp1 = src2_aE;
+                MulDivOp2 = src2_bE;
+                flushE = flush_slaveE;
                 if(ready_mul) begin 
                     mul_startE = 1'b0;
-                    hilo_writeE = 1'b1;
                 end
                 else begin
                     mul_startE = 1'b1;
@@ -64,12 +62,11 @@ module alu_top(
             end
             `MULTU_CONTROL, `MADDU_CONTROL, `MSUBU_CONTROL: begin
                 mul_sign = 1'b0;
-                MulDivOp1 = src1_aE;
-                MulDivOp2 = src1_bE;
-                flushE = flush_masterE;
+                MulDivOp1 = src2_aE;
+                MulDivOp2 = src2_bE;
+                flushE = flush_slaveE;
                 if(ready_mul) begin 
                     mul_startE = 1'b0;
-                    hilo_writeE = 1'b1;
                 end
                 else begin
                     mul_startE = 1'b1;
@@ -77,12 +74,11 @@ module alu_top(
             end
             `DIV_CONTROL: begin
                 div_sign = 1'b1;
-                MulDivOp1 = src1_aE;
-                MulDivOp2 = src1_bE;
-                flushE = flush_masterE;
+                MulDivOp1 = src2_aE;
+                MulDivOp2 = src2_bE;
+                flushE = flush_slaveE;
                 if(ready_div) begin 
                     div_startE = 1'b0;
-                    hilo_writeE = 1'b1;
                 end
                 else begin
                     div_startE = 1'b1;
@@ -90,12 +86,11 @@ module alu_top(
             end
             `DIVU_CONTROL: begin
                 div_sign = 1'b0;
-                MulDivOp1 = src1_aE;
-                MulDivOp2 = src1_bE;
-                flushE = flush_masterE;
+                MulDivOp1 = src2_aE;
+                MulDivOp2 = src2_bE;
+                flushE = flush_slaveE;
                 if(ready_div) begin 
                     div_startE = 1'b0;
-                    hilo_writeE = 1'b1;
                 end
                 else begin
                     div_startE = 1'b1;
@@ -103,27 +98,25 @@ module alu_top(
             end
             `MUL_CONTROL: begin
                 mul_sign = 1'b1;
-                MulDivOp1 = src1_aE;
-                MulDivOp2 = src1_bE;
-                flushE = flush_masterE;
+                MulDivOp1 = src2_aE;
+                MulDivOp2 = src2_bE;
+                flushE = flush_slaveE;
                 if(ready_mul) begin
                     mul_startE = 1'b0;
-                    hilo_writeE = 1'b1;
                 end
                 else begin
                     mul_startE = 1'b1;
                 end
             end
             default: begin
-                case(alucontrolE2)
+                case(alucontrolE1)
                     `MULT_CONTROL, `MADD_CONTROL, `MSUB_CONTROL: begin
                         mul_sign = 1'b1;
-                        MulDivOp1 = src2_aE;
-                        MulDivOp2 = src2_bE;
-                        flushE = flush_slaveE;
+                        MulDivOp1 = src1_aE;
+                        MulDivOp2 = src1_bE;
+                        flushE = flush_masterE;
                         if(ready_mul) begin 
                             mul_startE = 1'b0;
-                            hilo_writeE = 1'b1;
                         end
                         else begin
                             mul_startE = 1'b1;
@@ -131,12 +124,11 @@ module alu_top(
                     end
                     `MULTU_CONTROL, `MADDU_CONTROL, `MSUBU_CONTROL: begin
                         mul_sign = 1'b0;
-                        MulDivOp1 = src2_aE;
-                        MulDivOp2 = src2_bE;
-                        flushE = flush_slaveE;
+                        MulDivOp1 = src1_aE;
+                        MulDivOp2 = src1_bE;
+                        flushE = flush_masterE;
                         if(ready_mul) begin 
                             mul_startE = 1'b0;
-                            hilo_writeE = 1'b1;
                         end
                         else begin
                             mul_startE = 1'b1;
@@ -144,12 +136,11 @@ module alu_top(
                     end
                     `DIV_CONTROL: begin
                         div_sign = 1'b1;
-                        MulDivOp1 = src2_aE;
-                        MulDivOp2 = src2_bE;
-                        flushE = flush_slaveE;
+                        MulDivOp1 = src1_aE;
+                        MulDivOp2 = src1_bE;
+                        flushE = flush_masterE;
                         if(ready_div) begin 
                             div_startE = 1'b0;
-                            hilo_writeE = 1'b1;
                         end
                         else begin
                             div_startE = 1'b1;
@@ -157,12 +148,11 @@ module alu_top(
                     end
                     `DIVU_CONTROL: begin
                         div_sign = 1'b0;
-                        MulDivOp1 = src2_aE;
-                        MulDivOp2 = src2_bE;
-                        flushE = flush_slaveE;
+                        MulDivOp1 = src1_aE;
+                        MulDivOp2 = src1_bE;
+                        flushE = flush_masterE;
                         if(ready_div) begin 
                             div_startE = 1'b0;
-                            hilo_writeE = 1'b1;
                         end
                         else begin
                             div_startE = 1'b1;
@@ -170,19 +160,17 @@ module alu_top(
                     end
                     `MUL_CONTROL: begin
                         mul_sign = 1'b1;
-                        MulDivOp1 = src2_aE;
-                        MulDivOp2 = src2_bE;
-                        flushE = flush_slaveE;
+                        MulDivOp1 = src1_aE;
+                        MulDivOp2 = src1_bE;
+                        flushE = flush_masterE;
                         if(ready_mul) begin
                             mul_startE = 1'b0;
-                            hilo_writeE = 1'b1;
                         end
                         else begin
                             mul_startE = 1'b1;
                         end
                     end
                     default: begin
-                        hilo_writeE = 0;
                         mul_startE = 0;
                         mul_sign = 0;
                         div_startE = 0;
@@ -196,7 +184,104 @@ module alu_top(
         endcase
     end
     always @(*) begin
-        case(alucontrolE1)
+        case(alucontrolE2)
+            `MULT_CONTROL, `MADD_CONTROL, `MSUB_CONTROL: begin
+                if(ready_mul) begin 
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    hilo_writeE = 1'b0;
+                end
+            end
+            `MULTU_CONTROL, `MADDU_CONTROL, `MSUBU_CONTROL: begin
+                if(ready_mul) begin 
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    hilo_writeE = 1'b0;
+                end
+            end
+            `DIV_CONTROL: begin
+                if(ready_div) begin 
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    hilo_writeE = 1'b0;
+                end
+            end
+            `DIVU_CONTROL: begin
+                if(ready_div) begin 
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    hilo_writeE = 1'b0;
+                end
+            end
+            `MUL_CONTROL: begin
+                if(ready_mul) begin
+                    hilo_writeE = 1'b1;
+                end
+                else begin
+                    hilo_writeE = 1'b0;
+                end
+            end
+            `MTHI_CONTROL, `MTLO_CONTROL: begin
+                hilo_writeE = 1'b1;
+            end
+            default: begin
+                case(alucontrolE1)
+                    `MULT_CONTROL, `MADD_CONTROL, `MSUB_CONTROL: begin
+                        if(ready_mul) begin 
+                            hilo_writeE = 1'b1;
+                        end
+                        else begin
+                            hilo_writeE = 1'b0;
+                        end
+                    end
+                    `MULTU_CONTROL, `MADDU_CONTROL, `MSUBU_CONTROL: begin
+                        if(ready_mul) begin 
+                            hilo_writeE = 1'b1;
+                        end
+                        else begin
+                            hilo_writeE = 1'b0;
+                        end
+                    end
+                    `DIV_CONTROL: begin
+                        if(ready_div) begin 
+                            hilo_writeE = 1'b1;
+                        end
+                        else begin
+                            hilo_writeE = 1'b0;
+                        end
+                    end
+                    `DIVU_CONTROL: begin
+                        if(ready_div) begin 
+                            hilo_writeE = 1'b1;
+                        end
+                        else begin
+                            hilo_writeE = 1'b0;
+                        end
+                    end
+                    `MUL_CONTROL: begin
+                        if(ready_mul) begin
+                            hilo_writeE = 1'b1;
+                        end
+                        else begin
+                            hilo_writeE = 1'b0;
+                        end
+                    end
+                    `MTHI_CONTROL, `MTLO_CONTROL: begin
+                        hilo_writeE = 1'b1;
+                    end
+                    default: begin
+                        hilo_writeE = 1'b0;
+                    end
+                endcase
+            end
+        endcase
+    end
+    always @(*) begin
+        case(alucontrolE2)
             `MULT_CONTROL, `MULTU_CONTROL : begin
                 hilo_in_muldiv = aluout_mul;
             end
@@ -204,10 +289,10 @@ module alu_top(
                 hilo_in_muldiv = aluout_div;
             end
             `MTHI_CONTROL: begin
-                hilo_in_muldiv = {src1_aE, 32'b0};
+                hilo_in_muldiv = {src2_aE, 32'b0};
             end
             `MTLO_CONTROL: begin
-                hilo_in_muldiv = {32'b0, src1_aE};
+                hilo_in_muldiv = {32'b0, src2_aE};
             end
             `MADD_CONTROL:  begin
                 hilo_in_muldiv = hilo_outE + aluout_mul;
@@ -222,7 +307,7 @@ module alu_top(
                 hilo_in_muldiv = hilo_outE - aluout_mul;
             end
             default: begin
-                case(alucontrolE2)
+                case(alucontrolE1)
                     `MULT_CONTROL, `MULTU_CONTROL : begin
                         hilo_in_muldiv = aluout_mul;
                     end
@@ -230,10 +315,10 @@ module alu_top(
                         hilo_in_muldiv = aluout_div;
                     end
                     `MTHI_CONTROL: begin
-                        hilo_in_muldiv = {src2_aE, 32'b0};
+                        hilo_in_muldiv = {src1_aE, 32'b0};
                     end
                     `MTLO_CONTROL: begin
-                        hilo_in_muldiv = {32'b0, src2_aE};
+                        hilo_in_muldiv = {32'b0, src1_aE};
                     end
                     `MADD_CONTROL:  begin
                         hilo_in_muldiv = hilo_outE + aluout_mul;

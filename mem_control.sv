@@ -28,9 +28,9 @@ module mem_control(
 
     // 下面的assign语句将instrM和instrM2切分为两条指令的操作码
     assign op_code1M = instr1M[31:26];
-    assign op_code2M = instr2M[25:20];
+    assign op_code2M = instr2M[31:26];
     assign op_code1M2 = instr1M2[31:26];
-    assign op_code2M2 = instr2M2[25:20];
+    assign op_code2M2 = instr2M2[31:26];
 
     assign data_addrM = mem_sel ? address1M: address2M;
     assign data_srcM = mem_sel ? data_wdata1M: data_wdata2M;
@@ -109,16 +109,16 @@ module mem_control(
 
 
     // 地址异常
-    assign addr_error_sw1 = (instr1_sw | instr1_sc & ~addr1_W01M)
+    assign addr_error_sw1 = ((instr1_sw | instr1_sc) & ~addr1_W01M)
                     | (instr1_sh & ~(addr1_W01M | addr1_B21M));
 
-    assign addr_error_lw1 = (instr1_lwM | instr1_llM & ~addr1_W01M)
+    assign addr_error_lw1 = ((instr1_lwM | instr1_llM) & ~addr1_W01M)
                     | ((instr1_lhM | instr1_lhuM) & ~(addr1_W01M | addr1_B21M));
 
-    assign addr_error_sw2 = (instr2_sw | instr2_sc & ~addr2_W01M)
+    assign addr_error_sw2 = ((instr2_sw | instr2_sc) & ~addr2_W01M)
                     | (instr2_sh & ~(addr2_W01M | addr2_B21M));
 
-    assign addr_error_lw2 = (instr2_lwM | instr2_llM & ~addr2_W01M)
+    assign addr_error_lw2 = ((instr2_lwM | instr2_llM) & ~addr2_W01M)
                     | ((instr2_lhM | instr2_lhuM) & ~(addr2_W01M | addr2_B21M));
 
 // wdata  and  byte_wen

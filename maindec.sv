@@ -77,7 +77,7 @@ module maindec(
 		case(opD)
 			`R_TYPE:begin
 				case (functD)
-					`MTHI, `MTLO : 
+					`MTHI, `MTLO, `MULT, `MULTU, `DIV, `DIVU: 
 						dec_sign.hilo_write = 1'b1;
 					default: dec_sign.hilo_write = 1'b0;
 				endcase
@@ -92,9 +92,33 @@ module maindec(
 			default: dec_sign.hilo_write = 1'b0;
 		endcase
 	end
+	always @(*) begin
+		case(opD)
+			`R_TYPE:begin
+				case (functD)
+					`MTHI, `MTLO, `MULT, `MULTU, `DIV, `DIVU: 
+						only_oneD_inst = 1'b1;
+					default: only_oneD_inst = 1'b0;
+				endcase
+			end
+			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR, `LL, `SW, `SB, `SH, `SWL, `SWR:begin
+				only_oneD_inst = 1'b1;
+			end
+			`COP0_INST:begin
+				case (functD)
+					`MTC0:	
+						only_oneD_inst = 1'b1;
+					default: only_oneD_inst = 1'b0;
+				endcase
+			end
+			default: only_oneD_inst = 1'b0;
+		endcase
+		if(!instr2D)begin
+			only_oneD_inst = 0;
+		end
+	end
 
 	always @(*) begin
-		only_oneD_inst = 1'b0;
 		case(opD)
 			`R_TYPE:begin
 				dec_sign.is_mfc=1'b0;
@@ -326,7 +350,6 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`MEM_OP;
-				only_oneD_inst = 1;
 				dec_sign.writereg = rtD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b1011;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b110;
@@ -335,7 +358,6 @@ module maindec(
 				dec_sign.ri=1'b0;
 				dec_sign.is_mfc=1'b0;
 				aluop=`MEM_OP;
-				only_oneD_inst = 1;
 				dec_sign.writereg = rdD;
 				{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0001;
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b001;
@@ -369,7 +391,6 @@ module maindec(
 			end
 
 			`COP0_INST:begin
-				only_oneD_inst = 1;
 				case(rsD)
 					`MTC0: begin
 						dec_sign.ri=1'b0;
@@ -541,8 +562,10 @@ module maindec(
 				{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 			end
 		endcase
-		if(!instr2D)begin
-			only_oneD_inst = 0;
+		if(!instrD)begin
+			aluop =`USELESS_OP;
+			{dec_sign.regwrite, dec_sign.regdst, dec_sign.is_imm}  =  4'b0;
+			{dec_sign.memtoreg, dec_sign.mem_read, dec_sign.mem_write}  =  3'b0;
 		end
 	end
 	always @(*) begin

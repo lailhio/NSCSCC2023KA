@@ -799,7 +799,7 @@ typedef struct packed{
     logic cp0_write;
     logic cp0_read;
     logic DivMulEn;
-    
+    logic delayslot;
     logic is_mfc;   //为mfc0
 	logic [4:0] writereg;//写寄存器号
     logic [7:0] alucontrol;
