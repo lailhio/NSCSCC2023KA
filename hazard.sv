@@ -8,7 +8,7 @@ module hazard(
     input wire master_only_oneD, slave_only_oneD,
 
     input wire pred_failed_masterE, pred_failed_slaveE, flush_exception_masterM, flush_exception_slaveM,
-    input wire jump1D, jump2D, pred_take1D, pred_take2D,
+    input wire jump1D, jump2D, pred_take1D, pred_take2D, Blank_SL,
 
     input ctrl_sign dec_sign1D, dec_sign2D, dec_sign1E, dec_sign2E, 
     input ctrl_sign dec_sign1M, dec_sign2M, dec_sign1M2, dec_sign2M2, dec_sign1W, dec_sign2W, 
@@ -86,18 +86,18 @@ module hazard(
                         |((forward1_1D == 4'b0011 | forward1_1D == 4'b0111 | forward1_2D == 4'b0011 | forward1_2D == 4'b0111)& (dec_sign1M.mem_read | dec_sign2M.mem_read))
                         |((forward2_1D == 4'b0011 | forward2_1D == 4'b0111 | forward2_2D == 4'b0011 | forward2_2D == 4'b0111)& (dec_sign1M.mem_read | dec_sign2M.mem_read)));
 
-    assign stallF = ~(fulsh_ex | pred_failed) & (id_cache_stall | alu_stallE | stallDblank  | only_one);
-    assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank  | only_one;
-    assign stallF2 =  id_cache_stall | alu_stallE| stallDblank  | only_one;
+    assign stallF = ~(fulsh_ex | pred_failed | pc_change1D | pc_change2D) & (id_cache_stall | alu_stallE | stallDblank  | only_one | Blank_SL);
+    assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank  | only_one | Blank_SL;
+    assign stallF2 =  id_cache_stall | alu_stallE| stallDblank  | only_one | Blank_SL;
 
-    assign stall_masterD =  id_cache_stall| alu_stallE | stallDblank ;
-    assign stall_slaveD = id_cache_stall| alu_stallE | stallDblank  | only_one;
+    assign stall_masterD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
+    assign stall_slaveD = id_cache_stall| alu_stallE | stallDblank  | only_one | Blank_SL;
 
-    assign stall_masterE =  id_cache_stall| alu_stallE ;
-    assign stall_slaveE =  id_cache_stall| alu_stallE ;
+    assign stall_masterE =  id_cache_stall| alu_stallE | Blank_SL;
+    assign stall_slaveE =  id_cache_stall| alu_stallE | Blank_SL;
 
-    assign stall_masterM =  id_cache_stall| alu_stallE ;
-    assign stall_slaveM =  id_cache_stall| alu_stallE ;
+    assign stall_masterM =  id_cache_stall| alu_stallE | Blank_SL;
+    assign stall_slaveM =  id_cache_stall| alu_stallE | Blank_SL;
 
     assign stall_masterM2 = ~flush_exception_slaveM & (id_cache_stall| alu_stallE);
     assign stall_slaveM2 = id_cache_stall| alu_stallE;
@@ -118,8 +118,8 @@ module hazard(
     assign flush_masterM = fulsh_ex;
     assign flush_slaveM = fulsh_ex;
 
-    assign flush_masterM2 = flush_exception_masterM;
-    assign flush_slaveM2 = fulsh_ex;
+    assign flush_masterM2 = flush_exception_masterM | (Blank_SL & ~stall_masterM2);
+    assign flush_slaveM2 = fulsh_ex | (Blank_SL & ~stall_slaveM2);
     
     assign flushW = 1'b0;
 endmodule

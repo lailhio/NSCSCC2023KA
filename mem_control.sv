@@ -164,30 +164,30 @@ module mem_control(
                         | ( {32{instr2_swr & addr2_B31M}} & {4{data_wdata2M[7:0]}});
 
 // rdata   
-    wire [31:0] wforward_rdata = mem_rdataM2 & ~({32{Blank_SL}} & {{8{mem_write_selectW[3]}}, {8{mem_write_selectW[2]}}, {8{mem_write_selectW[1]}}, {8{mem_write_selectW[0]}}}) | 
-                              writedataW & {32{Blank_SL}} & {{8{mem_write_selectW[3]}}, {8{mem_write_selectW[2]}}, {8{mem_write_selectW[1]}}, {8{mem_write_selectW[0]}}};
+    // wire [31:0] wforward_rdata = mem_rdataM2 & ~({32{Blank_SL}} & {{8{mem_write_selectW[3]}}, {8{mem_write_selectW[2]}}, {8{mem_write_selectW[1]}}, {8{mem_write_selectW[0]}}}) | 
+    //                           writedataW & {32{Blank_SL}} & {{8{mem_write_selectW[3]}}, {8{mem_write_selectW[2]}}, {8{mem_write_selectW[1]}}, {8{mem_write_selectW[0]}}};
     
-    assign data_rdataM2 =  ( {32{instr1_lw | instr2_lw}}   & wforward_rdata)
-        | ( {32{instr1_lh & addr1_W01M2 | instr2_lh & addr2_W01M2}}  & { {16{wforward_rdata[15]}},  wforward_rdata[15:0]    })  
-        | ( {32{instr1_lh & addr1_B21M2 | instr2_lh & addr2_B21M2}}  & { {16{wforward_rdata[31]}},  wforward_rdata[31:16]   })
-        | ( {32{instr1_lhu & addr1_W01M2| instr2_lhu & addr2_W01M2}}  & {  16'b0,                wforward_rdata[15:0]    })  //lhb 分别从00 10开始读半字 读取后进行0扩展
-        | ( {32{instr1_lhu & addr1_B21M2| instr2_lhu & addr2_B21M2}}  & {  16'b0,                wforward_rdata[31:16]   })
-        | ( {32{instr1_lb & addr1_W01M2 | instr2_lb & addr2_W01M2}}  & { {24{wforward_rdata[7]}},   wforward_rdata[7:0]     })  //lb 分别从00 01 10 11开始取bytes 读取后进行符号扩展
-        | ( {32{instr1_lb & addr1_B11M2 | instr2_lb & addr2_B11M2}}  & { {24{wforward_rdata[15]}},  wforward_rdata[15:8]    })
-        | ( {32{instr1_lb & addr1_B21M2 | instr2_lb & addr2_B21M2}}  & { {24{wforward_rdata[23]}},  wforward_rdata[23:16]   })
-        | ( {32{instr1_lb & addr1_B31M2 | instr2_lb & addr2_B31M2}}  & { {24{wforward_rdata[31]}},  wforward_rdata[31:24]   })
-        | ( {32{instr1_lbu & addr1_W01M2| instr2_lbu & addr2_W01M2}}  & {  24'b0 ,               wforward_rdata[7:0]     })  //lbu 分别从00 01 10 11开始取bytes 读取后进行0扩展
-        | ( {32{instr1_lbu & addr1_B11M2| instr2_lbu & addr2_B11M2}}  & {  24'b0 ,               wforward_rdata[15:8]    })
-        | ( {32{instr1_lbu & addr1_B21M2| instr2_lbu & addr2_B21M2}}  & {  24'b0 ,               wforward_rdata[23:16]   })
-        | ( {32{instr1_lbu & addr1_B31M2| instr2_lbu & addr2_B31M2}}  & {  24'b0 ,               wforward_rdata[31:24]   })
-        | ( {32{instr1_lwl & addr1_W01M2| instr2_lwl & addr2_W01M2}}  & {  wforward_rdata[7:0],           rt_valueM2[23:0]})
-        | ( {32{instr1_lwl & addr1_B11M2| instr2_lwl & addr2_B11M2}}  & {  wforward_rdata[15:0],          rt_valueM2[15:0]})
-        | ( {32{instr1_lwl & addr1_B21M2| instr2_lwl & addr2_B21M2}}  & {  wforward_rdata[23:0],          rt_valueM2[7:0]})
-        | ( {32{instr1_lwl & addr1_B31M2| instr2_lwl & addr2_B31M2}}  &    wforward_rdata)
-        | ( {32{instr1_lwr & addr1_W01M2| instr2_lwr & addr2_W01M2}}  &    wforward_rdata)
-        | ( {32{instr1_lwr & addr1_B11M2| instr2_lwr & addr2_B11M2}}  & {  rt_valueM2[31:24],         wforward_rdata[31:8]})
-        | ( {32{instr1_lwr & addr1_B21M2| instr2_lwr & addr2_B21M2}}  & {  rt_valueM2[31:16],         wforward_rdata[31:16]})
-        | ( {32{instr1_lwr & addr1_B31M2| instr2_lwr & addr2_B31M2}}  & {  rt_valueM2[31:8],          wforward_rdata[31:24]});
+    assign data_rdataM2 =  ( {32{instr1_lw | instr2_lw}}   & mem_rdataM2)
+        | ( {32{instr1_lh & addr1_W01M2 | instr2_lh & addr2_W01M2}}  & { {16{mem_rdataM2[15]}},  mem_rdataM2[15:0]    })  
+        | ( {32{instr1_lh & addr1_B21M2 | instr2_lh & addr2_B21M2}}  & { {16{mem_rdataM2[31]}},  mem_rdataM2[31:16]   })
+        | ( {32{instr1_lhu & addr1_W01M2| instr2_lhu & addr2_W01M2}}  & {  16'b0,                mem_rdataM2[15:0]    })  //lhb 分别从00 10开始读半字 读取后进行0扩展
+        | ( {32{instr1_lhu & addr1_B21M2| instr2_lhu & addr2_B21M2}}  & {  16'b0,                mem_rdataM2[31:16]   })
+        | ( {32{instr1_lb & addr1_W01M2 | instr2_lb & addr2_W01M2}}  & { {24{mem_rdataM2[7]}},   mem_rdataM2[7:0]     })  //lb 分别从00 01 10 11开始取bytes 读取后进行符号扩展
+        | ( {32{instr1_lb & addr1_B11M2 | instr2_lb & addr2_B11M2}}  & { {24{mem_rdataM2[15]}},  mem_rdataM2[15:8]    })
+        | ( {32{instr1_lb & addr1_B21M2 | instr2_lb & addr2_B21M2}}  & { {24{mem_rdataM2[23]}},  mem_rdataM2[23:16]   })
+        | ( {32{instr1_lb & addr1_B31M2 | instr2_lb & addr2_B31M2}}  & { {24{mem_rdataM2[31]}},  mem_rdataM2[31:24]   })
+        | ( {32{instr1_lbu & addr1_W01M2| instr2_lbu & addr2_W01M2}}  & {  24'b0 ,               mem_rdataM2[7:0]     })  //lbu 分别从00 01 10 11开始取bytes 读取后进行0扩展
+        | ( {32{instr1_lbu & addr1_B11M2| instr2_lbu & addr2_B11M2}}  & {  24'b0 ,               mem_rdataM2[15:8]    })
+        | ( {32{instr1_lbu & addr1_B21M2| instr2_lbu & addr2_B21M2}}  & {  24'b0 ,               mem_rdataM2[23:16]   })
+        | ( {32{instr1_lbu & addr1_B31M2| instr2_lbu & addr2_B31M2}}  & {  24'b0 ,               mem_rdataM2[31:24]   })
+        | ( {32{instr1_lwl & addr1_W01M2| instr2_lwl & addr2_W01M2}}  & {  mem_rdataM2[7:0],           rt_valueM2[23:0]})
+        | ( {32{instr1_lwl & addr1_B11M2| instr2_lwl & addr2_B11M2}}  & {  mem_rdataM2[15:0],          rt_valueM2[15:0]})
+        | ( {32{instr1_lwl & addr1_B21M2| instr2_lwl & addr2_B21M2}}  & {  mem_rdataM2[23:0],          rt_valueM2[7:0]})
+        | ( {32{instr1_lwl & addr1_B31M2| instr2_lwl & addr2_B31M2}}  &    mem_rdataM2)
+        | ( {32{instr1_lwr & addr1_W01M2| instr2_lwr & addr2_W01M2}}  &    mem_rdataM2)
+        | ( {32{instr1_lwr & addr1_B11M2| instr2_lwr & addr2_B11M2}}  & {  rt_valueM2[31:24],         mem_rdataM2[31:8]})
+        | ( {32{instr1_lwr & addr1_B21M2| instr2_lwr & addr2_B21M2}}  & {  rt_valueM2[31:16],         mem_rdataM2[31:16]})
+        | ( {32{instr1_lwr & addr1_B31M2| instr2_lwr & addr2_B31M2}}  & {  rt_valueM2[31:8],          mem_rdataM2[31:24]});
                         // | ( {32{instr1_ll}}  & wforward_rdata)
                         // | ( {32{instr1_sc}}  & {31'b0, LLbit_out});
 

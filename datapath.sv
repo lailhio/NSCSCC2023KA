@@ -23,7 +23,12 @@ module datapath(
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
     output wire[4:0] debug_wb_rf_wnum,
-    output wire[31:0] debug_wb_rf_wdata
+    output wire[31:0] debug_wb_rf_wdata,
+    output wire [31:0] debug_cp0_count,
+    output wire [31:0] debug_cp0_random,
+    output wire [31:0] debug_cp0_cause,
+    output wire debug_int,
+    output wire debug_commit
     );
 	
 	//--------InstFetch1 stage----------
@@ -141,7 +146,7 @@ module datapath(
         .jump1D (jump1D), .jump2D (jump2D), 
         .pred_failed_masterE(pred_failed_masterE), .pred_failed_slaveE(pred_failed_slaveE),
         .flush_exception_masterM(flush_exception_masterM), .flush_exception_slaveM(flush_exception_slaveM),
-        .fulsh_ex(fulsh_ex), 
+        .fulsh_ex(fulsh_ex), .Blank_SL(Blank_SL),
 
         .dec_sign1D(dec_sign1D), .dec_sign2D(dec_sign2D), 
         .dec_sign1E(dec_sign1E), .dec_sign2E(dec_sign2E), 
@@ -372,8 +377,8 @@ module datapath(
     assign mem_enM = (dec_sign1M.mem_read | dec_sign2M.mem_read | dec_sign1M.mem_write | dec_sign2M.mem_write) & ~fulsh_ex; //意外刷新时需要
     wire mem_sel = dec_sign1M.mem_read | dec_sign1M.mem_write;
     // Assign Logical
-    wire Blank_SL = (virtual_data_addrM2[31:2] == virtual_data_addrW[31:2]) & (virtual_data_addrM2[31:29] != 3'b101) 
-            & (dec_sign1M2.mem_read | dec_sign2M2.mem_read) &  (dec_sign1W.mem_write | dec_sign2W.mem_write);
+    wire Blank_SL = (virtual_data_addrM[31:2] == virtual_data_addrM2[31:2])
+            & (dec_sign1M.mem_read | dec_sign2M.mem_read) &  (dec_sign1M2.mem_write | dec_sign2M2.mem_write);
     mem_control mem_control(
         .instr1M(instr1M), .instr1M2(instr1M2), .address1M(aluout1M), .address1M2(aluout1M2),
         .instr2M(instr2M), .instr2M2(instr2M2), .address2M(aluout2M), .address2M2(aluout2M2),
