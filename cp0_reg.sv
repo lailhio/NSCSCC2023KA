@@ -20,6 +20,7 @@ module cp0_reg(
 	input wire we_i,
 	input[4:0] waddr_i,
 	input[4:0] raddr_i,
+	input[2:0] sel_addr,
 	input[`RegBus] data_i,
 
 	input wire[5:0] int_i,
@@ -37,11 +38,13 @@ module cp0_reg(
 	output reg         timer_int_o,
 	output wire[`RegBus] count_o,
 	output wire[`RegBus] random_o,
+	output reg[`RegBus] ebase_reg
     );
 	reg[`RegBus] compare_o;
 	reg[`RegBus] prid_o;
 	reg[`RegBus] badvaddr;
 	reg[`RegBus] config_o;
+	logic [31:0]    prid = 32'h00018003;
 	logic [31:0] random_reg;
 	logic [31:0] wired_reg;
 	reg [32:0] count;
@@ -57,10 +60,11 @@ module cp0_reg(
 			cause_o <= `ZeroWord;
 			epc_o <= `ZeroWord;
 			config_o <= 32'b00000000000000001000000000000000;
-			prid_o <= 32'b00000000010011000000000100000010;
+			prid_o <= 32'h00018003;
 			timer_int_o <= `InterruptNotAssert;
 			random_reg <= TLB_LINE_NUM - 1;
 			wired_reg <= 0;
+        	ebase_reg <= 32'h80000000;
 		end 
 		else begin
 			count <= count + 1;
@@ -90,6 +94,11 @@ module cp0_reg(
 					`CP0_REG_WIRED: begin
 						wired_reg <= {{(32-$clog2(TLB_LINE_NUM)){1'b0}},data_i[$clog2(TLB_LINE_NUM)-1:0]};
 						random_reg <= TLB_LINE_NUM-1;
+					end
+					`CP0_REG_PRID: begin
+						if (sel_addr == 1) begin
+							ebase_reg[29:0] <= data_i[29:0];
+						end
 					end
 					`CP0_REG_EPC:begin 
 						epc_o <= data_i;
@@ -236,6 +245,14 @@ module cp0_reg(
 				end
 				`CP0_REG_BADVADDR:begin 
 					data_o = badvaddr;
+				end
+				`CP0_REG_PRID: begin
+					case (sel_addr)
+						0:  data_o	=	prid_o;
+						1:	data_o 	= 	ebase_reg;
+						default:
+							data_o = 0;
+            		endcase 
 				end
 				default : begin 
 					data_o = `ZeroWord;

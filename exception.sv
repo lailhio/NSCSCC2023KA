@@ -4,7 +4,7 @@ module exception(
    input rst,
    input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretM,
    input trap,
-   input [31:0] cp0_status, cp0_cause, cp0_epc,
+   input [31:0] cp0_status, cp0_cause, cp0_epc, cp0_ebase,
    input [31:0] pcM,
    input [31:0] aluoutM,
 
@@ -36,6 +36,7 @@ module exception(
    //interupt pc address
    assign pc_exception =      ((except_type == 32'h00000000)) ? `ZeroWord:
                                                       (eretM)  ? cp0_epc :
+                                                ~cp0_status[22] ? cp0_ebase+32'h180:
                                                             32'hbfc0_0380; //异常处理地址
    assign pc_trap =        (except_type != 32'h00000000); //表示发生异常，需要处理pc
    assign flush_exception =   (except_type != 32'h00000000); //无异常时，为0

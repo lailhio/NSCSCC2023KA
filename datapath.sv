@@ -120,7 +120,8 @@ module datapath(
     wire [31:0] pc_branchE; //分支跳转地址
 
     wire [31:0] result_rdataM2;
-    wire [31:0] cp0_statusM, cp0_countM, cp0_causeM, cp0_randomM, cp0_epcM, cp0_outM;
+    wire [31:0] cp0_statusM, cp0_countM, cp0_causeM, cp0_randomM;
+    wire [31:0] cp0_ebaseM, cp0_epcM, cp0_outM;
 	wire		is_mfcM;
 
     wire [31:0] src_b1M;
@@ -352,6 +353,7 @@ module datapath(
         .interupt(interuptM), 
         //异常寄存器
         .cp0_status(cp0_statusM), .cp0_cause(cp0_causeM), .cp0_epc(cp0_epcM),
+        .cp0_ebase(cp0_ebaseM),
         //记录出错地址
         .pcM(pcM),.aluoutM(aluoutM),
         //输出异常处理信号
@@ -363,8 +365,8 @@ module datapath(
         .clk(clk) , .rst(rst),
         .stallM2(stallM2), .we_i(cp0_writeM) ,
         .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
-        .data_i(src_b1M) , .int_i(ext_int),
-        .excepttype_i(except_typeM) , .current_inst_addr_i(pcM),
+        .data_i(src_b1M) , .int_i(ext_int), .sel_addr(instrM[2:0]),
+        .excepttype_i(except_typeM) , .current_inst_addr_i(pcM), .ebase_reg(cp0_ebaseM),
         .is_in_delayslot_i(is_in_delayslot_iM) , .bad_addr_i(badvaddrM),
         .status_o(cp0_statusM) , .cause_o(cp0_causeM) , .count_o(cp0_countM),
         .epc_o(cp0_epcM), .random_o(cp0_randomM), .data_o(cp0_outM)
@@ -380,7 +382,7 @@ module datapath(
 	flopstrc #(32) flopCountM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_countM),.out(cp0_countM2));
 	flopstrc #(32) flopCauseM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_causeM),.out(cp0_causeM2));
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
-	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(pcM),.out(pcM2));
+	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(1'b0),.in(pcM),.out(pcM2));  //Not Flush Pc
 	flopstrc #(32) flopInstrM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(instrM),.out(instrM2));
     flopstrc #(32) flopRtvalueM2(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1M),.out(src_b1M2));
 	//------------------Memory2_Flop--------------------------
