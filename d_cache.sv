@@ -375,7 +375,7 @@ module d_cache#(
                         if (no_cache_M2) begin
                             d_araddr <= cpu_data_addr_M2;
                             d_arlen  <= 0;
-                            d_arsize <= 3'd2;
+                            d_arsize <= {1'b0,cpu_data_size_M2};
                             FristReq <= 0;
                             state <= NOCACHE;
                         end

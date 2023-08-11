@@ -1,10 +1,22 @@
 `include "defines2.vh"
 `timescale 1ns / 1ps
 
+//cp0 status
+`define IE_BIT 0              //
+`define EXL_BIT 1
+`define BEV_BIT 22
+`define IM7_IM0_BITS  15:8
+//cp0 cause
+`define BD_BIT 31             //延迟槽
+`define TI_BIT 30             //计时器中断指示
+`define IP1_IP0_BITS 9:8      //软件中断位
+`define IP7_IP2_BITS 15:10      //软件中断位
+`define EXC_CODE_BITS 6:2     //异常编码
+
 module cp0_reg(
 	input wire clk,
 	input wire rst,
-	input wire stallM,
+	input wire stallM2,
 	input wire we_i,
 	input[4:0] waddr_i,
 	input[4:0] raddr_i,
@@ -23,14 +35,20 @@ module cp0_reg(
 	output reg[`RegBus] epc_o,
 	output reg[`RegBus] data_o,
 	output reg         timer_int_o,
-	output wire[`RegBus] count_o
+	output wire[`RegBus] count_o,
+	output wire[`RegBus] random_o,
     );
 	reg[`RegBus] compare_o;
-	reg[`RegBus] config_o;
 	reg[`RegBus] prid_o;
 	reg[`RegBus] badvaddr;
+	reg[`RegBus] config_o;
+	logic [31:0] random_reg;
+	logic [31:0] wired_reg;
 	reg [32:0] count;
 	assign count_o = count[32:1];
+	assign random_o = random_reg;
+
+
 	always @(posedge clk) begin
 		if(rst == `RstEnable) begin
 			count <= 0;
@@ -41,15 +59,18 @@ module cp0_reg(
 			config_o <= 32'b00000000000000001000000000000000;
 			prid_o <= 32'b00000000010011000000000100000010;
 			timer_int_o <= `InterruptNotAssert;
+			random_reg <= TLB_LINE_NUM - 1;
+			wired_reg <= 0;
 		end 
-		else  if (~(stallM & we_i))begin
+		else begin
 			count <= count + 1;
-			cause_o[15:10] <= int_i;
+			random_reg <= (random_reg == wired_reg) ? (TLB_LINE_NUM - 1) : (random_reg - 1);
+			cause_o[`IP7_IP2_BITS] <= ~stallM2 ? int_i : 0;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin
 				/* code */
 				timer_int_o <= `InterruptAssert;
 			end
-			if(we_i == `WriteEnable) begin
+			if(~stallM2 & we_i) begin
 				/* code */
 				case (waddr_i)
 					`CP0_REG_COUNT:begin 
@@ -65,6 +86,10 @@ module cp0_reg(
 						cause_o[9:8] <= data_i[9:8];
 						cause_o[23] <= data_i[23];
 						cause_o[22] <= data_i[22];
+					end
+					`CP0_REG_WIRED: begin
+						wired_reg <= {{(32-$clog2(TLB_LINE_NUM)){1'b0}},data_i[$clog2(TLB_LINE_NUM)-1:0]};
+						random_reg <= TLB_LINE_NUM-1;
 					end
 					`CP0_REG_EPC:begin 
 						epc_o <= data_i;
@@ -197,10 +222,13 @@ module cp0_reg(
 				`CP0_REG_CAUSE:begin 
 					data_o = cause_o;
 				end
+				`CP0_REG_RANDOM:begin
+					data_o = random_reg;
+				end
 				`CP0_REG_EPC:begin 
 					data_o = epc_o;
 				end
-				`CP0_REG_PRID:begin 
+				`CP0_REG_PRID: begin 
 					data_o = prid_o;
 				end
 				`CP0_REG_CONFIG:begin 

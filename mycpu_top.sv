@@ -49,7 +49,13 @@ module mycpu_top(
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
     output wire[4:0] debug_wb_rf_wnum,
-    output wire[31:0] debug_wb_rf_wdata
+    output wire[31:0] debug_wb_rf_wdata,
+    // soc-simulator + cemu debug interface
+    output wire [31:0] debug_cp0_count,
+    output wire [31:0] debug_cp0_random,
+    output wire [31:0] debug_cp0_cause,
+    output wire debug_int,
+    output wire debug_commit
 );
     wire rst,clk;
     wire no_dcache, no_icache;
@@ -131,20 +137,25 @@ module mycpu_top(
     	.mem_addrM(virtual_data_addr),.mem_enM(cpu_data_en),
         .mem_rdataM2(cpu_data_rdata),
         .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
-        .d_cache_stall(d_stall),
+        .d_cache_stall(d_stall), .cpu_data_size(cpu_data_size),
         
         .stallM2(stallM2), .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc),
         .debug_wb_rf_wen(debug_wb_rf_wen),
         .debug_wb_rf_wnum(debug_wb_rf_wnum),
-        .debug_wb_rf_wdata(debug_wb_rf_wdata)
+        .debug_wb_rf_wdata(debug_wb_rf_wdata),
+        .debug_cp0_count( debug_cp0_count),
+        .debug_cp0_random( debug_cp0_random),
+        .debug_cp0_cause( debug_cp0_cause),
+        .debug_int( debug_int),
+        .debug_commit( debug_commit)
 	);
 
     mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
                 .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
                 .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
-                .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_dcache), .no_icache(no_icache));
+                .data_wr(cpu_data_wr), .no_dcache(no_dcache), .no_icache(no_icache));
     
 
     d_cache d_cache (
@@ -153,7 +164,7 @@ module mycpu_top(
         .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
         .data_sram_wen(data_sram_wen),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
-        .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
+        .cpu_data_size(cpu_data_size),  .cpu_data_addr(cpu_data_addr),
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),
         //D CACHE
         .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),

@@ -2,7 +2,6 @@
 
 module exception(
    input rst,
-   input [5:0] ext_int,
    input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretM,
    input trap,
    input [31:0] cp0_status, cp0_cause, cp0_epc,
@@ -12,20 +11,17 @@ module exception(
    output [31:0] except_type,
    output flush_exception,  //是否有异常?
    output [31:0] pc_exception,  //pc异常处理地址
-   output pc_trap,  //是否trap
+   output pc_trap, interupt, //是否trap
    output [31:0] badvaddrM  //pc修正
 );
 
-   //INTERUPT
-   wire interupt;
    //             //IE             //EXL            
    assign interupt =   cp0_status[0] && ~cp0_status[1] && (
                      //IM                 //IP
-                  ( |(cp0_status[9:8] & cp0_cause[9:8]) ) ||        //软件中断
-                  ( |(cp0_status[15:10] & ext_int) )      ||     //硬件中断
+                  ( |(cp0_status[9:8] & cp0_cause[9:8]) ) ||        //soft interupt
+                  ( |(cp0_status[15:10] & cp0_cause[15:10]) )||     //硬件中断
                   (|(cp0_status[30] & cp0_cause[30]))            //计时器中断?
    );
-   // 全局中断,且没有例外在处理,识别软件中断或 硬件中?
 
    assign except_type =    (interupt)                   ? 32'h00000001 :    //中断
                            (addrErrorLw | pcError) ? 32'h00000004 :   //地址错误例外（lw地址 pc错误

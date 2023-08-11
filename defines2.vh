@@ -765,18 +765,29 @@
 `define DivStop 1'b0
 
 //CP0
-`define CP0_REG_BADVADDR    5'b01000       
-`define CP0_REG_COUNT    5'b01001        
-`define CP0_REG_COMPARE    5'b01011      
-`define CP0_REG_STATUS    5'b01100       
-`define CP0_REG_CAUSE    5'b01101       
-`define CP0_REG_EPC    5'b01110          
-`define CP0_REG_PRID    5'b01111         
-`define CP0_REG_CONFIG    5'b10000      
+`define CP0_REG_INDEX       5'd0
+`define CP0_REG_RANDOM      5'd1
+`define CP0_REG_ENTRYLO0    5'd2
+`define CP0_REG_ENTRYLO1    5'd3
+`define CP0_REG_CONTEXT     5'd4
+`define CP0_REG_PAGEMASK    5'd5
+`define CP0_REG_WIRED       5'd6
+`define CP0_REG_BADVADDR    5'd8
+`define CP0_REG_COUNT       5'd9
+`define CP0_REG_ENTRYHI     5'd10
+`define CP0_REG_COMPARE     5'd11
+`define CP0_REG_STATUS      5'd12
+`define CP0_REG_CAUSE       5'd13
+`define CP0_REG_EPC         5'd14
+`define CP0_REG_PRID  5'd15   // Note: ebase is optional, so we didn't implement it.
+`define CP0_REG_CONFIG      5'd16
+`define CP0_REG_TAGLO       5'd28
+`define CP0_REG_TAGHI       5'd29
+`define CP0_REG_ERREPC      5'd30
 
 // tlb 
 //TLB Config
-`define TLB_LINE_NUM 8
+parameter TLB_LINE_NUM = 8;
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
 `define LOG2_TLB_LINE_NUM 5

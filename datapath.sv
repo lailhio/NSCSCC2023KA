@@ -16,6 +16,7 @@ module datapath(
     input  wire [31:0] mem_rdataM2,    //读数据
     output wire [3 :0] mem_write_selectM,      //写使能
     output wire [31:0] writedataM,    //写数据
+    output wire [1:0] cpu_data_size,
     input wire         d_cache_stall,
 
     output wire        stallM2, alu_stallE, icache_Ctl, 
@@ -23,7 +24,12 @@ module datapath(
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
     output wire[4:0] debug_wb_rf_wnum,
-    output wire[31:0] debug_wb_rf_wdata
+    output wire[31:0] debug_wb_rf_wdata,
+    output wire [31:0] debug_cp0_count,
+    output wire [31:0] debug_cp0_random,
+    output wire [31:0] debug_cp0_cause,
+    output wire debug_int,
+    output wire debug_commit
     );
 	
 	//--------InstFetch1 stage----------
@@ -114,12 +120,12 @@ module datapath(
     wire [31:0] pc_branchE; //分支跳转地址
 
     wire [31:0] result_rdataM2;
-    wire [31:0] hilo_outM;  //hilo输出
+    wire [31:0] cp0_statusM, cp0_countM, cp0_causeM, cp0_randomM, cp0_epcM, cp0_outM;
 	wire		is_mfcM;
 
     wire [31:0] src_b1M;
     //异常处理信号 exception
-    wire        riM;  //指令不存在
+    wire        riM, interuptM;  //指令不存在
     wire        breakM; //break指令
     wire        syscallM; //syscall指令
     wire        eretM; //eretM指令
@@ -145,14 +151,15 @@ module datapath(
     wire [31:0] aluoutM2;
     wire [31:0] pcM2;
     wire [31:0] instrM2;
-    wire [31:0] cp0_statusM2, cp0_causeM2, cp0_epcM2, cp0_outM2;
     wire [31:0] src_b1M2;
+    wire [31:0] cp0_countM2, cp0_causeM2, cp0_randomM2;
 	//------writeback stage----------
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
     wire [31:0] aluoutW;
     wire [31:0] pcW;
+    wire [31:0] cp0_countW, cp0_causeW, cp0_randomW;
     //------stall sign---------------
     wire stallF, stallF2, stallD, stallE, stallM, stallW ,stallDblank,  longest_stall;
     wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW;
@@ -162,7 +169,12 @@ module datapath(
     assign debug_wb_rf_wen      = {4{regwriteW & ~stallW }};
     assign debug_wb_rf_wnum     = writeregW;
     assign debug_wb_rf_wdata    = resultW;
-    // Todo : jal wrong
+    assign debug_cp0_count      = cp0_countW;
+    assign debug_cp0_random     = cp0_randomW;
+    assign debug_cp0_cause      = cp0_causeW;
+    assign debug_int            = interuptW;
+    assign debug_commit         = ~stallW;
+    
     //--------------------------------------Fetch------------------------------------------------
     
     assign inst_enF = ~flush_exceptionM & ~pc_errorF & ~flush_pred_failedE;
@@ -304,9 +316,9 @@ module datapath(
     flopstrc #(7) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,branchE,is_in_delayslot_iE,mem_readE,mem_writeE,memtoregE,breakE}),
         .out({regwriteM,branchM,is_in_delayslot_iM,mem_readM,mem_writeM,memtoregM,breakM}));
-    flopstrc #(7) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE,hilotoregE}),
-        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM,hilotoregM}));
+    flopstrc #(6) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({riE,syscallE,eretE,cp0_writeE,cp0_to_regE,is_mfcE}),
+        .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM}));
     flopstrc #(7) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE,trapE}),.out({writeregM,overflowM,trapM}));
     //----------------------MemoryFlop------------------------
@@ -321,6 +333,7 @@ module datapath(
         .mem_write_selectM(mem_write_selectM),
         .data_addrM(mem_addrM),
         .mem_rdataM2(mem_rdataM2), .data_rdataM2(result_rdataM2),
+        .data_size(cpu_data_size),
 
         .addr_error_sw(addrErrorSwM), .addr_error_lw(addrErrorLwM)  
     );
@@ -328,16 +341,17 @@ module datapath(
     
     //后两位不为0
     assign pcErrorM = (pcM[1:0] != 2'b00);  
-    //在aluoutM, hilo_outM, cp0_outM2 中选择写入寄存器的数据 Todo
-    mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM2, is_mfcM, resultM);
+    //在aluoutM, cp0_outM 中选择写入寄存器的数据 Todo
+    mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM, is_mfcM, resultM);
      //异常处理
     exception exception(
-        .rst(rst),.ext_int(ext_int),
+        .rst(rst),
         //异常信号
         .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .trap(trapM), 
         .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
+        .interupt(interuptM), 
         //异常寄存器
-        .cp0_status(cp0_statusM2), .cp0_cause(cp0_causeM2), .cp0_epc(cp0_epcM2),
+        .cp0_status(cp0_statusM), .cp0_cause(cp0_causeM), .cp0_epc(cp0_epcM),
         //记录出错地址
         .pcM(pcM),.aluoutM(aluoutM),
         //输出异常处理信号
@@ -347,21 +361,24 @@ module datapath(
      // cp0 todo 
     cp0_reg cp0(
         .clk(clk) , .rst(rst),
-        .stallM(stallM), .we_i(cp0_writeM) ,
+        .stallM2(stallM2), .we_i(cp0_writeM) ,
         .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
         .data_i(src_b1M) , .int_i(ext_int),
         .excepttype_i(except_typeM) , .current_inst_addr_i(pcM),
         .is_in_delayslot_i(is_in_delayslot_iM) , .bad_addr_i(badvaddrM),
-        .status_o(cp0_statusM2) , .cause_o(cp0_causeM2) ,
-        .epc_o(cp0_epcM2), .data_o(cp0_outM2)
+        .status_o(cp0_statusM) , .cause_o(cp0_causeM) , .count_o(cp0_countM),
+        .epc_o(cp0_epcM), .random_o(cp0_randomM), .data_o(cp0_outM)
     );
 	//-------------------------------------Memory2-------------------------------------------------
-    wire is_mfcM2, mem_writeM2; // for debug
+    wire is_mfcM2, interuptM2, mem_writeM2; // for debug
     // todo M2 flop
-	flopstrc #(9) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
-            .in({writeregM, regwriteM ,memtoregM, mem_writeM, is_mfcM}),
-            .out({writeregM2, regwriteM2, memtoregM2, mem_writeM2, is_mfcM2}));
+	flopstrc #(10) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
+            .in({writeregM, regwriteM ,memtoregM, mem_writeM, is_mfcM, interuptM}),
+            .out({writeregM2, regwriteM2, memtoregM2, mem_writeM2, is_mfcM2, interuptM2}));
 	flopstrc #(32) flopAluoutM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(aluoutM),.out(aluoutM2));
+	flopstrc #(32) flopRamdomM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_randomM),.out(cp0_randomM2));
+	flopstrc #(32) flopCountM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_countM),.out(cp0_countM2));
+	flopstrc #(32) flopCauseM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_causeM),.out(cp0_causeM2));
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
 	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(pcM),.out(pcM2));
 	flopstrc #(32) flopInstrM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(instrM),.out(instrM2));
@@ -369,13 +386,16 @@ module datapath(
 	//------------------Memory2_Flop--------------------------
     mux2 #(32) mux2_memtoreg(resultori_M2,result_rdataM2, memtoregM2,resultM2);
 	//-------------------------------------Write_Back-------------------------------------------------
-    wire is_mfcW;
+    wire is_mfcW, interuptW;
     wire [31:0] instrW; // for debug
-	flopstrc #(7) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
-            .in({writeregM2,regwriteM2,is_mfcM2}),
-            .out({writeregW,regwriteW,is_mfcW}));
+	flopstrc #(8) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
+            .in({writeregM2,regwriteM2,is_mfcM2, interuptM2}),
+            .out({writeregW,regwriteW,is_mfcW, interuptW}));
 	flopstrc #(32) flopInstrW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(instrM2),.out(instrW));
 	flopstrc #(32) flopPcW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(pcM2),.out(pcW));
+	flopstrc #(32) flopRamdomW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(cp0_randomM2),.out(cp0_randomW));
+	flopstrc #(32) flopCountW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(cp0_countM2),.out(cp0_countW));
+	flopstrc #(32) flopCauseW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(cp0_causeM2),.out(cp0_causeW));
 	flopstrc #(32) flopAluoutW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(aluoutM2),.out(aluoutW));
 	flopstrc #(32) flopResW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),.in(resultM2),.out(resultW));
 	//------------------Write_Back_Flop--------------------------
