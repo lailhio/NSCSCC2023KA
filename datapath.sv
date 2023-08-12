@@ -120,8 +120,8 @@ module datapath(
     wire [31:0] pc_branchE; //分支跳转地址
 
     wire [31:0] result_rdataM2;
-    wire [31:0] cp0_statusM, cp0_countM, cp0_causeM, cp0_randomM;
-    wire [31:0] cp0_ebaseM, cp0_epcM, cp0_outM;
+    wire [31:0] cp0_countM, cp0_causeM, cp0_randomM;
+    wire [31:0] cp0_outM;
 	wire		is_mfcM;
 
     wire [31:0] src_b1M;
@@ -136,11 +136,9 @@ module datapath(
     wire        pcErrorM;  //pc异常
 
 	// cp0	
-    wire [31:0] except_typeM;  // 异常类型
     wire        flush_exceptionM;  // 发生异常时需要刷新流水线
     wire [31:0] pc_exceptionM; //异常处理的地址0xbfc0_0380，若为eret指令 则为返回地址
     wire        pc_trapM; // 发生异常时pc特殊处理
-    wire [31:0] badvaddrM;
     wire        is_in_delayslot_iM;
     wire        cp0_to_regM;
     wire        cp0_writeM;
@@ -344,33 +342,54 @@ module datapath(
     assign pcErrorM = (pcM[1:0] != 2'b00);  
     //在aluoutM, cp0_outM 中选择写入寄存器的数据 Todo
     mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM, is_mfcM, resultM);
-     //异常处理
-    exception exception(
-        .rst(rst),
-        //异常信号
+
+    cp0_exception cp0_exception(
+        .clk(clk), .rst(rst),
+        .stallM2(stallM2), .we_i(cp0_writeM),
+        .waddr_i(instrM[15:11]), .raddr_i(instrM[15:11]),
+        .sel_addr(instrM[2:0]), .data_i(src_b1M), .int_i(ext_int),
+        .current_inst_addr_i(pcM),
+        .is_in_delayslot_i(is_in_delayslot_iM),
         .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .trap(trapM), 
         .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
-        .interupt(interuptM), 
-        //异常寄存器
-        .cp0_status(cp0_statusM), .cp0_cause(cp0_causeM), .cp0_epc(cp0_epcM),
-        .cp0_ebase(cp0_ebaseM),
-        //记录出错地址
-        .pcM(pcM),.aluoutM(aluoutM),
-        //输出异常处理信号
-        .except_type(except_typeM),.flush_exception(flush_exceptionM),.pc_exception(pc_exceptionM),
-        .pc_trap(pc_trapM),.badvaddrM(badvaddrM)
+        .aluoutM(aluoutM),
+        .cause_o(cp0_causeM),
+        .data_o(cp0_outM),
+        // .timer_int_o,
+        .count_o(cp0_countM),
+        .random_o(cp0_randomM),
+        .flush_exception(flush_exceptionM),
+        .pc_exception(pc_exceptionM),
+        .pc_trap(pc_trapM), .interupt(interuptM)
     );
-     // cp0 todo 
-    cp0_reg cp0(
-        .clk(clk) , .rst(rst),
-        .stallM2(stallM2), .we_i(cp0_writeM) ,
-        .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
-        .data_i(src_b1M) , .int_i(ext_int), .sel_addr(instrM[2:0]),
-        .excepttype_i(except_typeM) , .current_inst_addr_i(pcM), .ebase_reg(cp0_ebaseM),
-        .is_in_delayslot_i(is_in_delayslot_iM) , .bad_addr_i(badvaddrM),
-        .status_o(cp0_statusM) , .cause_o(cp0_causeM) , .count_o(cp0_countM),
-        .epc_o(cp0_epcM), .random_o(cp0_randomM), .data_o(cp0_outM)
-    );
+    
+    //  //异常处理
+    // exception exception(
+    //     .rst(rst),
+    //     //异常信号
+    //     .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .trap(trapM), 
+    //     .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
+    //     .interupt(interuptM), 
+    //     //异常寄存器
+    //     .cp0_status(cp0_statusM), .cp0_cause(cp0_causeM), .cp0_epc(cp0_epcM),
+    //     .cp0_ebase(cp0_ebaseM),
+    //     //记录出错地址
+    //     .pcM(pcM),.aluoutM(aluoutM),
+    //     //输出异常处理信号
+    //     .except_type(except_typeM),.flush_exception(flush_exceptionM),.pc_exception(pc_exceptionM),
+    //     .pc_trap(pc_trapM),.badvaddrM(badvaddrM)
+    // );
+    //  // cp0 todo 
+    // cp0_reg cp0(
+    //     .clk(clk) , .rst(rst),
+    //     .stallM2(stallM2), .we_i(cp0_writeM) ,
+    //     .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
+    //     .data_i(src_b1M) , .int_i(ext_int), .sel_addr(instrM[2:0]),
+    //     .excepttype_i(except_typeM) , .current_inst_addr_i(pcM), .ebase_reg(cp0_ebaseM),
+    //     .is_in_delayslot_i(is_in_delayslot_iM) , .bad_addr_i(badvaddrM),
+    //     .status_o(cp0_statusM) , .cause_o(cp0_causeM) , .count_o(cp0_countM),
+    //     .epc_o(cp0_epcM), .random_o(cp0_randomM), .data_o(cp0_outM)
+    // );
 	//-------------------------------------Memory2-------------------------------------------------
     wire is_mfcM2, interuptM2, mem_writeM2; // for debug
     // todo M2 flop
