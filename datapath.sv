@@ -375,14 +375,14 @@ module datapath(
     //----------------------MemoryFlop------------------------
     wire [31:0] data_srcM;
     assign mem_enM = (dec_sign1M.mem_read | dec_sign2M.mem_read | dec_sign1M.mem_write | dec_sign2M.mem_write) & ~fulsh_ex; //意外刷新时需要
-    wire mem_sel = dec_sign1M.mem_read | dec_sign1M.mem_write;
+    wire mem_selM = dec_sign1M.mem_read | dec_sign1M.mem_write;
     // Assign Logical
     wire Blank_SL = (virtual_data_addrM[31:2] == virtual_data_addrM2[31:2])
             & (dec_sign1M.mem_read | dec_sign2M.mem_read) &  (dec_sign1M2.mem_write | dec_sign2M2.mem_write);
     mem_control mem_control(
-        .instr1M(instr1M), .instr1M2(instr1M2), .address1M(aluout1M), .address1M2(aluout1M2),
-        .instr2M(instr2M), .instr2M2(instr2M2), .address2M(aluout2M), .address2M2(aluout2M2),
-        .mem_sel(mem_sel), .Blank_SL(Blank_SL),
+        .instr1M(instr1M), .address1M(aluout1M), 
+        .instr2M(instr2M), .address2M(aluout2M), 
+        .mem_selM(mem_selM), .Blank_SL(Blank_SL), .stallM2(stall_masterM2), .flushM2(flush_masterM2),
         
         .data_wdata1M(src1_b1M),.data_wdata2M(src2_b1M),    //原始的wdata
         .rt_valueM2(data_srcM2),
