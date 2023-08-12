@@ -362,34 +362,7 @@ module datapath(
         .pc_exception(pc_exceptionM),
         .pc_trap(pc_trapM), .interupt(interuptM)
     );
-    
-    //  //异常处理
-    // exception exception(
-    //     .rst(rst),
-    //     //异常信号
-    //     .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .trap(trapM), 
-    //     .addrErrorSw(addrErrorSwM), .addrErrorLw(addrErrorLwM), .pcError(pcErrorM), .eretM(eretM),
-    //     .interupt(interuptM), 
-    //     //异常寄存器
-    //     .cp0_status(cp0_statusM), .cp0_cause(cp0_causeM), .cp0_epc(cp0_epcM),
-    //     .cp0_ebase(cp0_ebaseM),
-    //     //记录出错地址
-    //     .pcM(pcM),.aluoutM(aluoutM),
-    //     //输出异常处理信号
-    //     .except_type(except_typeM),.flush_exception(flush_exceptionM),.pc_exception(pc_exceptionM),
-    //     .pc_trap(pc_trapM),.badvaddrM(badvaddrM)
-    // );
-    //  // cp0 todo 
-    // cp0_reg cp0(
-    //     .clk(clk) , .rst(rst),
-    //     .stallM2(stallM2), .we_i(cp0_writeM) ,
-    //     .waddr_i(instrM[15:11]) , .raddr_i(instrM[15:11]),
-    //     .data_i(src_b1M) , .int_i(ext_int), .sel_addr(instrM[2:0]),
-    //     .excepttype_i(except_typeM) , .current_inst_addr_i(pcM), .ebase_reg(cp0_ebaseM),
-    //     .is_in_delayslot_i(is_in_delayslot_iM) , .bad_addr_i(badvaddrM),
-    //     .status_o(cp0_statusM) , .cause_o(cp0_causeM) , .count_o(cp0_countM),
-    //     .epc_o(cp0_epcM), .random_o(cp0_randomM), .data_o(cp0_outM)
-    // );
+
 	//-------------------------------------Memory2-------------------------------------------------
     wire is_mfcM2, interuptM2, mem_writeM2; // for debug
     // todo M2 flop
