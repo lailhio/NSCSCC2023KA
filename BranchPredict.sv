@@ -3,30 +3,24 @@
 module BranchPredict(
     input wire clk, rst,
     
-    input wire flush_masterD,
-    input wire stall_masterD,
-    input wire flush_slaveD,
-    input wire stall_slaveD,
-
+    input wire fifo_read_en2D,
     input wire [31:0] instr1D, instr2D, 
 
-    input wire [31:0] PcF2, PcPlus4F2, 
-    input wire [31:0] pcE, PcPlus4E, 
+    input wire [31:0] Pc1D, Pc2D, 
+    input wire [31:0] Pc1E, Pc2E, 
     input wire branch1E, branch2E, 
     input wire actual_take1E, actual_take2E,
 
     output wire branch1D, branch2D, 
     output wire pred_take1D, pred_take2D
 );
-    wire pred_take1F2, pred_take2F2;
-    reg pred_take1D_r, pred_take2D_r;
 
     assign branch1D = ( (~|(instr1D[31:26] ^ `REGIMM_INST)) & (~|(instr1D[19:17] ^ 3'b000) | (~|(instr1D[19:17] ^ 3'b001))) ) 
                     | (~|(instr1D[31:26][5:2] ^ 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
                                                     // 3'b000 -> BLTZ BLTZAL BGEZAL BGEZ
                                                     // 3'b001 -> BGEZALL BGEZL BLTZALL BLTZL
-    assign branch2D = ( (~|(instr2D[31:26] ^ `REGIMM_INST)) & (~|(instr2D[19:17] ^ 3'b000) | (~|(instr2D[19:17] ^ 3'b001))) ) 
-                    | (~|(instr2D[31:26][5:2] ^ 4'b0001)); 
+    assign branch2D = (( (~|(instr2D[31:26] ^ `REGIMM_INST)) & (~|(instr2D[19:17] ^ 3'b000) | (~|(instr2D[19:17] ^ 3'b001))) ) 
+                    | (~|(instr2D[31:26][5:2] ^ 4'b0001))) & fifo_read_en2D; 
 
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
@@ -39,34 +33,34 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] BHT1_index;
     wire [(PHT_DEPTH-1):0] BHR1_value;
 
-    assign BHT1_index = PcF2[11:2];     
+    assign BHT1_index = Pc1D[11:2];     
     assign BHR1_value = BHT[BHT1_index];  
     assign PHT1_index = BHR1_value;
 
-    assign pred_take1F2 = PHT[PHT1_index][1];
+    wire pred_take1D_r = PHT[PHT1_index][1];
 
     wire [(PHT_DEPTH-1):0] PHT2_index;
     wire [(BHT_DEPTH-1):0] BHT2_index;
     wire [(PHT_DEPTH-1):0] BHR2_value;
 
-    assign BHT2_index = PcPlus4F2[11:2];     
+    assign BHT2_index = Pc2D[11:2];     
     assign BHR2_value = BHT[BHT2_index];  
     assign PHT2_index = BHR2_value;
 
-    assign pred_take2F2 = PHT[PHT2_index][1];
+    wire pred_take2D_r = PHT[PHT2_index][1];
 
 // ---------------------------------------BHT初始化以及更新---------------------------------------
     wire [(PHT_DEPTH-1):0] update_PHT1_index;
     wire [(BHT_DEPTH-1):0] update_BHT1_index;
     wire [(PHT_DEPTH-1):0] update_BHR1_value;
-    assign update_BHT1_index = pcE[11:2];     
+    assign update_BHT1_index = Pc1E[11:2];     
     assign update_BHR1_value = BHT[update_BHT1_index];  
     assign update_PHT1_index = update_BHR1_value;
 
     wire [(PHT_DEPTH-1):0] update_PHT2_index;
     wire [(BHT_DEPTH-1):0] update_BHT2_index;
     wire [(PHT_DEPTH-1):0] update_BHR2_value;
-    assign update_BHT2_index = PcPlus4E[11:2];     
+    assign update_BHT2_index = Pc2E[11:2];     
     assign update_BHR2_value = BHT[update_BHT2_index];  
     assign update_PHT2_index = update_BHR2_value;
 
@@ -104,24 +98,6 @@ module BranchPredict(
         end
     end
 // ---------------------------------------PHT初始化以及更新---------------------------------------
-
-// --------------------------pipeline------------------------------
-    always @(posedge clk) begin
-        if(rst | flush_masterD) begin
-            pred_take1D_r <= 0;
-        end
-        else if(~stall_masterD) begin
-            pred_take1D_r <= pred_take1F2;
-        end
-    end
-    always @(posedge clk) begin
-        if(rst | flush_slaveD) begin
-            pred_take2D_r <= 0;
-        end
-        else if(~stall_slaveD) begin
-            pred_take2D_r <= pred_take2F2;
-        end
-    end
 // --------------------------pipeline------------------------------
 
     assign pred_take1D = branch1D & pred_take1D_r;    // 为branch指令且预测跳转

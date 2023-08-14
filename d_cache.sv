@@ -172,7 +172,7 @@ module d_cache#(
     
     assign d_stall = (~hit  & ~cpu_data_ok & data_en) | store_buffer_full ;
     //  & ~(i_stall & isIDLE)
-    wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
+    wire cache_en1 = ~(d_stall | alu_stallE);
     wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;

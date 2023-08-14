@@ -6,7 +6,7 @@ module exception(
    input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretM,
    input trap,
    input [31:0] cp0_status, cp0_cause, cp0_epc,
-   input [31:0] pcM,
+   input [31:0] Pc1M,
    input [31:0] aluoutM,
 
    output [31:0] except_type,
@@ -43,6 +43,6 @@ module exception(
                                                             32'hbfc0_0380; //异常处理地址
    assign pc_trap =        |(except_type ^ 32'h00000000); //表示发生异常，需要处理pc
    assign flush_exception =   |(except_type ^ 32'h00000000); //无异常时，为0
-   assign badvaddrM =      ({{32{pcError}} & pcM} |{{32{~pcError}} & aluoutM}) ; //出错时的pc 
+   assign badvaddrM =      ({{32{pcError}} & Pc1M} |{{32{~pcError}} & aluoutM}) ; //出错时的pc 
 
 endmodule

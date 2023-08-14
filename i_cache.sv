@@ -12,6 +12,8 @@ module i_cache #(
     //mips core output
     output [31:0] cpu_inst1_rdata   ,
     output [31:0] cpu_inst2_rdata   ,
+    output        inst1_ok,
+    output        inst2_ok,
     //I CACHE
     output reg [31:0] i_araddr,
     output reg [7:0] i_arlen,
@@ -104,8 +106,11 @@ module i_cache #(
     wire [31:0] cache_inst1_rdata;
     wire [31:0] cache_inst2_rdata;
 
-    assign cache_inst1_rdata = lineLoc_IF2[2] ? 32'b0: c_block_IF2[c_way[1]][31:0];
-    assign cache_inst2_rdata = c_block_IF2[c_way[1]][63:32];
+    assign cache_inst1_rdata = lineLoc_IF2[2] ? c_block_IF2[c_way[1]][63:32]: c_block_IF2[c_way[1]][31:0];
+    assign cache_inst2_rdata = lineLoc_IF2[2] ? 32'b0                       : c_block_IF2[c_way[1]][63:32];
+
+    assign inst1_ok = (cpu_instr_ok | hit);
+    assign inst2_ok = ~lineLoc_IF2[2] & (cpu_instr_ok | hit);
     
     assign cpu_inst1_rdata   = cpu_instr_ok ? axi_inst1_rdata : cache_inst1_rdata;
     assign cpu_inst2_rdata   = cpu_instr_ok ? axi_inst2_rdata : cache_inst2_rdata;
@@ -220,8 +225,8 @@ module i_cache #(
                     end
                     else if (i_rvalid & i_rready) begin
                         i_rready <= 1'b0;
-                        axi_inst1_rdata <= lineLoc_IF3[2] ? 32'b0 : i_rdata;
-                        axi_inst2_rdata <= lineLoc_IF3[2] ? i_rdata : 32'b0;
+                        axi_inst1_rdata <= i_rdata;
+                        axi_inst2_rdata <= 32'b0;
                     end
                     else if (~i_rvalid & ~i_rready)begin
                         cpu_instr_ok <=1;
@@ -249,11 +254,11 @@ module i_cache #(
                                 wena_data_bank_way[tway_IF3] <= 0;
                                 wena_tag_ram_way[tway_IF3] <= 0;
                             end
-                            if(axi_cnt[LEN_LINE-1:3] == lineLoc_IF3[LEN_LINE-1:3] & ~inst2_Ren)  begin
-                                inst2_Ren <= 1;
-                                axi_inst1_rdata <= lineLoc_IF3[2] ? 32'b0 : i_rdata;
+                            if(axi_cnt[LEN_LINE-1:2] == lineLoc_IF3[LEN_LINE-1:2])  begin
+                                if(~lineLoc_IF3[2]) inst2_Ren <= 1;
+                                axi_inst1_rdata <= i_rdata;
                             end
-                            if(inst2_Ren)begin
+                            else if(inst2_Ren)begin
                                 inst2_Ren <= 0;
                                 axi_inst2_rdata <= i_rdata;
                             end

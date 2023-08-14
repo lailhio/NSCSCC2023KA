@@ -780,6 +780,7 @@
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
 `define LOG2_TLB_LINE_NUM 5
+
 typedef struct packed{
     logic sign_ex;          //立即数是否为符号扩展
     logic [1:0] regdst;     	//写寄存器选择  00-> rd, 01-> rt, 10-> ?$ra
@@ -821,10 +822,11 @@ typedef struct packed {
 } tlb_entry;
 
 typedef struct packed {
-    logic       refill;
-    logic       invalid;
-    logic [31:0]addr;
-    logic [31:0]data;
+    // logic       refill;
+    // logic       invalid;
+    logic inst_en;
+    logic [31:0] pc_save;
+    logic [31:0] instr;
 } fifo_entry;
 
 typedef struct packed {

@@ -1,19 +1,21 @@
 `include "defines2.vh"
 
 module mem_control(
+    input wire        clk, rst, 
     input wire [31:0] instr1M, instr2M,
     input wire [31:0] address1M, address2M,  //save and load 
     input wire mem_selM, Blank_SL, stallM2, flushM2,
 
     input wire [31:0] data_wdata1M, data_wdata2M, //要写的数据
     input wire [31:0] rt_valueM2,  //rt寄存器的值
-    output reg [31:0] writedataM, writedataW//真正写数据
+    output reg [31:0] writedataM, writedataW,//真正写数据
     output reg [3:0] mem_write_selectM, mem_write_selectW, //选择写哪一位
 
     input wire [31:0] mem_rdataM2, //内存读出
     output reg [31:0] data_rdataM2,  // 实际读出
     output wire [31:0] data_srcM,
     output wire [31:0] data_addrM,
+    output wire [1:0]   data_size,
     output reg addr_error_sw1, addr_error_lw1, addr_error_sw2, addr_error_lw2
 );
     
@@ -21,13 +23,14 @@ module mem_control(
     wire mem_selM2;
     wire [5:0] op_codeM;
     wire [5:0] op_codeM2;
+    wire [31:0] addressM;
     wire [31:0] addressM2;
 
     wire addr_W0M, addr_B2M, addr_B1M, addr_B3M;
     wire addr_W0M2, addr_B2M2, addr_B1M2, addr_B3M2;
 
     flopstrc #(7) flopMemSignM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
-            .in(op_codeM, mem_selM),.out(op_codeM2, mem_selM2));
+            .in({op_codeM, mem_selM}),.out({op_codeM2, mem_selM2}));
     flopstrc #(32) flopAddressM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(addressM),.out(addressM2));
 
     assign op_codeM = mem_selM ? instr1M[31:26] : instr2M[31:26];
@@ -55,30 +58,30 @@ module mem_control(
             `SW: begin
                 data_size = 2'd2;
                 mem_write_selectM = {4{addr_W0M}} & 4'b1111;
-                writedataM = data_wdataM;
+                writedataM = data_srcM;
                 addr_error_sw1 = mem_selM  & ~addr_W0M;
                 addr_error_sw2 = ~mem_selM  & ~addr_W0M;
             end
             `SWL: begin
                 data_size = 2'd2;
                 mem_write_selectM = ~((4'b1110) << addressM[1:0]); // ~ 按位取反
-                writedataM = {32{addr_B3M}} & (data_wdataM      ) |
-                            {32{addr_B2M}} & (data_wdataM >> 8 ) |
-                            {32{addr_B1M}} & (data_wdataM >> 16) |
-                            {32{addr_W0M}} & (data_wdataM >> 24) ;
+                writedataM = {32{addr_B3M}} & (data_srcM      ) |
+                            {32{addr_B2M}} & (data_srcM >> 8 ) |
+                            {32{addr_B1M}} & (data_srcM >> 16) |
+                            {32{addr_W0M}} & (data_srcM >> 24) ;
             end
             `SWR: begin
                 data_size = 2'd2;
                 mem_write_selectM = (4'b1111) << addressM[1:0]; // ~ 按位取反
-                writedataM = {32{addr_B3M}} & (data_wdataM << 24) |
-                            {32{addr_B2M}} & (data_wdataM << 16) |
-                            {32{addr_B1M}} & (data_wdataM << 8 ) |
-                            {32{addr_W0M}} & (data_wdataM      ) ;
+                writedataM = {32{addr_B3M}} & (data_srcM << 24) |
+                            {32{addr_B2M}} & (data_srcM << 16) |
+                            {32{addr_B1M}} & (data_srcM << 8 ) |
+                            {32{addr_W0M}} & (data_srcM      ) ;
             end
             `SC: begin
                 data_size = 2'd2;
                 mem_write_selectM = {4{addr_W0M}} & 4'b1111;
-                writedataM = data_wdataM;
+                writedataM = data_srcM;
                 addr_error_sw1 = mem_selM  & ~addr_W0M;
                 addr_error_sw2 = ~mem_selM  & ~addr_W0M;
             end
@@ -86,7 +89,7 @@ module mem_control(
                 data_size = 2'd1;
                 mem_write_selectM = {4{addr_B2M}} & 4'b1100 |
                                     {4{addr_W0M}} & 4'b0011 ;
-                writedataM = {data_wdataM[15:0],data_wdataM[15:0]};
+                writedataM = {data_srcM[15:0],data_srcM[15:0]};
                 addr_error_sw1 = mem_selM  & ~(addr_W0M | addr_B2M);
                 addr_error_sw2 = ~mem_selM  & ~(addr_W0M | addr_B2M);
             end
@@ -96,7 +99,7 @@ module mem_control(
                                 {4{addr_B2M}} & 4'b0100 |
                                 {4{addr_B1M}} & 4'b0010 |
                                 {4{addr_W0M}} & 4'b0001 ;
-                writedataM = {data_wdataM[7:0],data_wdataM[7:0],data_wdataM[7:0],data_wdataM[7:0]};
+                writedataM = {data_srcM[7:0],data_srcM[7:0],data_srcM[7:0],data_srcM[7:0]};
             end
             `LW: begin
                 mem_write_selectM = 4'b0000;
