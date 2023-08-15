@@ -252,51 +252,45 @@ module cp0_exception(
 	end
 
 	always @(*) begin
-		if(rst == `RstEnable) begin
-			/* code */
-			data_o = `ZeroWord;
-		end else begin 
-			case (raddr_i)
-				`CP0_REG_COUNT:begin 
-					data_o = count_o;
-				end
-				`CP0_REG_COMPARE:begin 
-					data_o = compare_o;
-				end
-				`CP0_REG_STATUS:begin 
-					data_o = status_o;
-				end
-				`CP0_REG_CAUSE:begin 
-					data_o = cause_o;
-				end
-				`CP0_REG_RANDOM:begin
-					data_o = random_reg;
-				end
-				`CP0_REG_EPC:begin 
-					data_o = epc_o;
-				end
-				`CP0_REG_PRID: begin 
-					data_o = prid_o;
-				end
-				`CP0_REG_CONFIG:begin 
-					data_o = config_o;
-				end
-				`CP0_REG_BADVADDR:begin 
-					data_o = badvaddr;
-				end
-				`CP0_REG_PRID: begin
-					case (sel_addr)
-						0:  data_o	=	prid_o;
-						1:	data_o 	= 	ebase_reg;
-						default:
-							data_o = 0;
-            		endcase 
-				end
-				default : begin 
-					data_o = `ZeroWord;
-				end
-			endcase
-		end
-	
-	end
+		case (raddr_i)
+			`CP0_REG_COUNT:begin 
+				data_o = count_o;
+			end
+			`CP0_REG_COMPARE:begin 
+				data_o = compare_o;
+			end
+			`CP0_REG_STATUS:begin 
+				data_o = status_o;
+			end
+			`CP0_REG_CAUSE:begin 
+				data_o = cause_o;
+			end
+			`CP0_REG_RANDOM:begin
+				data_o = random_reg;
+			end
+			`CP0_REG_EPC:begin 
+				data_o = epc_o;
+			end
+			`CP0_REG_PRID: begin 
+				data_o = prid_o;
+			end
+			`CP0_REG_CONFIG:begin 
+				data_o = config_o;
+			end
+			`CP0_REG_BADVADDR:begin 
+				data_o = badvaddr;
+			end
+			`CP0_REG_PRID: begin
+				case (sel_addr)
+					0:  data_o	=	prid_o;
+					1:	data_o 	= 	ebase_reg;
+					default:
+						data_o = 0;
+				endcase 
+			end
+			default : begin 
+				data_o = `ZeroWord;
+			end
+		endcase
+end
 endmodule

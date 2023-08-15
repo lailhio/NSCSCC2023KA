@@ -93,6 +93,7 @@ module aludec(
 			`TLTI_OP:	alucontrol = `TLTI_CONTROL;
 			`TLTIU_OP:	alucontrol = `TLTIU_CONTROL;
 			`TNEI_OP:	alucontrol = `TNEI_CONTROL;
+			`MFC0_OP: 	alucontrol = `MFC0_CONTROL;
 
 			default:
 						alucontrol = 8'b0;

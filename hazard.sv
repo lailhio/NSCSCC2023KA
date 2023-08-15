@@ -27,38 +27,36 @@ module hazard(
     output wire flushF, flushF2, flushD, flushE, flushM, flushW,
     output wire longest_stall, stallDblank, icache_Ctl, dcache_ctl,
 
-    output wire [2:0] forward_1D, forward_2D //000-> NONE, 001-> WRITE, 010-> M2, 011 -> M , 100 -> E
+    output wire [1:0] forward_1D, forward_2D //000-> NONE, 001-> WRITE, 010-> M2, 011 -> M , 100 -> E
 );
     
     wire id_cache_stall;
     //  1、 if Ex、Mem or Wb is same
     //  2、 And if ExInst is lw or Mfhilo
     //  ps : lw des rt, mfc0 des rt, mfhilo des rd
-    assign forward_1D = ((rsD != 0)) & regwriteE & ((rsD == writeregE)) ? 3'b100 :
-                        ((rsD != 0)) & regwriteM & ((rsD == writeregM)) ? 3'b011 :
-                        // ((rsD != 0)) & regwriteM2 & ((rsD == writeregM2)) ? 3'b010 :
-                        ((rsD != 0)) & regwriteW & ((rsD == writeregW)) ? 3'b001 :
-                        3'b000;
-    assign forward_2D = ((rtD != 0)) & regwriteE & ((rtD == writeregE)) ? 3'b100 :
-                        ((rtD != 0)) & regwriteM & ((rtD == writeregM)) ? 3'b011 :
-                        // ((rtD != 0)) & regwriteM2 & ((rtD == writeregM2)) ? 3'b010 :
-                        ((rtD != 0)) & regwriteW & ((rtD == writeregW)) ? 3'b001 :
-                        3'b000;
+    assign forward_1D = ((rsD != 0)) & regwriteE & ((rsD == writeregE)) ? 2'b11 :
+                        ((rsD != 0)) & regwriteM & ((rsD == writeregM)) ? 2'b10 :
+                        ((rsD != 0)) & regwriteW & ((rsD == writeregW)) ? 2'b01 :
+                        2'b00;
+    assign forward_2D = ((rtD != 0)) & regwriteE & ((rtD == writeregE)) ? 2'b11 :
+                        ((rtD != 0)) & regwriteM & ((rtD == writeregM)) ? 2'b10 :
+                        ((rtD != 0)) & regwriteW & ((rtD == writeregW)) ? 2'b01 :
+                        2'b00;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
     wire branch_ok =  pred_takeD ;
     
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 
-    assign stallDblank= (((((forward_2D == 3'b100)) | ((forward_1D == 3'b100))) & (mem_readE)));
+    assign stallDblank= ((((forward_2D == 2'b11)) | ((forward_1D == 2'b11))) & (mem_readE));
     assign stallF = ~flush_exceptionE & (id_cache_stall | alu_stallE | stallDblank | Blank_SL);
     assign icache_Ctl = d_cache_stall | alu_stallE| stallDblank | Blank_SL;
-    assign dcache_ctl = ~flush_exceptionE & (i_cache_stall | alu_stallE);
+    assign dcache_ctl = (i_cache_stall | alu_stallE);
     assign stallF2 =  id_cache_stall | alu_stallE| stallDblank | Blank_SL;
     assign stallD =  id_cache_stall| alu_stallE | stallDblank | Blank_SL;
     assign stallE =  id_cache_stall| alu_stallE | Blank_SL;
     // assign stallM =  id_cache_stall| alu_stallE | Blank_SL;
-    assign stallM = id_cache_stall| alu_stallE;
+    assign stallM = (id_cache_stall| alu_stallE);
     assign stallW =  ~flush_exceptionE &(id_cache_stall | alu_stallE);
 
     assign flushF = 1'b0;

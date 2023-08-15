@@ -70,8 +70,8 @@ module datapath(
 	wire        mfhiD;
 	wire        mfloD;
     wire        is_in_delayslot_iD;//指令是否在延迟槽
-    wire [2:0]  forward_1D;
-    wire [2:0]  forward_2D;
+    wire [1:0]  forward_1D;
+    wire [1:0]  forward_2D;
 	//-------execute stage----------
 	wire [31:0] pcE, PcPlus4E, PcPlus8E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
@@ -115,7 +115,6 @@ module datapath(
     wire        mem_writeE; //写内存
     wire        regwriteM;  //寄存器写
     wire        memtoregM;  //写回寄存器选择信号
-    wire [31:0] resultE;  // mem out
     wire        pre_right;  // 预测正确
     wire        branchM; // 分支信号
     wire [31:0] pc_branchE; //分支跳转地址
@@ -231,12 +230,12 @@ module datapath(
     // 立即数左移2 + pc+4得到分支跳转地址   
     assign pc_branchD = {immD[29:0], 2'b00} + PcPlus4D;
     //前推至ID阶段
-    mux5 #(32) mux5_forward_1D(rd1D, resultW, 32'b0, resultM, aluoutE, forward_1D, src_a1D);
-    mux5 #(32) mux5_forward_2D(rd2D, resultW, 32'b0, resultM, aluoutE, forward_2D, src_b1D);
+    mux4 #(32) mux4_forward_1D(rd1D, resultW, resultM, aluoutE, forward_1D, src_a1D);
+    mux4 #(32) mux4_forward_2D(rd2D, resultW, resultM, aluoutE, forward_2D, src_b1D);
     //choose jump
-    mux8 #(32) mux8_jump(rd1D, resultW, 32'b0, resultM, aluoutE, 32'b0, 32'b0, PcPlus8D, forward_1D | {3{jumpD | branchD}}, src_aD);
+    mux5 #(32) mux8_jump(rd1D, resultW, resultM, aluoutE, PcPlus8D, {jumpD | branchD, forward_1D}, src_aD);
     //choose imm
-    mux8 #(32) mux8_imm(rd2D, resultW, 32'b0, resultM, aluoutE, 32'b0, 32'b0, immD, forward_2D | {3{is_immD}}, src_bD);
+    mux5 #(32) mux8_imm(rd2D, resultW, resultM, aluoutE, immD, {is_immD ,forward_2D}, src_bD);
 	// BranchPredict
     BranchPredict branch_predict(
         .clk(clk), .rst(rst),
@@ -288,7 +287,7 @@ module datapath(
     alu aluitem(
         //input
         .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
-        .src_aE(src_aE), .src_bE(src_bE),
+        .src_aE(src_aE), .src_bE(src_bE), .cp0_outE(cp0_outE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
         .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionE(flush_exceptionE), .DivMulEnE(DivMulEnE), 
         //output
@@ -308,21 +307,6 @@ module datapath(
     assign flush_pred_failedE = pred_takeE ^ actual_takeE;
     
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
-	//-------------------------------------Memory----------------------------------------
-	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
-	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
-	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
-	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
-    flopstrc #(4) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,branchE,mem_writeE,memtoregE}),
-        .out({regwriteM,branchM,mem_writeM,memtoregM}));
-    flopstrc #(2) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({cp0_to_regE,is_mfcE}),
-        .out({cp0_to_regM,is_mfcM}));
-    flopstrc #(5) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({writeregE}),.out({writeregM}));
-    flopstrc #(32) flopResM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(resultE),.out(resultori_M));
-    //----------------------MemoryFlop------------------------
     assign mem_enE = (mem_readE  |  mem_writeE) & ~flush_exceptionE;; //意外刷新时需要
     // Assign Logical
     mem_control mem_control(
@@ -341,9 +325,7 @@ module datapath(
 
     
     //后两位不为0
-    assign pcErrorE = (pcE[1:0] != 2'b00);  
-    //在aluoutM, cp0_outM 中选择写入寄存器的数据 Todo
-    mux2 #(32) mux2_memtoregM(aluoutE, cp0_outE, is_mfcE, resultE);
+    assign pcErrorE = (pcE[1:0] != 2'b00); 
 
     cp0_exception cp0_exception(
         .clk(clk), .rst(rst),
@@ -365,22 +347,23 @@ module datapath(
         .pc_trap(pc_trapE), .interupt(interuptE)
     );
 
-	//-------------------------------------Memory2-------------------------------------------------
-    // wire is_mfcM2, interuptM2, mem_writeM2; // for debug
-    // todo M2 flop
-	// flopstrc #(10) flopWriregM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),
-    //         .in({writeregM, regwriteM ,memtoregM, mem_writeM, is_mfcM, interuptM}),
-    //         .out({writeregM2, regwriteM2, memtoregM2, mem_writeM2, is_mfcM2, interuptM2}));
-	// // flopstrc #(32) flopAluoutM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(aluoutM),.out(aluoutM2));
-	// flopstrc #(32) flopRamdomM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_randomM),.out(cp0_randomM2));
-	// flopstrc #(32) flopCountM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_countM),.out(cp0_countM2));
-	// flopstrc #(32) flopCauseM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_causeM),.out(cp0_causeM2));
-	// flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
-	// flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(1'b0),.in(pcM),.out(pcM2));  //Not Flush Pc
-	// flopstrc #(32) flopInstrM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(instrM),.out(instrM2));
-    // flopstrc #(32) flopRtvalueM2(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1M),.out(src_b1M2));
+	//-------------------------------------Memory----------------------------------------
+	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
+	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
+	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
+	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
+    flopstrc #(4) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({regwriteE,branchE,mem_writeE,memtoregE}),
+        .out({regwriteM,branchM,mem_writeM,memtoregM}));
+    flopstrc #(2) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({cp0_to_regE,is_mfcE}),
+        .out({cp0_to_regM,is_mfcM}));
+    flopstrc #(5) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({writeregE}),.out({writeregM}));
+    //----------------------MemoryFlop------------------------
+
 	//------------------Memory2_Flop--------------------------
-    mux2 #(32) mux2_memtoreg(resultori_M,result_rdataM, memtoregM,resultM);
+    mux2 #(32) mux2_memtoreg(aluoutM, result_rdataM, memtoregM, resultM);
 	//-------------------------------------Write_Back-------------------------------------------------
     wire is_mfcW, interuptW;
     wire [31:0] instrW; // for debug
