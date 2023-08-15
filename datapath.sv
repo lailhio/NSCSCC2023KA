@@ -255,10 +255,6 @@ module datapath(
         .instrD(instrD),
         .PcPlus4D(PcPlus4D),
         .src_a1D(src_a1D),
-        // .regwriteE(regwriteE), .writeregE(writeregE), 
-        // .regwriteM(regwriteM), .writeregM(writeregM),
-        // .regwriteM2(regwriteM2), .writeregM2(writeregM2),
-        // .regwriteW(regwriteW), .writeregW(writeregW),
 
         .jumpD(jumpD),                      //是jump类指令(j, jr)
         .pc_jumpD(pc_jumpD)                 //D阶段最终跳转地址
