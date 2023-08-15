@@ -4,12 +4,12 @@
 module cp0_reg(
 	input wire clk,
 	input wire rst,
-	input wire stall_masterM2,
+	input wire stall_masterW,
 	input wire we1_i, we2_i,
 	input[4:0] waddr1_i, waddr2_i,
 	input[4:0] raddr1_i, raddr2_i,	
 	input[`RegBus] data1_i, data2_i, 
-
+	// todo
 	input wire[5:0] int_i,
 
 	input wire[`RegBus] excepttype1_i, excepttype2_i,
@@ -43,7 +43,7 @@ module cp0_reg(
 			prid_o <= 32'b00000000010011000000000100000010;
 			timer_int_o <= `InterruptNotAssert;
 		end 
-		else  if (~(stall_masterM2 & (we1_i | we2_i)))begin
+		else  if (~(stall_masterW & (we1_i | we2_i)))begin
 			count <= count + 1;
 			cause_o[15:10] <= int_i;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin

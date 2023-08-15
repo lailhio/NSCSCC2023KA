@@ -8,6 +8,8 @@ module alu_top(
     input wire [7:0] alucontrolE2, 
     input wire DivMulEn1, DivMulEn2,
     input wire [31:0] instr1E, instr2E,
+    input wire [31:0] cp0_out1E, cp0_out2E,
+
     
     output wire alustallE,
     output reg overflow1E,
@@ -23,8 +25,10 @@ module alu_top(
     reg flushE;
     reg hilo_writeE;
                                                          // sa         msbd
-    alu alu_1(clk, rst, src1_aE, src1_bE, alucontrolE1, instr1E[10:6], instr1E[15:11], aluout_mul, hilo_outE, aluoutE1, overflow1E, trap1E);
-    alu alu_2(clk, rst, src2_aE, src2_bE, alucontrolE2, instr2E[10:6], instr2E[15:11], aluout_mul, hilo_outE, aluoutE2, overflow2E, trap2E);
+    alu alu_1(clk, rst, src1_aE, src1_bE, alucontrolE1, instr1E[10:6], instr1E[15:11], 
+                        cp0_out1E, aluout_mul, hilo_outE, aluoutE1, overflow1E, trap1E);
+    alu alu_2(clk, rst, src2_aE, src2_bE, alucontrolE2, instr2E[10:6], instr2E[15:11], 
+                        cp0_out2E, aluout_mul, hilo_outE, aluoutE2, overflow2E, trap2E);
     
     
     //支持mthi、mtlo双发

@@ -58,7 +58,7 @@ module mycpu_top(
     output wire debug_commit
 );
     wire rst,clk;
-    wire no_cache;
+    wire no_dcache, no_icache;
     assign clk=aclk;
     assign rst=~aresetn;
     //inst
@@ -68,9 +68,9 @@ module mycpu_top(
 
     //data
     wire        cpu_data_en;                    
-    wire [31:0] virtual_data_addrM;     //写地址
+    wire [31:0] virtual_data_addrE;     //写地址
     wire [3 :0] data_sram_wen;      //写使能
-    wire         d_stall, icache_Ctl, alu_stallE;
+    wire         d_stall, icache_Ctl, dcache_ctl;
     //cpu
     wire [31:0] cpu_inst_addr ;
     wire [31:0] cpu_inst1_rdata;
@@ -129,15 +129,15 @@ module mycpu_top(
 		.ext_int(ext_int),
         //instruction
     	.PC_IF1(virtual_instr_addrF), .inst_enF(cpu_inst_en), 
-        .inst1_F2(cpu_inst1_rdata), .inst2_F2(cpu_inst2_rdata),
+        .instr1_F2(cpu_inst1_rdata), .instr2_F2(cpu_inst2_rdata),
         .i_cache_stall(i_stall),
         //data
-    	.virtual_data_addrM(virtual_data_addrM),.mem_enM(cpu_data_en),
-        .mem_rdataM2(cpu_data_rdata),
-        .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
-        .d_cache_stall(d_stall),
+    	.virtual_data_addrE(virtual_data_addrE),.mem_enE(cpu_data_en),
+        .mem_rdataM(cpu_data_rdata),
+        .mem_write_selectE(data_sram_wen),.writedataE(cpu_data_wdata),
+        .d_cache_stall(d_stall), .data_size(cpu_data_size),
         
-        .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
+        .dcache_ctl(dcache_ctl), .icache_Ctl(icache_Ctl),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc), .debug_wb_rf_wen(debug_wb_rf_wen),
         .debug_wb_rf_wnum(debug_wb_rf_wnum), .debug_wb_rf_wdata(debug_wb_rf_wdata),
@@ -149,16 +149,16 @@ module mycpu_top(
 	);
 
     mmu Mmu_Trans(.inst_vaddr(virtual_instr_addrF), .inst_paddr(cpu_inst_addr),
-                .data_vaddr(virtual_data_addrM), .data_paddr(cpu_data_addr),
+                .data_vaddr(virtual_data_addrE), .data_paddr(cpu_data_addr),
                 .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
-                .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_cache));
+                .data_wr(cpu_data_wr), .no_dcache(no_dcache), .no_icache(no_icache));
     
 
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_cache(no_cache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
-        .data_sram_wen(data_sram_wen),
+        .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall),
+        .data_sram_wen(data_sram_wen), .dcache_ctl(dcache_ctl),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr({cpu_data_addr[31:2], 2'b0}),
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),

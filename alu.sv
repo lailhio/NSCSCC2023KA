@@ -5,6 +5,7 @@ module alu(
     input wire [31:0] src_aE, src_bE,
     input wire [7:0] alucontrolE, 
     input wire [4:0] sa, msbd,
+    input wire [31:0] cp0_outE,
     input wire [63:0] aluout_mul,
     input wire [63:0] hilo_outE,
 
@@ -101,6 +102,8 @@ module alu(
             `TLT_CONTROL, `TLTU_CONTROL : begin
                 aluoutE = 32'b0;
             end
+
+            `MFC0_CONTROL: aluoutE = cp0_outE;
 
             8'b00000: aluoutE = src_aE;  // do nothing
 

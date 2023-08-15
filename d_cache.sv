@@ -3,7 +3,7 @@ module d_cache#(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst ,no_cache, i_stall, alu_stallE,
+    input wire clk, rst ,no_cache, i_stall, dcache_ctl,
     output wire d_stall,
     input [3:0]   data_sram_wen,
     //mips core
@@ -172,7 +172,7 @@ module d_cache#(
     
     assign d_stall = (~hit  & ~cpu_data_ok & data_en) | store_buffer_full ;
     //  & ~(i_stall & isIDLE)
-    wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
+    wire cache_en1 = ~(d_stall | dcache_ctl);
     wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;

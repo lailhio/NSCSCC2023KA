@@ -5,7 +5,8 @@ module maindec(
 		input wire[31:0] instr2D,
 
 		output ctrl_sign dec_sign,
-		output reg only_oneD_inst
+		output reg only_oneD_inst,
+		output reg Mem_conflit
     );
 			
 
@@ -92,6 +93,7 @@ module maindec(
 			default: dec_sign.hilo_write = 1'b0;
 		endcase
 	end
+	
 	always @(*) begin
 		case(opD)
 			`R_TYPE:begin
@@ -100,9 +102,6 @@ module maindec(
 						only_oneD_inst = 1'b1;
 					default: only_oneD_inst = 1'b0;
 				endcase
-			end
-			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR, `LL, `SW, `SB, `SH, `SWL, `SWR:begin
-				only_oneD_inst = 1'b1;
 			end
 			`COP0_INST:begin
 				case (functD)
@@ -115,6 +114,19 @@ module maindec(
 		endcase
 		if(!instr2D)begin
 			only_oneD_inst = 0;
+		end
+	end
+
+	always @(*) begin
+		case(opD)
+			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR, `LL, `SW, `SB, `SH, `SWL, `SWR:begin
+				Mem_conflit = 1'b1;
+			end
+			default: 
+				Mem_conflit = 1'b0;
+		endcase
+		if(!instr2D)begin
+			Mem_conflit = 0;
 		end
 	end
 
