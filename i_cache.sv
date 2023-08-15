@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 module i_cache #(
-    parameter LEN_LINE = 6,  // 32 Bytes
+    parameter LEN_LINE = 5,  // 32 Bytes
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
@@ -8,6 +8,7 @@ module i_cache #(
     output wire i_stall,
     //mips core input
     input  [31:0] cpu_inst_addr    ,
+    input  [19:0] inst_pfn    ,
     input         cpu_inst_en      ,
     //mips core output
     output [31:0] cpu_inst_rdata   ,
@@ -38,6 +39,8 @@ module i_cache #(
     wire [LEN_LINE-1:0] lineLoc;
     wire [LEN_INDEX-1:0] index;
     wire [LEN_TAG-1:0] tag;
+    wire [19:0] p_tag = inst_pfn;
+    
 
     reg [LEN_LINE-1:0] lineLoc_IF2;
     reg [LEN_INDEX-1:0] index_IF2;
@@ -86,11 +89,11 @@ module i_cache #(
     assign inst_en = isIDLE ? cpu_inst_en_IF2 : cpu_inst_en_IF3;
 
     // hit Control
-    assign hit = |c_way & isIDLE & ~no_cache_IF2;  //* cache line
+    assign hit = |c_way & isIDLE & ~no_cache;  //* cache line
     assign miss = ~hit;
 
-    assign c_way[0] = c_valid_IF2[0] & ((c_tag_IF2[0] == tag_IF2));
-    assign c_way[1] = c_valid_IF2[1] & ((c_tag_IF2[1] == tag_IF2));
+    assign c_way[0] = c_valid_IF2[0] & ((c_tag_IF2[0] == p_tag));
+    assign c_way[1] = c_valid_IF2[1] & ((c_tag_IF2[1] == p_tag));
 
     assign i_stall = ~hit  & ~cpu_instr_ok & inst_en;
 
@@ -160,13 +163,13 @@ module i_cache #(
                     cpu_inst_en_IF3 <= cpu_inst_en_IF2;
                     index_IF3 <= index_IF2;
                     lineLoc_IF3 <= lineLoc_IF2;
-                    tag_IF3 <= tag_IF2;
+                    tag_IF3 <= p_tag;
                     // Valid and lru should be floped
                     c_valid_IF3 <= c_valid_IF2;
                     c_lru_IF3 <= c_lru_IF2;
                     c_tag_IF3 <= c_tag_IF2;
-                    if (no_cache_IF2) begin
-                        i_araddr <= {tag_IF2, index_IF2, lineLoc_IF2};
+                    if (no_cache) begin
+                        i_araddr <= {p_tag, index_IF2, lineLoc_IF2};
                         i_arlen  <= 0;
                         i_arsize <= 3'd2;
                         i_arvalid <= 1'b1;
@@ -174,7 +177,7 @@ module i_cache #(
                     end
                     else if (!hit) begin
                         tway_IF3 <= c_lru_IF2[1];
-                        i_araddr <= {tag_IF2, index_IF2,{LEN_LINE{1'b0}}};
+                        i_araddr <= {p_tag, index_IF2,{LEN_LINE{1'b0}}};
                         i_arlen <= NR_WORDS - 1;
                         i_arsize <= 3'd2; //4 bytes
                         i_arvalid <= 1'b1;  //read addr is valid
@@ -248,7 +251,7 @@ module i_cache #(
         end
         else if(cache_en1)begin
             cpu_instr_ok <= 0;
-            no_cache_IF3 <= no_cache_IF2;
+            no_cache_IF3 <= no_cache;
         end
     end
 

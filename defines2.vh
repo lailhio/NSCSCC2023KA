@@ -505,6 +505,11 @@
    
 `define ERET 5'b10000
 
+`define TLBR   6'b000001
+`define TLBWI  6'b000010
+`define TLBWR  6'b000110
+`define TLBP   6'b001000
+
 `define R_TYPE 6'b000000
 `define REGIMM_INST 6'b000001
 // `define SPECIAL3_INST 6'b010000
@@ -512,7 +517,7 @@
 //change the SPECIAL2_INST from 6'b011100 to 6'b010000
 `define MTC0 5'b00100
 `define MFC0 5'b00000
-
+`define RS_CO   5'b10000
 
 `define SPECIAL2_INST 6'b011100
 `define SPECIAL3_INST 6'b011111
@@ -787,11 +792,34 @@
 
 // tlb 
 //TLB Config
-parameter TLB_LINE_NUM = 8;
+`define TLB_LINE_NUM 8
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
 `define LOG2_TLB_LINE_NUM 5
+//index
+`define INDEX_BITS `LOG2_TLB_LINE_NUM-1:0
+//random
+`define RANDOM_BITS `LOG2_TLB_LINE_NUM-1:0
+//wired
+`define WIRED_BITS `LOG2_TLB_LINE_NUM-1:0
 
+//EntryHi
+`define VPN2_BITS 31:13
+`define ASID_BITS 7:0
+//G bit in TLB entry
+`define G_BIT 12
+//PageMask
+`define MASK_BITS 24:13
+//EntryLo
+`define PFN_BITS 25:6
+`define FLAG_BITS 5:0
+`define V_BIT 1
+`define D_BIT 2
+`define C_BITS 5:3
+
+//context
+`define PTE_BASE_BITS 31:23
+`define BAD_VPN2_BITS 22:4
 typedef struct packed {
     logic        G;
     logic        V0;
@@ -821,5 +849,9 @@ typedef struct packed {
     logic       V;
     logic       G;
 } cp0_entrylo;
-
+typedef struct packed {
+    logic [18:0]VPN2;
+    logic [4:0] blank0;
+    logic [7:0] ASID;
+} cp0_entryhi;
 `endif

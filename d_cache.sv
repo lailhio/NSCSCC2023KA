@@ -1,5 +1,5 @@
 module d_cache#(
-    parameter LEN_LINE = 6,  // 32 Bytes
+    parameter LEN_LINE = 5,  // 32 Bytes
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
@@ -11,6 +11,7 @@ module d_cache#(
     input         cpu_data_wr      , // whether is store type
     input  [1 :0] cpu_data_size    , // from the addr ,write size data 
     input  [31:0] cpu_data_addr    ,
+    input  [19:0] data_pfn    ,
     input  [31:0] cpu_data_wdata   ,
     output [31:0] cpu_data_rdata   ,
 
@@ -66,6 +67,7 @@ module d_cache#(
     wire [LEN_LINE-1:0] lineLoc;
     wire [LEN_INDEX-1:0] index;
     wire [LEN_TAG-1:0] tag;
+    wire [19:0] p_tag = data_pfn;
     
     reg [LEN_TAG-1:0] tag_M2;
     reg [LEN_INDEX-1:0] index_M2;
@@ -118,6 +120,7 @@ module d_cache#(
     reg [1:0]                 c_dirty_M3; // 是否修改过
     reg [1:0]                 c_lru_M3   ; //* recently used
     reg [LEN_TAG-1:0]         c_tag_M3  [1:0];
+    reg [DATA_WIDTH-1:0]      c_block_M3[1:0];
     reg                       tway_M3;
 
     //判断是否命中
@@ -232,7 +235,7 @@ module d_cache#(
             //Nocache Process
             if (no_cache & cpu_data_wr) begin
                 store_buffer[ptr_end] <= '{
-                    waddr: cpu_data_addr,
+                    waddr: {p_tag, cpu_data_addr[11:0]},
                     wsize: {1'b0,cpu_data_size},
                     wstrb: data_sram_wen,
                     wdata: cpu_data_wdata
@@ -259,7 +262,7 @@ module d_cache#(
             else begin
                 lineLoc_M2 <= lineLoc;
                 index_M2 <= index;
-                tag_M2 <= tag;
+                tag_M2 <= p_tag;
                 cpu_data_wr_M2 <= cpu_data_wr;
                 cpu_data_en_M2 <= cpu_data_en;
                 no_cache_M2 <= no_cache;
@@ -306,6 +309,7 @@ module d_cache#(
             wdata_buffer <= '{default: '0};
             wena_data_bank_way <= '{default: '0};
             wena_tag_ram_way <= '{default: '0};
+            c_block_M3 <= '{default: '0};
             axi_data_rdata <= 0;
             axi_cnt <= 0;
             cache_buff_cnt <=0;
@@ -370,10 +374,14 @@ module d_cache#(
                         cpu_data_wr_M3 <= cpu_data_wr_M2;
                         cpu_data_wdata_M3 <= cpu_data_wdata_M2;
                         cpu_data_size_M3 <= cpu_data_size_M2;
-                        cpu_data_addr_M3 <= cpu_data_addr_M2;
+                        c_block_M3[1] <= c_block_M2[1];
+                        c_block_M3[0] <= c_block_M2[0];
+                        // cpu_data_addr_M3 <= cpu_data_addr_M2;
+                        cpu_data_addr_M3 <= {tag_M2, cpu_data_addr_M2[11:0]};
                         data_sram_wen_M3 <= data_sram_wen_M2;
                         if (no_cache_M2) begin
-                            d_araddr <= cpu_data_addr_M2;
+                            // d_araddr <= cpu_data_addr_M2;
+                            d_araddr <= {tag_M2, cpu_data_addr_M2[11:0]};
                             d_arlen  <= 0;
                             d_arsize <= {1'b0,cpu_data_size_M2};
                             FristReq <= 0;
@@ -390,11 +398,8 @@ module d_cache#(
                         else begin
                             if (miss & dirty)begin
                                 state <= CACHE_WRITEBACK;
-                                d_awaddr <= {c_tag_M2[c_lru_M2[1]], index_M2,{LEN_LINE{1'b0}}};
-                                d_awlen <= NR_WORDS - 1;
                                 wena_data_bank_way <= '{default: '0};
                                 wena_tag_ram_way <= '{default: '0}; 
-                                d_awsize <= 3'd2;
                                 axi_cnt <= 1;
                             end
                             else if (miss & clean)begin
@@ -437,43 +442,45 @@ module d_cache#(
                                 // write to buffer
                                 d_wdata <= c_block_M2[tway_M3];
                                 d_awvalid <= 1'b1;
+                                d_awsize <= 3'd2;
+                                d_awaddr <= {c_tag_M3[c_lru_M3[1]], index_M3,{LEN_LINE{1'b0}}};
+                                d_awlen <= NR_WORDS - 1;
                             end
-                        end
-                        
-                        if (d_awvalid & d_awready) begin
+                            if (d_awvalid & d_awready) begin
                             // First Time
                             d_awvalid <= 1'b0;
                             d_wvalid <=1'b1;
                             d_wlast <=1'b0;
-                        end
-                        if (d_wvalid & d_wready) begin
-                            // write one word every wready 
-                            if (d_wlast) begin
-                                d_wvalid <= 1'b0;
-                                d_wlast <= 1'b0;
                             end
-                            else begin
-                                d_wdata <=  wdata_buffer[axi_cnt];
-                                axi_cnt <= axi_cnt + 1;
-                                if (axi_cnt  == NR_WORDS - 1) begin
-                                    d_wlast <= 1'b1;
+                            if (d_wvalid & d_wready) begin
+                                // write one word every wready 
+                                if (d_wlast) begin
+                                    d_wvalid <= 1'b0;
+                                    d_wlast <= 1'b0;
+                                end
+                                else begin
+                                    d_wdata <=  wdata_buffer[axi_cnt];
+                                    axi_cnt <= axi_cnt + 1;
+                                    if (axi_cnt  == NR_WORDS - 1) begin
+                                        d_wlast <= 1'b1;
+                                    end
                                 end
                             end
-                        end
-                        if (d_bvalid & d_bready) begin
-                            // write to cache 
-                            d_araddr <= {tag_M3, index_M3,{LEN_LINE{1'b0}}};
-                            d_arlen <= NR_WORDS - 1;
-                            d_arsize <= 3'd2;
-                            d_arvalid <= 1'b1;
-                            d_wlast <= 1'b0;
-                            buff_last <= 0;
-                            axi_cnt <= 0 ;
-                            wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
-                            wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
-                            wena_tag_ram_way[tway_M3] <= 1;
-                            cache_dirty[index_M3][tway_M3] <= 0;
-                            state <= CACHE_REPLACE;
+                            if (d_bvalid & d_bready) begin
+                                // write to cache 
+                                d_araddr <= {tag_M3, index_M3,{LEN_LINE{1'b0}}};
+                                d_arlen <= NR_WORDS - 1;
+                                d_arsize <= 3'd2;
+                                d_arvalid <= 1'b1;
+                                d_wlast <= 1'b0;
+                                buff_last <= 0;
+                                axi_cnt <= 0 ;
+                                wena_data_bank_way[tway_M3] <= 4'hf;// write to instram
+                                wena_data_bank_way[~tway_M3] <= 4'h0;// write to instram
+                                wena_tag_ram_way[tway_M3] <= 1;
+                                cache_dirty[index_M3][tway_M3] <= 0;
+                                state <= CACHE_REPLACE;
+                            end
                         end
                     end
                     CACHE_REPLACE: begin

@@ -13,13 +13,37 @@ module datapath(
     //data
     output wire mem_enM,                    
     output wire [31:0] mem_addrM,     //写地址
+    output wire [31:0] aluoutE,
     input  wire [31:0] mem_rdataM2,    //读数据
     output wire [3 :0] mem_write_selectM,      //写使能
     output wire [31:0] writedataM,    //写数据
     output wire [1:0] cpu_data_size,
     input wire         d_cache_stall,
 
-    output wire        stallM2, alu_stallE, icache_Ctl, 
+    output wire        stallM, alu_stallE, icache_Ctl, 
+     // TLB
+    output wire flushM,stallF2,
+    output wire TLBP,
+    output wire TLBR,
+    output wire TLBWI,
+    output wire TLBWR,
+    input wire [31:0] EntryHi_to_cp0,
+    input wire [31:0] PageMask_to_cp0,
+    input wire [31:0] EntryLo0_to_cp0,
+    input wire [31:0] EntryLo1_to_cp0,
+    input wire [31:0] Index_to_cp0,
+
+    output wire [31:0] EntryHi_from_cp0,
+    output wire [31:0] PageMask_from_cp0,
+    output wire [31:0] EntryLo0_from_cp0,
+    output wire [31:0] EntryLo1_from_cp0,
+    output wire [31:0] Index_from_cp0,
+    output wire [31:0] Random_from_cp0,
+
+        //异常
+    input wire inst_tlb_refillF, inst_tlb_invalidF,
+    input wire data_tlb_refillM, data_tlb_invalidM, data_tlb_modifyM,
+    output wire mem_read_enM, mem_write_enM,
 	//debug interface
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
@@ -79,7 +103,7 @@ module datapath(
 
     wire [31:0] src_a1E, src_b1E; //alu输入（操作数
     wire [31:0] src_aE, src_bE; //alu输入（操作数
-    wire [31:0] aluoutE; //alu输出
+    // wire [31:0] aluoutE; //alu输出
     wire [4 :0] writeregE; //写寄存器号
     wire        branchE; //分支信号
 
@@ -159,9 +183,12 @@ module datapath(
     wire [31:0] aluoutW;
     wire [31:0] pcW;
     wire [31:0] cp0_countW, cp0_causeW, cp0_randomW;
+	wire [3:0] tlb_typeD, tlb_typeE, tlb_typeM;
+
     //------stall sign---------------
-    wire stallF, stallF2, stallD, stallE, stallM, stallW ,stallDblank,  longest_stall;
-    wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW;
+    wire stallF, stallD, stallE, stallM2, stallW ,stallDblank,  longest_stall;
+    wire flushF, flushF2, flushD, flushE, flushM2, flushW;
+    
 //------------------------------------------Data------------------------------------------
 	//--------------------debug---------------------
     assign debug_wb_pc          = pcW;
@@ -220,7 +247,7 @@ module datapath(
 	maindec md(instrD,
 		//output
         sign_exD , regdstD, is_immD , regwriteD , writeregD, mem_readD , mem_writeD , memtoregD,
-		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
+		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD, tlb_typeD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
 
     //扩展立即数
@@ -264,6 +291,7 @@ module datapath(
         .pc_jumpD(pc_jumpD)                 //D阶段最终跳转地址
     );
 	//----------------------------------Execute------------------------------------
+    flopstrc #(4) flopTlbTypeE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(tlb_typeD),.out(tlb_typeE));
     flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcD),.out(pcE));
     flopstrc #(32) flopInstE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instrD),.out(instrE));
     flopstrc #(32) flopSrca1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
@@ -308,6 +336,8 @@ module datapath(
     
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
 	//-------------------------------------Memory----------------------------------------
+    flopstrc #(4) flopTlbTypeM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(tlb_typeE),.out(tlb_typeM));
+
 	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(pcE),.out(pcM));
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
@@ -342,12 +372,32 @@ module datapath(
     assign pcErrorM = (pcM[1:0] != 2'b00);  
     //在aluoutM, cp0_outM 中选择写入寄存器的数据 Todo
     mux2 #(32) mux2_memtoregM(aluoutM, cp0_outM, is_mfcM, resultM);
-
+    assign {TLBWR, TLBWI, TLBR, TLBP} = tlb_typeM;
     cp0_exception cp0_exception(
         .clk(clk), .rst(rst),
         .stallM2(stallM2), .we_i(cp0_writeM),
         .waddr_i(instrM[15:11]), .raddr_i(instrM[15:11]),
         .sel_addr(instrM[2:0]), .data_i(src_b1M), .int_i(ext_int),
+        .tlb_typeM(tlb_typeM),
+        .entry_lo0_in(EntryLo0_to_cp0),
+        .entry_lo1_in(EntryLo1_to_cp0),
+        .page_mask_in(PageMask_to_cp0),
+        .entry_hi_in(EntryHi_to_cp0),
+        .index_in(Index_to_cp0),
+        .entry_hi_W(EntryHi_from_cp0),
+        .page_mask_W(PageMask_from_cp0),
+        .entry_lo0_W(EntryLo0_from_cp0), 
+        .entry_lo1_W(EntryLo1_from_cp0),
+        .index_W(Index_from_cp0),
+//tlb exception
+        .mem_read_enM(mem_read_enM),
+        .mem_write_enM(mem_write_enM),
+        .inst_tlb_refill(inst_tlb_refillM),
+        .inst_tlb_invalid(inst_tlb_invalidM),
+        .data_tlb_refill(data_tlb_refillM),
+        .data_tlb_invalid(data_tlb_invalidM),
+        .data_tlb_modify(data_tlb_modifyM),
+
         .current_inst_addr_i(pcM),
         .is_in_delayslot_i(is_in_delayslot_iM),
         .ri(riM), .break_exception(breakM), .syscall(syscallM), .overflow(overflowM), .trap(trapM), 

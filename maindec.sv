@@ -17,6 +17,8 @@ module maindec(
 		output wire cp0_writeD,
 		output wire cp0_to_regD,
 			
+	output wire [3:0] tlb_typeD,
+		
 		output wire mfhiD,
 		output wire mfloD,
 		output reg is_mfcD,   //为mfc0
@@ -48,7 +50,13 @@ module maindec(
 	
 	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
 	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
+	wire TLBWR, TLBWI, TLBP, TLBR;
 
+	assign TLBWI 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBWI	);
+	assign TLBP 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBP	);
+	assign TLBR 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBR	);
+	assign TLBWR 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBWR	);
+	assign tlb_typeD = {TLBWR, TLBWI, TLBR, TLBP};
 	always @(*) begin
 		case(opD)
 			`R_TYPE:begin
@@ -362,7 +370,8 @@ module maindec(
 						is_mfcD=1'b0;
 						aluopD=`USELESS_OP;
 						writeregD = rdD;
-						riD  =  |(instrD[25:0] ^ `ERET);
+						riD  =  |(instrD[25:0] ^ `ERET) & |(functD ^ `TLBR) & |(functD ^ `TLBP) & |(functD ^ `TLBWI) & |(functD ^ `TLBWR);
+
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end

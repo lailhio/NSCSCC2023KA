@@ -58,25 +58,44 @@ module mycpu_top(
     output wire debug_commit
 );
     wire rst,clk;
-    wire no_dcache, no_icache;
+    wire no_cache_i;
+    wire no_cache_d;
     assign clk=aclk;
     assign rst=~aresetn;
-
     //inst
-    wire [31:0]   virtual_instr_addr;  //指令地址
+    wire [31:0]   virtual_instr_addrF;  //指令地址
     wire          cpu_inst_en;  //使能
     wire          i_stall;
-
+    //TLB指令
+    wire stallF2,stallM,flushM;
+	wire TLBP;
+	wire TLBR;
+    wire TLBWI;
+    wire TLBWR;
+    wire [31:0] EntryHi_from_cp0;
+	wire [31:0] PageMask_from_cp0;
+	wire [31:0] EntryLo0_from_cp0;
+	wire [31:0] EntryLo1_from_cp0;
+	wire [31:0] Index_from_cp0;
+	wire [31:0] Random_from_cp0;
+	wire [31:0] EntryHi_to_cp0;
+	wire [31:0] PageMask_to_cp0;
+	wire [31:0] EntryLo0_to_cp0;
+	wire [31:0] EntryLo1_to_cp0;
+	wire [31:0] Index_to_cp0;
+        //异常
+    wire inst_tlb_refill, inst_tlb_invalid;
+    wire data_tlb_refill, data_tlb_invalid, data_tlb_modify;
+    wire mem_read_enM, mem_write_enM;
     //data
     wire        cpu_data_en;                    
-    wire [31:0] virtual_data_addr;     //写地址
+    wire [31:0] virtual_data_addrM;     //写地址
     wire [3 :0] data_sram_wen;      //写使能
     wire         d_stall, icache_Ctl, alu_stallE;
-    //stall 
-    wire        stallM2;
     //cpu
     wire [31:0] cpu_inst_addr ;
-    wire [31:0] cpu_inst_rdata;
+    wire [31:0] cpu_inst1_rdata;
+    wire [31:0] cpu_inst2_rdata;
 
     wire [31:0] cpu_data_addr ;
     wire cpu_data_wr   ;
@@ -124,27 +143,56 @@ module mycpu_top(
 
     wire        d_bvalid;
     wire        d_bready;
-    
+    wire [19:0] inst_pfn, data_pfn;
+    wire inst_en_tmp;
+    wire [31:0] aluoutE;
 
     datapath DataLine(
 		.clk(clk),.rst(rst),
 		.ext_int(ext_int),
         //instruction
-    	.PC_IF1(virtual_instr_addr), .inst_enF(cpu_inst_en), 
-        .instrF2(cpu_inst_rdata),
+    	.PC_IF1(virtual_instr_addrF), .inst_enF(cpu_inst_en), 
+        .instrF2(cpu_inst1_rdata),
         .i_cache_stall(i_stall),
         //data
-    	.mem_addrM(virtual_data_addr),.mem_enM(cpu_data_en),
+    	.mem_addrM(virtual_data_addrM),
+    	.aluoutE(aluoutE),
+        
+        .mem_enM(cpu_data_en),
         .mem_rdataM2(cpu_data_rdata),
         .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
-        .d_cache_stall(d_stall), .cpu_data_size(cpu_data_size),
+        .d_cache_stall(d_stall),
+        .cpu_data_size(cpu_data_size),
         
-        .stallM2(stallM2), .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
+        .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
+        .stallF2(stallF2), .stallM(stallM), .flushM(flushM),
+        //TLB
+        .TLBP(TLBP),
+        .TLBR(TLBR),
+        .TLBWI(TLBWI),
+        .TLBWR(TLBWR),
+
+        .EntryHi_from_cp0(EntryHi_from_cp0),
+        .PageMask_from_cp0(PageMask_from_cp0),
+        .EntryLo0_from_cp0(EntryLo0_from_cp0),
+        .EntryLo1_from_cp0(EntryLo1_from_cp0),
+        .Index_from_cp0(Index_from_cp0),
+        .Random_from_cp0(Random_from_cp0),
+
+        .EntryHi_to_cp0(EntryHi_to_cp0),
+        .PageMask_to_cp0(PageMask_to_cp0),
+        .EntryLo0_to_cp0(EntryLo0_to_cp0),
+        .EntryLo1_to_cp0(EntryLo1_to_cp0),
+        .Index_to_cp0(Index_to_cp0),
+            //异常
+        .inst_tlb_refillF(inst_tlb_refill), .inst_tlb_invalidF(inst_tlb_invalid),
+        .data_tlb_refillM(data_tlb_refill),
+        .data_tlb_invalidM(data_tlb_invalid),
+        .data_tlb_modifyM(data_tlb_modify),
+        .mem_read_enM(mem_read_enM), .mem_write_enM(mem_write_enM),
 		//debug interface
-		.debug_wb_pc(debug_wb_pc),
-        .debug_wb_rf_wen(debug_wb_rf_wen),
-        .debug_wb_rf_wnum(debug_wb_rf_wnum),
-        .debug_wb_rf_wdata(debug_wb_rf_wdata),
+		.debug_wb_pc(debug_wb_pc), .debug_wb_rf_wen(debug_wb_rf_wen),
+        .debug_wb_rf_wnum(debug_wb_rf_wnum), .debug_wb_rf_wdata(debug_wb_rf_wdata),
         .debug_cp0_count( debug_cp0_count),
         .debug_cp0_random( debug_cp0_random),
         .debug_cp0_cause( debug_cp0_cause),
@@ -152,19 +200,65 @@ module mycpu_top(
         .debug_commit( debug_commit)
 	);
 
-    mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
-                .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
-                .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
-                .data_wr(cpu_data_wr), .no_dcache(no_dcache), .no_icache(no_icache));
-    
+    // mmu Mmu_Trans(.inst_vaddr(virtual_instr_addrF), .inst_paddr(cpu_inst_addr),
+    //             .data_vaddr(virtual_data_addrM), .data_paddr(cpu_data_addr),
+    //             .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
+    //             .data_wr(cpu_data_wr), .data_size(cpu_data_size), .no_dcache(no_cache));
+    assign cpu_data_wr = cpu_data_en & |data_sram_wen;
+    tlb tlb0(
+        .clk(clk), .rst(rst),
+        .stallM(stallM), .flushM(flushM),
+        .stallF(stallF2),
+        //datapath
+        .inst_vaddr(virtual_instr_addrF),
+        .data_vaddr(aluoutE),
+
+        .inst_en(cpu_inst_en),
+        .mem_read_enM(mem_read_enM), .mem_write_enM(mem_write_enM),
+        //cache
+        
+        // .inst_paddr(pcF_paddr),
+        // .data_paddr(data_paddr),
+        .inst_pfn(inst_pfn),
+        .data_pfn(data_pfn),
+        .no_cache_i(no_cache_i),
+        .no_cache_d(no_cache_d),
+        //异常
+        .inst_tlb_refill(inst_tlb_refill),
+        .inst_tlb_invalid(inst_tlb_invalid),
+        .data_tlb_refill(data_tlb_refill),
+        .data_tlb_invalid(data_tlb_invalid),
+        .data_tlb_modify(data_tlb_modify),
+
+        //TLB指令
+        .TLBP(TLBP),
+        .TLBR(TLBR),
+        .TLBWI(TLBWI),
+        .TLBWR(TLBWR),
+        
+        .EntryHi_in(EntryHi_from_cp0),
+        .PageMask_in(PageMask_from_cp0),
+        .EntryLo0_in(EntryLo0_from_cp0),
+        .EntryLo1_in(EntryLo1_from_cp0),
+        .Index_in(Index_from_cp0),
+        .Random_in(Random_from_cp0),
+
+        .EntryHi_out(EntryHi_to_cp0),
+        .PageMask_out(PageMask_to_cp0),
+        .EntryLo0_out(EntryLo0_to_cp0),
+        .EntryLo1_out(EntryLo1_to_cp0),
+        .Index_out(Index_to_cp0)
+    );
 
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
+        .no_cache(no_cache_d), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
         .data_sram_wen(data_sram_wen),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
-        .cpu_data_size(cpu_data_size),  .cpu_data_addr(cpu_data_addr),
+        .cpu_data_size(cpu_data_size),  .cpu_data_addr(virtual_data_addrM),
+        .data_pfn(data_pfn),
+
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),
         //D CACHE
         .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),
@@ -187,12 +281,12 @@ module mycpu_top(
 
     i_cache i_cache(
         .clk(clk), .rst(rst),
-        .no_cache(no_icache), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
+        .no_cache(no_cache_i), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
         
         .cpu_inst_en(cpu_inst_en),
-        .cpu_inst_addr(cpu_inst_addr),
-        
-        .cpu_inst_rdata(cpu_inst_rdata),
+        .cpu_inst_addr(virtual_instr_addrF),
+        .inst_pfn(inst_pfn),
+        .cpu_inst_rdata(cpu_inst1_rdata),
         //I CACHE OUTPUT
         .i_araddr          (i_araddr ), .i_arlen           (i_arlen  ),
         .i_arsize          (i_arsize ), .i_arvalid         (i_arvalid),
@@ -267,8 +361,11 @@ module mycpu_top(
 
     //ascii
     //use for debug
-    instdec instdec(
-        .instr(cpu_inst_rdata)
+    instdec instdec1(
+        .instr(cpu_inst1_rdata)
     );
+    // instdec instdec2(
+    //     .instr(cpu_inst2_rdata)
+    // );
 
 endmodule
