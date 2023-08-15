@@ -75,6 +75,7 @@ module datapath(
     wire [31:0] src1_aE, src1_bE;
     wire [31:0] src2_aE, src2_bE;
     wire [31:0] aluout1E, aluout2E; //alu输出
+    wire [31:0] address1E, address2E; //alu输出
     wire        branch1E, branch2E; //分支信号
     wire [31:0] pc_branch1E, pc_branch2E;  //分支跳转pc
     wire        pred_failedE, pred_failed_masterE, pred_failed_slaveE;  //分支预测失败
@@ -104,7 +105,6 @@ module datapath(
     wire [31:0] result_rdataM;  
     wire [31:0] data_srcM;  
     wire [31:0] result1M, result2M;  // mem out
-    wire [31:0] pc_branch1M, pc_branch2M; //分支跳转地址
     wire [31:0] src1_b1M, src2_b1M;
     //异常处理信号 exception
     wire        overflow1M, overflow2M;  //算数溢出
@@ -121,7 +121,7 @@ module datapath(
     
     //------stall sign---------------
     wire stallF, stallF2, stall_masterD, stall_masterE, stall_masterM, stall_masterW ,stallDblank;
-    wire stall_slaveD, stall_slaveE, stall_slaveM, stall_slaveW;
+    wire stall_slaveD, stall_slaveE, stall_slaveM, stall_slaveW, Blank1_SL, Blank2_SL;
 
     wire flushF, flushF2, flush_masterD, flush_masterE, flush_masterM, flush_masterW;
     wire flush_slaveD, flush_slaveE, flush_slaveM, flush_slaveW, fulsh_ex;
@@ -363,15 +363,15 @@ module datapath(
     wire mem_selE = dec_sign1E.mem_read | dec_sign1E.mem_write;
     wire cpu_data_wr_enE = dec_sign1E.mem_write | dec_sign2E.mem_write;
     // Assign Logical
-    wire Blank1_SL = (address1E[31:2] == virtual_data_addrM[31:2]) & dec_sign1E.mem_read &  cpu_data_wr_enM;
-    wire Blank2_SL = (address2E[31:2] == virtual_data_addrM[31:2]) & dec_sign2E.mem_read &  cpu_data_wr_enM;
-    wire [31:0] address1E = src1_aE + src1_bE;
-    wire [31:0] address2E = src2_aE + src2_bE;
+    assign Blank1_SL = (address1E[31:2] == virtual_data_addrM[31:2]) && dec_sign1E.mem_read &&  cpu_data_wr_enM;
+    assign Blank2_SL = (address2E[31:2] == virtual_data_addrM[31:2]) && dec_sign2E.mem_read &&  cpu_data_wr_enM;
+    assign address1E = src1_aE + src1_bE;
+    assign address2E = src2_aE + src2_bE;
     mem_control mem_control(
         .clk(clk),          .rst(rst),
         .instr1E(instr1E), .address1E(address1E), 
         .instr2E(instr2E), .address2E(aluout2E), 
-        .mem_selE(mem_selE), .Blank1_SL(Blank1_SL), .stallM(stall_masterM), .flushM(flush_masterM),
+        .mem_selE(mem_selE), .stallM(stall_masterM), .flushM(flush_masterM),
         
         .data_wdata1E(src1_b1E),.data_wdata2E(src2_b1E),    //原始的wdata
         .rt_valueM(data_srcM),

@@ -4,7 +4,7 @@ module mem_control(
     input wire        clk, rst, 
     input wire [31:0] instr1E, instr2E,
     input wire [31:0] address1E, address2E,  //save and load 
-    input wire mem_selE, Blank1_SL, stallM, flushM,
+    input wire mem_selE, stallM, flushM,
 
     input wire [31:0] data_wdata1E, data_wdata2E, //要写的数据
     input wire [31:0] rt_valueM,  //rt寄存器的值
@@ -15,7 +15,7 @@ module mem_control(
     output reg [31:0] data_rdataM,  // 实际读出
     output wire [31:0] data_srcE,
     output wire [31:0] data_addrE,
-    output wire [1:0]   data_size,
+    output reg [1:0]   data_size,
     output reg addr_error_sw1, addr_error_lw1, addr_error_sw2, addr_error_lw2
 );
     

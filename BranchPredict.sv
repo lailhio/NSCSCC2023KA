@@ -22,11 +22,11 @@ module BranchPredict(
     reg pred_take1D_r, pred_take2D_r;
 
     assign branch1D = ( (~|(instr1D[31:26] ^ `REGIMM_INST)) & (~|(instr1D[19:17] ^ 3'b000) | (~|(instr1D[19:17] ^ 3'b001))) ) 
-                    | (~|(instr1D[31:26][5:2] ^ 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
+                    | (~|(instr1D[31:28] ^ 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
                                                     // 3'b000 -> BLTZ BLTZAL BGEZAL BGEZ
                                                     // 3'b001 -> BGEZALL BGEZL BLTZALL BLTZL
     assign branch2D = ( (~|(instr2D[31:26] ^ `REGIMM_INST)) & (~|(instr2D[19:17] ^ 3'b000) | (~|(instr2D[19:17] ^ 3'b001))) ) 
-                    | (~|(instr2D[31:26][5:2] ^ 4'b0001)); 
+                    | (~|(instr2D[31:28] ^ 4'b0001)); 
 
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
