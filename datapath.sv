@@ -127,11 +127,6 @@ module datapath(
     wire [31:0] src_b1M;
     //异常处理信号 exception
     wire        interuptE;  //指令不存在
-    // wire        breakM; //break指令
-    // wire        syscallM; //syscall指令
-    // wire        eretM; //eretM指令
-    // wire        overflowM;  //算数溢出
-    // wire        trapM;  //自陷指令
     wire        addrErrorLwE, addrErrorSwE; //访存指令异常
     wire        pcErrorE;  //pc异常
 
@@ -139,20 +134,13 @@ module datapath(
     wire        flush_exceptionE;  // 发生异常时需要刷新流水线
     wire [31:0] pc_exceptionE; //异常处理的地址0xbfc0_0380，若为eret指令 则为返回地址
     wire        pc_trapE; // 发生异常时pc特殊处理
-    // wire        is_in_delayslot_iM;
     wire        cp0_to_regM;
-    // wire        cp0_writeM;
     //------writeback stage----------
-	// wire [4:0] writeregM2;//写寄存器号
-	// wire regwriteM2;
 	wire [31:0] resultori_M;
 	wire [31:0] resultM;
-    // wire [31:0] aluoutM2;
-    // wire [31:0] pcM2;
-    // wire [31:0] instrM2;
-    // wire [31:0] src_b1M2;
     wire [31:0] cp0_countM, cp0_causeM, cp0_randomM;
 	//------writeback stage----------
+    wire interuptM, mem_writeM;  //指令不存在
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
@@ -348,9 +336,9 @@ module datapath(
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
-    flopstrc #(4) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,branchE,mem_writeE,memtoregE}),
-        .out({regwriteM,branchM,mem_writeM,memtoregM}));
+    flopstrc #(5) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({regwriteE,branchE,mem_writeE,memtoregE, interuptE}),
+        .out({regwriteM,branchM,mem_writeM,memtoregM, interuptM}));
     flopstrc #(2) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({cp0_to_regE,is_mfcE}),
         .out({cp0_to_regM,is_mfcM}));
