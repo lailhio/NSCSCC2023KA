@@ -72,8 +72,9 @@ module mycpu_top(
     wire [31:0] virtual_data_addr;     //写地址
     wire [3 :0] data_sram_wen;      //写使能
     wire         d_stall, icache_Ctl, alu_stallE;
+    wire        dcache_ctl;
     //stall 
-    wire        stallM2;
+    // wire        stallM;
     //cpu
     wire [31:0] cpu_inst_addr ;
     wire [31:0] cpu_inst_rdata;
@@ -134,12 +135,13 @@ module mycpu_top(
         .instrF2(cpu_inst_rdata),
         .i_cache_stall(i_stall),
         //data
-    	.mem_addrM(virtual_data_addr),.mem_enM(cpu_data_en),
-        .mem_rdataM2(cpu_data_rdata),
-        .mem_write_selectM(data_sram_wen),.writedataM(cpu_data_wdata),
+    	.mem_addrE(virtual_data_addr),.mem_enE(cpu_data_en),
+        .mem_rdataM(cpu_data_rdata),
+        .mem_write_selectE(data_sram_wen),.writedataE(cpu_data_wdata),
         .d_cache_stall(d_stall), .cpu_data_size(cpu_data_size),
         
-        .stallM2(stallM2), .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
+        .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
+        .dcache_ctl(dcache_ctl),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc),
         .debug_wb_rf_wen(debug_wb_rf_wen),
@@ -161,8 +163,8 @@ module mycpu_top(
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
-        .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall), .alu_stallE(alu_stallE),
-        .data_sram_wen(data_sram_wen),
+        .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall),
+        .data_sram_wen(data_sram_wen), .dcache_ctl(dcache_ctl),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
         .cpu_data_size(cpu_data_size),  .cpu_data_addr(cpu_data_addr),
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),

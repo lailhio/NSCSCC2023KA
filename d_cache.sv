@@ -3,7 +3,7 @@ module d_cache#(
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
-    input wire clk, rst ,no_cache, i_stall, alu_stallE,
+    input wire clk, rst ,no_cache, i_stall, dcache_ctl,
     output wire d_stall,
     input [3:0]   data_sram_wen,
     //mips core
@@ -78,6 +78,11 @@ module d_cache#(
         logic [31:0]    wdata; // note: data should place at correct place. (like axi)
     } store_buffer_entry;
     parameter SIZE_STORE_BUFFER = 4;
+    typedef struct packed {
+        logic [$clog2(SIZE_STORE_BUFFER)-1:0] ptr_begin;
+        logic [$clog2(SIZE_STORE_BUFFER)-1:0] ptr_end;
+        logic axi_busy;
+    } store_buffer_control;
 
     reg  no_cache_M2;
     reg [3:0] data_sram_wen_M2;
@@ -126,6 +131,7 @@ module d_cache#(
     reg FristReq;
     //FSM
     parameter IDLE = 3'b000, CACHE_REPLACE = 3'b001, CACHE_WRITEBACK = 3'b011, NOCACHE = 3'b010, SAVE_RES=3'b100;
+    reg [2:0] pre_state;
     reg [2:0] state;
     wire isIDLE;
     assign isIDLE = state==IDLE;
@@ -159,20 +165,18 @@ module d_cache#(
     reg buff_last;
 
     store_buffer_entry store_buffer[SIZE_STORE_BUFFER-1:0];
-    logic [$clog2(SIZE_STORE_BUFFER)-1:0] ptr_begin;
-    logic [$clog2(SIZE_STORE_BUFFER)-1:0] ptr_end;
-    logic axi_busy;
-    wire store_buffer_has_next = ptr_begin != ptr_end;
-    wire store_buffer_busy = store_buffer_has_next | axi_busy;
-    wire store_buffer_full = (ptr_end + 1'd1) == ptr_begin;
+    store_buffer_control store_buffer_ctrl;
+    wire store_buffer_has_next = store_buffer_ctrl.ptr_begin != store_buffer_ctrl.ptr_end;
+    wire store_buffer_busy = store_buffer_has_next | store_buffer_ctrl.axi_busy;
+    wire store_buffer_full = (store_buffer_ctrl.ptr_end + 1'd1) == store_buffer_ctrl.ptr_begin;
     
     assign d_stall = (~hit  & ~cpu_data_ok & data_en) | store_buffer_full ;
     //  & ~(i_stall & isIDLE)
-    wire cache_en1 = ~(i_stall | d_stall | alu_stallE);
+    wire cache_en1 = ~(d_stall | dcache_ctl);
     wire cache_en = ~cpu_data_ok & data_en;
 
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[c_way[1]];
+    assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
 
 
     logic [1:0] wena_tag_ram_way;
@@ -217,7 +221,7 @@ module d_cache#(
             //Nocache Process
             store_buffer <= '{default: '0};
             // clear store buffer
-            ptr_end <= 0;
+            store_buffer_ctrl <= 0;
             no_cache_M2 <= 0;
             data_sram_wen_M2 <= 0;
             cpu_data_wdata_M2 <= 0;
@@ -231,13 +235,13 @@ module d_cache#(
         else if(cache_en1)begin
             //Nocache Process
             if (no_cache & cpu_data_wr) begin
-                store_buffer[ptr_end] <= '{
+                store_buffer[store_buffer_ctrl.ptr_end] <= '{
                     waddr: cpu_data_addr,
                     wsize: {1'b0,cpu_data_size},
                     wstrb: data_sram_wen,
                     wdata: cpu_data_wdata
                 };
-                ptr_end <= ptr_end + 1;
+                store_buffer_ctrl.ptr_end <= store_buffer_ctrl.ptr_end + 1;
 
                 index_M2 <= 0;
                 lineLoc_M2 <= 0;
@@ -282,13 +286,12 @@ module d_cache#(
     always @(posedge clk) begin
         if(rst) begin
             state <= IDLE;
+            pre_state <= IDLE;
             index_M3 <= 0;
             lineLoc_M3 <= 0;
             tag_M3 <= 0;
             tway_M3 <= 0;
             no_cache_M3 <= 0;
-            ptr_begin <= 0;
-            axi_busy <= 0;
             cpu_data_en_M3 <= 0;
             cpu_data_wr_M3 <= 0;
             cpu_data_ok <= 0;
@@ -327,7 +330,7 @@ module d_cache#(
         end
         else begin
             if (store_buffer_busy) begin
-                if (axi_busy) begin // To implement SC memory ordering, if store buffer busy, axi is unseable.
+                if (store_buffer_ctrl.axi_busy) begin // To implement SC memory ordering, if store buffer busy, axi is unseable.
                     if (d_awvalid & d_awready) begin
                         d_awvalid <= 0;
                         d_wvalid <= 1'b1;
@@ -338,23 +341,24 @@ module d_cache#(
                         d_wlast <= 0;
                     end
                     if (d_bvalid & d_bready) begin
-                        axi_busy <= 1'b0;
+                        store_buffer_ctrl.axi_busy <= 1'b0;
                     end
                 end
                 else begin
-                    d_awaddr <= store_buffer[ptr_begin].waddr;
+                    d_awaddr <= store_buffer[store_buffer_ctrl.ptr_begin].waddr;
                     d_awlen <= 0;
-                    d_awsize <= store_buffer[ptr_begin].wsize;
+                    d_awsize <= store_buffer[store_buffer_ctrl.ptr_begin].wsize;
                     d_awvalid <= 1'b1;
-                    d_wdata <= store_buffer[ptr_begin].wdata;
-                    d_wstrb <= store_buffer[ptr_begin].wstrb;
+                    d_wdata <= store_buffer[store_buffer_ctrl.ptr_begin].wdata;
+                    d_wstrb <= store_buffer[store_buffer_ctrl.ptr_begin].wstrb;
                     
-                    ptr_begin <= ptr_begin + 1;
-                    axi_busy <= 1'b1;
+                    store_buffer_ctrl.ptr_begin <= store_buffer_ctrl.ptr_begin + 1;
+                    store_buffer_ctrl.axi_busy <= 1'b1;
                 end
             end
 
-            if(cache_en)begin         
+            if(cache_en)begin          
+                pre_state <= state;  
                 case(state)
                 // 按照状态机编写
                     IDLE: begin 
@@ -375,7 +379,7 @@ module d_cache#(
                         if (no_cache_M2) begin
                             d_araddr <= cpu_data_addr_M2;
                             d_arlen  <= 0;
-                            d_arsize <= {1'b0,cpu_data_size_M2};
+                            d_arsize <= 3'd2;
                             FristReq <= 0;
                             state <= NOCACHE;
                         end
@@ -532,6 +536,7 @@ module d_cache#(
                 no_cache_M3 <= 0;
                 cpu_data_ok <= 0;
                 FristReq <= 0;
+                pre_state <= state;
             end
         end
         

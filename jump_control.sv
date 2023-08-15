@@ -2,8 +2,8 @@ module jump_control (
     input wire [31:0] instrD,
     input wire [31:0] PcPlus4D,
     input wire [31:0] src_a1D,
-    input wire regwriteE, regwriteM, regwriteM2, regwriteW,
-    input wire [4:0] writeregE, writeregM, writeregM2, writeregW,
+    // input wire regwriteE, regwriteM, regwriteM2, regwriteW,
+    // input wire [4:0] writeregE, writeregM, writeregM2, writeregW,
 
     output wire jumpD,          
     output wire [31:0] pc_jumpD        

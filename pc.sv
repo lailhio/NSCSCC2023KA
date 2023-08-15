@@ -6,9 +6,9 @@ module pc_reg(
     input wire actual_takeE,
     input wire pred_takeD,
 
-    input wire pc_trapM,   //是否发生异常
+    input wire pc_trapE,   //是否发生异常
     input wire jumpD,
-    input wire [31:0] pc_exceptionM,            //异常的跳转地址
+    input wire [31:0] pc_exceptionE,            //异常的跳转地址
     input wire [31:0] PcPlus8E,              //预测跳，实际不跳 将pc_next指向branch指令的PC+8
     input wire [31:0] pc_branchE,              //预测不跳，实际跳转 将pc_next指向pc_branchD传到M阶段的值
     input wire [31:0] pc_jumpD,                 //D阶段jump不冲突跳转的地址（rs寄存器或立即数）
@@ -18,8 +18,8 @@ module pc_reg(
     );
     reg [31:0] next_pc;
     always @(*) begin
-        if(pc_trapM) //发生异常
-            next_pc = pc_exceptionM;
+        if(pc_trapE) //发生异常
+            next_pc = pc_exceptionE;
         else if(~pre_right & ~actual_takeE)  //预测跳  实际不挑
             next_pc = PcPlus8E;
         else if(~pre_right & actual_takeE)   //预测不跳  实际跳

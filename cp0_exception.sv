@@ -16,7 +16,7 @@
 module cp0_exception(
     input wire clk,
 	input wire rst,
-	input wire stallM2,
+	input wire stallM,
 	input wire we_i,
 	input[4:0] waddr_i,
 	input[4:0] raddr_i,
@@ -28,10 +28,10 @@ module cp0_exception(
 	input wire[`RegBus] current_inst_addr_i,
 	input wire is_in_delayslot_i,
 
-    input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretM,
+    input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretE,
     input trap,
 
-    input [31:0] aluoutM,
+    input [31:0] aluoutE,
 
 	
 	output reg[`RegBus] cause_o,
@@ -78,16 +78,16 @@ module cp0_exception(
 							(addrErrorSw)           ? 32'h00000005 :   //地址错误例外（sw地址异常
 							(overflow)              ? 32'h0000000c :     //算数溢出例外
 							(trap)                  ? 32'h0000000d :     //自陷异常
-							(eretM)                 ? 32'h0000000e :   //eret指令
+							(eretE)                 ? 32'h0000000e :   //eret指令
 														32'h00000000 ;   //无异常?
 	//interupt pc address
 	assign pc_exception =      ((excepttype_i == 32'h00000000)) ? `ZeroWord:
-														(eretM)  ? epc_o :
+														(eretE)  ? epc_o :
 													~status_o[22] ? ebase_reg+32'h180:
 																32'hbfc0_0380; //异常处理地址
 	assign pc_trap =        (excepttype_i != 32'h00000000); //表示发生异常，需要处理pc
 	assign flush_exception =   (excepttype_i != 32'h00000000); //无异常时，为0
-	assign bad_addr_i =      ({{32{pcError}} & current_inst_addr_i} |{{32{~pcError}} & aluoutM}) ; //出错时的pc 
+	assign bad_addr_i =      ({{32{pcError}} & current_inst_addr_i} |{{32{~pcError}} & aluoutE}) ; //出错时的pc 
 
 
     always @(posedge clk) begin
@@ -107,12 +107,12 @@ module cp0_exception(
 		else begin
 			count <= count + 1;
 			random_reg <= (random_reg == wired_reg) ? (TLB_LINE_NUM - 1) : (random_reg - 1);
-			cause_o[`IP7_IP2_BITS] <= ~stallM2 ? int_i : 0;
+			cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i : 0;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin
 				/* code */
 				timer_int_o <= `InterruptAssert;
 			end
-			if(~stallM2 & we_i) begin
+			if(~stallM & we_i) begin
 				/* code */
 				case (waddr_i)
 					`CP0_REG_COUNT:begin 

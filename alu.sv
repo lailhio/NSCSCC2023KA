@@ -6,7 +6,7 @@ module alu(
     input wire [31:0] src_aE, src_bE,
     input wire [7:0] alucontrolE, 
     input wire [4:0] sa, msbd,
-    input wire mfhiE, mfloE, flush_exceptionM, DivMulEnE,
+    input wire mfhiE, mfloE, flush_exceptionE, DivMulEnE,
     
     output wire alustallE,
     output reg [31:0] aluoutE, 
@@ -362,6 +362,6 @@ module alu(
 	);
 
 // hilo
-    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionM , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionE , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
 
 endmodule
