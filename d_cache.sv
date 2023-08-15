@@ -170,13 +170,13 @@ module d_cache#(
     wire store_buffer_busy = store_buffer_has_next | store_buffer_ctrl.axi_busy;
     wire store_buffer_full = (store_buffer_ctrl.ptr_end + 1'd1) == store_buffer_ctrl.ptr_begin;
     
-    assign d_stall = (~hit  & ~cpu_data_ok & data_en) | store_buffer_full ;
+    assign d_stall = (~hit  & ~cpu_data_ok & cpu_data_en_M2) | store_buffer_full ;
     //  & ~(i_stall & isIDLE)
     wire cache_en1 = ~(d_stall | dcache_ctl);
-    wire cache_en = ~cpu_data_ok & data_en;
+    wire cache_en = ~cpu_data_ok & cpu_data_en_M2;
 
     reg [31:0] axi_data_rdata;
-    assign cpu_data_rdata   = pre_state != IDLE ? axi_data_rdata : c_block_M2[c_way[1]];
+    assign cpu_data_rdata   = cpu_data_ok ? axi_data_rdata : c_block_M2[c_way[1]];
 
 
     logic [1:0] wena_tag_ram_way;

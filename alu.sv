@@ -200,13 +200,12 @@ module alu(
                 else aluoutE = 32'b0;
             end
             `MUL_CONTROL:    begin
-                aluoutE = 32'b0;
+                aluoutE = aluout_mul[31:0];
                 mul_sign = 1'b1;
+                hilo_writeE = 1'b0;
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = aluout_mul[31:0];
-                    hilo_writeE = 1'b1;
-                    aluoutE = aluout_mul[31:0];
                 end
                 else begin
                     mul_startE = 1'b1;
