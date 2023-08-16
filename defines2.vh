@@ -499,11 +499,20 @@
 `define SB  6'b101000
 `define SH  6'b101001
 `define SW  6'b101011
+`define CACHE   6'b101111
+`define PREF    6'b110011
 
 `define SYSCALL 6'b001100
 `define BREAK 6'b001101
-   
-`define ERET 5'b10000
+`define RS_CO   5'b10000
+
+// COP0 CO FUNCT
+`define FUN_TLBR        6'b000001
+`define FUN_TLBWI       6'b000010
+`define FUN_TLBWR       6'b000110
+`define FUN_TLBP        6'b001000
+`define FUN_ERET        6'b011000
+`define FUN_WAIT        6'b100000
 
 `define TLBR   6'b000001
 `define TLBWI  6'b000010
@@ -517,7 +526,7 @@
 //change the SPECIAL2_INST from 6'b011100 to 6'b010000
 `define MTC0 5'b00100
 `define MFC0 5'b00000
-
+`define RS_CO   5'b10000
 
 `define SPECIAL2_INST 6'b011100
 `define SPECIAL3_INST 6'b011111
@@ -784,7 +793,7 @@
 `define CP0_REG_STATUS      5'd12
 `define CP0_REG_CAUSE       5'd13
 `define CP0_REG_EPC         5'd14
-`define CP0_REG_PRID        5'd15   // Note: ebase is optional, so we didn't implement it.
+`define CP0_REG_PRID  5'd15   // Note: ebase is optional, so we didn't implement it.
 `define CP0_REG_CONFIG      5'd16
 `define CP0_REG_TAGLO       5'd28
 `define CP0_REG_TAGHI       5'd29
@@ -795,7 +804,7 @@
 `define TLB_LINE_NUM 8
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
-`define LOG2_TLB_LINE_NUM 3
+`define LOG2_TLB_LINE_NUM 5
 //index
 `define INDEX_BITS `LOG2_TLB_LINE_NUM-1:0
 //random
@@ -820,7 +829,6 @@
 //context
 `define PTE_BASE_BITS 31:23
 `define BAD_VPN2_BITS 22:4
-
 typedef struct packed {
     logic        G;
     logic        V0;
@@ -850,5 +858,9 @@ typedef struct packed {
     logic       V;
     logic       G;
 } cp0_entrylo;
-
+typedef struct packed {
+    logic [18:0]VPN2;
+    logic [4:0] blank0;
+    logic [7:0] ASID;
+} cp0_entryhi;
 `endif

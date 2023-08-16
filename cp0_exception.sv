@@ -106,19 +106,19 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 					(|(status_o[30] & cause_o[30]))            //计时器中断?
 	);
 
-	assign excepttype_i =    (interupt)                   ? 32'h00000001 :    //中断
-	inst_tlb_refill | inst_tlb_invalid ? 32'h00000002 :
-	mem_readE & (data_tlb_refill | data_tlb_invalid) ? 32'h00000002 :
-	mem_writeE & (data_tlb_refill | data_tlb_invalid)? 32'h00000003 :
-                           data_tlb_modify ? 32'h00000006 :
-							(addrErrorLw | pcError) ? 32'h00000004 :   //地址错误例外（lw地址 pc错误
-							(ri)                    ? 32'h0000000a :     //保留指令例外（指令不存在
-							(syscall)               ? 32'h00000008 :    //系统调用例外（syscall指令
-							(break_exception)       ? 32'h00000009 :     //断点例外（break指令
-							(addrErrorSw)           ? 32'h00000005 :   //地址错误例外（sw地址异常
-							(overflow)              ? 32'h0000000c :     //算数溢出例外
-							(trap)                  ? 32'h0000000d :     //自陷异常
-							(eretE)                 ? 32'h0000000e :   //eret指令
+	assign excepttype_i =    (interupt)                   	? 32'h00000001 :    //中断
+						inst_tlb_refill | inst_tlb_invalid ? 32'h00000002 :
+		mem_readE & (data_tlb_refill | data_tlb_invalid) ? 32'h00000002 :
+		mem_writeE & (data_tlb_refill | data_tlb_invalid)? 32'h00000003 :
+                           				data_tlb_modify ? 32'h00000006 :
+								(addrErrorLw | pcError) ? 32'h00000004 :   //地址错误例外（lw地址 pc错误
+								(ri)                    ? 32'h0000000a :     //保留指令例外（指令不存在
+								(syscall)               ? 32'h00000008 :    //系统调用例外（syscall指令
+								(break_exception)       ? 32'h00000009 :     //断点例外（break指令
+								(addrErrorSw)           ? 32'h00000005 :   //地址错误例外（sw地址异常
+								(overflow)              ? 32'h0000000c :     //算数溢出例外
+								(trap)                  ? 32'h0000000d :     //自陷异常
+								(eretE)                 ? 32'h0000000e :   //eret指令
 														32'h00000000 ;   //无异常?
 	//interupt pc address
 	   wire BEV;
