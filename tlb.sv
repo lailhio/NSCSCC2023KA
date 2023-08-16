@@ -80,35 +80,35 @@ endgenerate
 
 //编码器，通过mask生成index
 assign find_index2=
-({5{find_mask2[0 ]}} & 5'd0 ) |
-({5{find_mask2[1 ]}} & 5'd1 ) |
-({5{find_mask2[2 ]}} & 5'd2 ) |
-({5{find_mask2[3 ]}} & 5'd3 ) |
-({5{find_mask2[4 ]}} & 5'd4 ) |
-({5{find_mask2[5 ]}} & 5'd5 ) |
-({5{find_mask2[6 ]}} & 5'd6 ) |
-({5{find_mask2[7 ]}} & 5'd7 ) ;
+({3{find_mask2[0 ]}} & 3'd0 ) |
+({3{find_mask2[1 ]}} & 3'd1 ) |
+({3{find_mask2[2 ]}} & 3'd2 ) |
+({3{find_mask2[3 ]}} & 3'd3 ) |
+({3{find_mask2[4 ]}} & 3'd4 ) |
+({3{find_mask2[5 ]}} & 3'd5 ) |
+({3{find_mask2[6 ]}} & 3'd6 ) |
+({3{find_mask2[7 ]}} & 3'd7 ) ;
 
 
 assign find_index1=
-({5{find_mask1[0 ]}} & 5'd0 ) |
-({5{find_mask1[1 ]}} & 5'd1 ) |
-({5{find_mask1[2 ]}} & 5'd2 ) |
-({5{find_mask1[3 ]}} & 5'd3 ) |
-({5{find_mask1[4 ]}} & 5'd4 ) |
-({5{find_mask1[5 ]}} & 5'd5 ) |
-({5{find_mask1[6 ]}} & 5'd6 ) |
-({5{find_mask1[7 ]}} & 5'd7 ) ;
+({3{find_mask1[0 ]}} & 3'd0 ) |
+({3{find_mask1[1 ]}} & 3'd1 ) |
+({3{find_mask1[2 ]}} & 3'd2 ) |
+({3{find_mask1[3 ]}} & 3'd3 ) |
+({3{find_mask1[4 ]}} & 3'd4 ) |
+({3{find_mask1[5 ]}} & 3'd5 ) |
+({3{find_mask1[6 ]}} & 3'd6 ) |
+({3{find_mask1[7 ]}} & 3'd7 ) ;
 
 assign find_index3 = 
-({5{find_mask3[0 ]}} & 5'd0 ) |
-({5{find_mask3[1 ]}} & 5'd1 ) |
-({5{find_mask3[2 ]}} & 5'd2 ) |
-({5{find_mask3[3 ]}} & 5'd3 ) |
-({5{find_mask3[4 ]}} & 5'd4 ) |
-({5{find_mask3[5 ]}} & 5'd5 ) |
-({5{find_mask3[6 ]}} & 5'd6 ) |
-({5{find_mask3[7 ]}} & 5'd7 ) ;
+({3{find_mask3[0 ]}} & 3'd0 ) |
+({3{find_mask3[1 ]}} & 3'd1 ) |
+({3{find_mask3[2 ]}} & 3'd2 ) |
+({3{find_mask3[3 ]}} & 3'd3 ) |
+({3{find_mask3[4 ]}} & 3'd4 ) |
+({3{find_mask3[5 ]}} & 3'd5 ) |
+({3{find_mask3[6 ]}} & 3'd6 ) |
+({3{find_mask3[7 ]}} & 3'd7 ) ;
 //--------------------------查找逻辑-----------------------------
 
 //--------------------------读TLB逻辑-----------------------------

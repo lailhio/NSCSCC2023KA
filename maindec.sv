@@ -362,7 +362,7 @@ module maindec(
 						is_mfcD=1'b0;
 						aluopD=`USELESS_OP;
 						writeregD = rdD;
-						riD  =  |(instrD[25:0] ^ `RS_CO) & |(functD ^ `TLBR) & |(functD ^ `TLBP) & |(functD ^ `TLBWI) & |(functD ^ `TLBWR);
+						riD  =  |(instrD[25:0] ^ `RS_CO) & |(functD ^ `TLBR) & |(functD ^ `TLBP) & |(functD ^ `TLBWI) & |(functD ^ `TLBWR) & |(functD ^ `FUN_ERET) & |(functD ^ `FUN_WAIT);
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end

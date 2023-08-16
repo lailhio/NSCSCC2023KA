@@ -25,7 +25,7 @@ module hazard(
     input wire  Blank_SL,
     output wire stallF, stallF2, stallD, stallE, stallM, stallW,
     output wire flushF, flushF2, flushD, flushE, flushM, flushW,
-    output wire longest_stall, stallDblank, icache_Ctl, dcache_ctl,
+    output wire longest_stall, stallDblank, icache_Ctl, dcache_ctl,flush_pc_debugM,
 
     output wire [1:0] forward_1D, forward_2D //000-> NONE, 001-> WRITE, 010-> M2, 011 -> M , 100 -> E
 );
@@ -45,6 +45,7 @@ module hazard(
     assign id_cache_stall=d_cache_stall|i_cache_stall;
 
     wire branch_ok =  pred_takeD ;
+    assign flush_pc_debugM = ~stallM & Blank_SL;
     
     assign longest_stall=id_cache_stall|alu_stallE;
     // Is mfc0 mfhilo lw and Operand is the same 

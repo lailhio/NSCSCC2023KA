@@ -423,9 +423,6 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 			`CP0_REG_EPC:begin 
 				data_o = epc_o;
 			end
-			// `CP0_REG_PRID: begin 
-			// 	data_o = prid_o;
-			// end
 			`CP0_REG_CONFIG:begin 
 				data_o = config_o;
 			end
