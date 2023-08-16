@@ -124,7 +124,7 @@ module datapath(
     // wire        alu_stallE;  //alu暂停
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
-	wire        memtoregE, flush_pc_debugM;
+	wire        memtoregE;
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
 	wire        hilotoregE;//hilo到寄存器
@@ -356,12 +356,13 @@ module datapath(
     //后两位不为0
     assign pcErrorE = (pcE[1:0] != 2'b00); 
     assign {TLBWR, TLBWI, TLBR, TLBP} = tlb_typeE;
+    assign Random_from_cp0 = cp0_randomE;
 
     cp0_exception cp0_exception(
         .clk(clk), .rst(rst),
         .stallM(stallM), .we_i(cp0_writeE),
         .waddr_i(instrE[15:11]), .raddr_i(instrE[15:11]),
-        .sel_addr(instrE[2:0]), .data_i(src_b1E), .int_i(ext_int),
+        .sel_addr(instrE[2:0]), .data_i(src_b1E), .int_i(ext_int[4:0]),
         .tlb_typeE(tlb_typeE),
         .entry_lo0_in(EntryLo0_to_cp0),
         .entry_lo1_in(EntryLo1_to_cp0),
@@ -398,7 +399,7 @@ module datapath(
     );
 
 	//-------------------------------------Memory----------------------------------------
-	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM),.flush(flush_pc_debugM),.in(pcE),.out(pcM));
+	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM & ~flush_exceptionE),.flush(flushM & ~flush_exceptionE),.in(pcE),.out(pcM));
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
@@ -459,7 +460,7 @@ module datapath(
         .mem_readE(mem_readE),
         // .mem_readM(mem_readM),
         
-        .Blank_SL(Blank_SL), .flush_pc_debugM(flush_pc_debugM),
+        .Blank_SL(Blank_SL),
         .stallF(stallF), .stallF2(stallF2), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallW(stallW),
         .flushF(flushF), .flushF2(flushF2), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushW(flushW),
         .longest_stall(longest_stall), .stallDblank(stallDblank), .icache_Ctl(icache_Ctl), .dcache_ctl(dcache_ctl),

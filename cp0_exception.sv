@@ -106,7 +106,8 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 					(|(status_o[30] & cause_o[30]))            //计时器中断?
 	);
 
-	assign excepttype_i =    (interupt)                   	? 32'h00000001 :    //中断
+	assign excepttype_i =   ~(|current_inst_addr_i)  		? 32'h00000000:
+							 (interupt)                   	? 32'h00000001 :    //中断
 						inst_tlb_refill | inst_tlb_invalid ? 32'h00000002 :
 		mem_readE & (data_tlb_refill | data_tlb_invalid) ? 32'h00000002 :
 		mem_writeE & (data_tlb_refill | data_tlb_invalid)? 32'h00000003 :
@@ -155,7 +156,7 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 		else begin
 			count <= count + 1;
 			random_reg <= (random_reg == wired_reg) ? (`TLB_LINE_NUM - 1) : (random_reg - 1);
-			cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i & (|current_inst_addr_i) : 0;
+			cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i: 0;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin
 				/* code */
 				timer_int_o <= `InterruptAssert;
