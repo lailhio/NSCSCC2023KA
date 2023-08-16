@@ -155,7 +155,7 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 		else begin
 			count <= count + 1;
 			random_reg <= (random_reg == wired_reg) ? (`TLB_LINE_NUM - 1) : (random_reg - 1);
-			cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i : 0;
+			cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i & (|current_inst_addr_i) : 0;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin
 				/* code */
 				timer_int_o <= `InterruptAssert;
