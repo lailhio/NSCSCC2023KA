@@ -257,18 +257,18 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 					cause_o[6:2] <= 5'b00101;
 					badvaddr <= bad_addr_i;
 				end
-				32'h00000005:begin // tlbmodify
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b00110;
-				end
+				// 32'h00000005:begin // tlbmodify
+				// 	if(is_in_delayslot_i == `InDelaySlot) begin
+				// 		/* code */
+				// 		epc_o <= current_inst_addr_i - 4;
+				// 		cause_o[31] <= 1'b1;
+				// 	end else begin 
+				// 		epc_o <= current_inst_addr_i;
+				// 		cause_o[31] <= 1'b0;
+				// 	end
+				// 	status_o[1] <= 1'b1;
+				// 	cause_o[6:2] <= 5'b00110;
+				// end
 				32'h00000008:begin // Syscall异常
 					if(is_in_delayslot_i == `InDelaySlot) begin
 						/* code */
@@ -423,9 +423,9 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 			`CP0_REG_EPC:begin 
 				data_o = epc_o;
 			end
-			`CP0_REG_PRID: begin 
-				data_o = prid_o;
-			end
+			// `CP0_REG_PRID: begin 
+			// 	data_o = prid_o;
+			// end
 			`CP0_REG_CONFIG:begin 
 				data_o = config_o;
 			end
