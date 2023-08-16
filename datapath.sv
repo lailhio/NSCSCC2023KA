@@ -354,6 +354,7 @@ module datapath(
     
     //后两位不为0
     assign pcErrorE = (pcE[1:0] != 2'b00); 
+    assign {TLBWR, TLBWI, TLBR, TLBP} = tlb_typeE;
 
     cp0_exception cp0_exception(
         .clk(clk), .rst(rst),
