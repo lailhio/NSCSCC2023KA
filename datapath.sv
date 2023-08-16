@@ -291,10 +291,11 @@ module datapath(
     assign flush_pred_failedE = pred_takeE ^ actual_takeE;
     
     assign pc_jumpE =src_a1E; //jr指令 跳转到rs
-    assign mem_enE = (mem_readE  |  mem_writeE) & ~flush_exceptionE;; //意外刷新时需要
+    assign mem_enE = (mem_readE  |  mem_writeE) & ~flush_exceptionE; //意外刷新时需要
+    wire [31:0] addressE = src_aE + src_bE ;
     // Assign Logical
     mem_control mem_control(
-        .instrE(instrE), .instrM(instrM), .addressE(aluoutE), .addressM(aluoutM),
+        .instrE(instrE), .instrM(instrM), .addressE(addressE), .addressM(aluoutM),
     
         .data_wdataE(src_b1E),    //原始的wdata
         .rt_valueM(src_b1M),
@@ -364,7 +365,7 @@ module datapath(
 	//------------------Write_Back_Flop--------------------------
 
 	//hazard detection
-    wire Blank_SL = ((aluoutE[31:2] == aluoutM[31:2])) & mem_writeM &  mem_readE;
+    wire Blank_SL = ((addressE[31:2] == aluoutM[31:2])) & mem_writeM &  mem_readE;
 	hazard hazard0(
         .i_cache_stall(i_cache_stall),
         .d_cache_stall(d_cache_stall),
