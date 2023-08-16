@@ -787,10 +787,34 @@
 
 // tlb 
 //TLB Config
-parameter TLB_LINE_NUM = 8;
+`define TLB_LINE_NUM 8
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
 `define LOG2_TLB_LINE_NUM 5
+//index
+`define INDEX_BITS `LOG2_TLB_LINE_NUM-1:0
+//random
+`define RANDOM_BITS `LOG2_TLB_LINE_NUM-1:0
+//wired
+`define WIRED_BITS `LOG2_TLB_LINE_NUM-1:0
+
+//EntryHi
+`define VPN2_BITS 31:13
+`define ASID_BITS 7:0
+//G bit in TLB entry
+`define G_BIT 12
+//PageMask
+`define MASK_BITS 24:13
+//EntryLo
+`define PFN_BITS 25:6
+`define FLAG_BITS 5:0
+`define V_BIT 1
+`define D_BIT 2
+`define C_BITS 5:3
+
+//context
+`define PTE_BASE_BITS 31:23
+`define BAD_VPN2_BITS 22:4
 
 typedef struct packed {
     logic        G;

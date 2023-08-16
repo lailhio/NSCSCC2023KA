@@ -21,6 +21,29 @@ module datapath(
 
     output wire        alu_stallE, icache_Ctl, 
     output wire        dcache_ctl,
+      // TLB
+    output wire flushM,stallF2,
+    output wire TLBP,
+    output wire TLBR,
+    output wire TLBWI,
+    output wire TLBWR,
+    input wire [31:0] EntryHi_to_cp0,
+    input wire [31:0] PageMask_to_cp0,
+    input wire [31:0] EntryLo0_to_cp0,
+    input wire [31:0] EntryLo1_to_cp0,
+    input wire [31:0] Index_to_cp0,
+
+    output wire [31:0] EntryHi_from_cp0,
+    output wire [31:0] PageMask_from_cp0,
+    output wire [31:0] EntryLo0_from_cp0,
+    output wire [31:0] EntryLo1_from_cp0,
+    output wire [31:0] Index_from_cp0,
+    output wire [31:0] Random_from_cp0,
+
+        //异常
+    input wire inst_tlb_refillF, inst_tlb_invalidF,
+    input wire data_tlb_refillM, data_tlb_invalidM, data_tlb_modifyM,
+    output wire mem_readE, mem_writeE,
 	//debug interface
     output wire[31:0] debug_wb_pc,
     output wire[3:0] debug_wb_rf_wen,
@@ -266,6 +289,8 @@ module datapath(
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
+
+    
     //-----------------------ExFlop---------------------
 	//ALU
     alu aluitem(
@@ -316,6 +341,26 @@ module datapath(
         .stallM(stallM), .we_i(cp0_writeE),
         .waddr_i(instrE[15:11]), .raddr_i(instrE[15:11]),
         .sel_addr(instrE[2:0]), .data_i(src_b1E), .int_i(ext_int),
+        .tlb_typeM(tlb_typeE),
+        .entry_lo0_in(EntryLo0_to_cp0),
+        .entry_lo1_in(EntryLo1_to_cp0),
+        .page_mask_in(PageMask_to_cp0),
+        .entry_hi_in(EntryHi_to_cp0),
+        .index_in(Index_to_cp0),
+        .entry_hi_W(EntryHi_from_cp0),
+        .page_mask_W(PageMask_from_cp0),
+        .entry_lo0_W(EntryLo0_from_cp0), 
+        .entry_lo1_W(EntryLo1_from_cp0),
+        .index_W(Index_from_cp0),
+//tlb exception
+        .mem_read_enM(mem_readE),
+        .mem_write_enM(mem_writeE),
+        .inst_tlb_refill(inst_tlb_refillM),
+        .inst_tlb_invalid(inst_tlb_invalidM),
+        .data_tlb_refill(data_tlb_refillM),
+        .data_tlb_invalid(data_tlb_invalidM),
+        .data_tlb_modify(data_tlb_modifyM),
+
         .current_inst_addr_i(pcE),
         .is_in_delayslot_i(is_in_delayslot_iE),
         .ri(riE), .break_exception(breakE), .syscall(syscallE), .overflow(overflowE), .trap(trapE), 

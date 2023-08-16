@@ -66,7 +66,27 @@ module mycpu_top(
     wire [31:0]   virtual_instr_addr;  //指令地址
     wire          cpu_inst_en;  //使能
     wire          i_stall;
-
+//TLB指令
+    wire stallF2,stallM,flushM;
+	wire TLBP;
+	wire TLBR;
+    wire TLBWI;
+    wire TLBWR;
+    wire [31:0] EntryHi_from_cp0;
+	wire [31:0] PageMask_from_cp0;
+	wire [31:0] EntryLo0_from_cp0;
+	wire [31:0] EntryLo1_from_cp0;
+	wire [31:0] Index_from_cp0;
+	wire [31:0] Random_from_cp0;
+	wire [31:0] EntryHi_to_cp0;
+	wire [31:0] PageMask_to_cp0;
+	wire [31:0] EntryLo0_to_cp0;
+	wire [31:0] EntryLo1_to_cp0;
+	wire [31:0] Index_to_cp0;
+        //异常
+    wire inst_tlb_refill, inst_tlb_invalid;
+    wire data_tlb_refill, data_tlb_invalid, data_tlb_modify;
+    wire mem_read_enM, mem_write_enM;
     //data
     wire        cpu_data_en;                    
     wire [31:0] virtual_data_addr;     //写地址
@@ -142,6 +162,30 @@ module mycpu_top(
         
         .alu_stallE(alu_stallE), .icache_Ctl(icache_Ctl),
         .dcache_ctl(dcache_ctl),
+        //TLB
+        .TLBP(TLBP),
+        .TLBR(TLBR),
+        .TLBWI(TLBWI),
+        .TLBWR(TLBWR),
+
+        .EntryHi_from_cp0(EntryHi_from_cp0),
+        .PageMask_from_cp0(PageMask_from_cp0),
+        .EntryLo0_from_cp0(EntryLo0_from_cp0),
+        .EntryLo1_from_cp0(EntryLo1_from_cp0),
+        .Index_from_cp0(Index_from_cp0),
+        .Random_from_cp0(Random_from_cp0),
+
+        .EntryHi_to_cp0(EntryHi_to_cp0),
+        .PageMask_to_cp0(PageMask_to_cp0),
+        .EntryLo0_to_cp0(EntryLo0_to_cp0),
+        .EntryLo1_to_cp0(EntryLo1_to_cp0),
+        .Index_to_cp0(Index_to_cp0),
+            //异常
+        .inst_tlb_refillF(inst_tlb_refill), .inst_tlb_invalidF(inst_tlb_invalid),
+        .data_tlb_refillM(data_tlb_refill),
+        .data_tlb_invalidM(data_tlb_invalid),
+        .data_tlb_modifyM(data_tlb_modify),
+        .mem_readE(mem_read_enM), .mem_writeE(mem_write_enM),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc),
         .debug_wb_rf_wen(debug_wb_rf_wen),
@@ -154,12 +198,56 @@ module mycpu_top(
         .debug_commit( debug_commit)
 	);
 
-    mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
-                .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
-                .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
-                .data_wr(cpu_data_wr), .no_dcache(no_dcache), .no_icache(no_icache));
+    // mmu Mmu_Trans(.inst_vaddr(virtual_instr_addr), .inst_paddr(cpu_inst_addr),
+    //             .data_vaddr(virtual_data_addr), .data_paddr(cpu_data_addr),
+    //             .data_sram_en(cpu_data_en),.data_sram_wen(data_sram_wen),
+    //             .data_wr(cpu_data_wr), .no_dcache(no_dcache), .no_icache(no_icache));
     
+    assign cpu_data_wr = cpu_data_en & |data_sram_wen;
+    tlb tlb0(
+        .clk(clk), .rst(rst),
+        .stallM(stallM), .flushM(flushM),
+        .stallF(stallF2),
+        //datapath
+        .inst_vaddr(virtual_instr_addrF),
+        .data_vaddr(aluoutE),
 
+        .inst_en(cpu_inst_en),
+        .mem_read_enM(mem_read_enM), .mem_write_enM(mem_write_enM),
+        //cache
+        
+        // .inst_paddr(pcF_paddr),
+        // .data_paddr(data_paddr),
+        .inst_pfn(inst_pfn),
+        .data_pfn(data_pfn),
+        .no_cache_i(no_icache),
+        .no_cache_d(no_dcache),
+        //异常
+        .inst_tlb_refill(inst_tlb_refill),
+        .inst_tlb_invalid(inst_tlb_invalid),
+        .data_tlb_refill(data_tlb_refill),
+        .data_tlb_invalid(data_tlb_invalid),
+        .data_tlb_modify(data_tlb_modify),
+
+        //TLB指令
+        .TLBP(TLBP),
+        .TLBR(TLBR),
+        .TLBWI(TLBWI),
+        .TLBWR(TLBWR),
+        
+        .EntryHi_in(EntryHi_from_cp0),
+        .PageMask_in(PageMask_from_cp0),
+        .EntryLo0_in(EntryLo0_from_cp0),
+        .EntryLo1_in(EntryLo1_from_cp0),
+        .Index_in(Index_from_cp0),
+        .Random_in(Random_from_cp0),
+
+        .EntryHi_out(EntryHi_to_cp0),
+        .PageMask_out(PageMask_to_cp0),
+        .EntryLo0_out(EntryLo0_to_cp0),
+        .EntryLo1_out(EntryLo1_to_cp0),
+        .Index_out(Index_to_cp0)
+    );
     d_cache d_cache (
         //to do
         .clk(clk), .rst(rst),
