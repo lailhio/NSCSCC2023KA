@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 module i_cache #(
-    parameter LEN_LINE = 6,  // 32 Bytes
+    parameter LEN_LINE = 5,  // 32 Bytes
     parameter LEN_INDEX = 7, // 128 lines
     parameter NR_WAYS = 2
 ) (
@@ -8,6 +8,8 @@ module i_cache #(
     output wire i_stall,
     //mips core input
     input  [31:0] cpu_inst_addr    ,
+    input  [19:0] inst_pfn    ,
+
     input         cpu_inst_en      ,
     //mips core output
     output [31:0] cpu_inst_rdata   ,
@@ -57,7 +59,7 @@ module i_cache #(
     
     assign lineLoc = cpu_inst_addr[LEN_LINE - 1 : 0];
     assign index = cpu_inst_addr[LEN_INDEX + LEN_LINE - 1 : LEN_LINE];
-    assign tag = cpu_inst_addr[31 : LEN_INDEX + LEN_LINE];
+    assign tag = inst_pfn;
 
     //  Select
     wire                 inst_en;

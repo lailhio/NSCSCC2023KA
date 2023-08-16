@@ -133,7 +133,7 @@ module instdec(
         endcase
         if(instr==`ERET)
             ascii = "ERET";
-        if(!instr)
+        if(~|instr)
             ascii = "NOP";
     end
 endmodule

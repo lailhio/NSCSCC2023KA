@@ -67,7 +67,6 @@ module mycpu_top(
     wire          cpu_inst_en;  //使能
     wire          i_stall;
 //TLB指令
-    wire stallF2,stallM,flushM;
 	wire TLBP;
 	wire TLBR;
     wire TLBWI;
@@ -86,7 +85,7 @@ module mycpu_top(
         //异常
     wire inst_tlb_refill, inst_tlb_invalid;
     wire data_tlb_refill, data_tlb_invalid, data_tlb_modify;
-    wire mem_read_enM, mem_write_enM;
+    wire mem_readE, mem_writeE;
     //data
     wire        cpu_data_en;                    
     wire [31:0] virtual_data_addr;     //写地址
@@ -146,6 +145,7 @@ module mycpu_top(
     wire        d_bvalid;
     wire        d_bready;
     
+    wire [19:0] inst_pfn, data_pfn;
 
     datapath DataLine(
 		.clk(clk),.rst(rst),
@@ -182,10 +182,10 @@ module mycpu_top(
         .Index_to_cp0(Index_to_cp0),
             //异常
         .inst_tlb_refillF(inst_tlb_refill), .inst_tlb_invalidF(inst_tlb_invalid),
-        .data_tlb_refillM(data_tlb_refill),
-        .data_tlb_invalidM(data_tlb_invalid),
-        .data_tlb_modifyM(data_tlb_modify),
-        .mem_readE(mem_read_enM), .mem_writeE(mem_write_enM),
+        .data_tlb_refillE(data_tlb_refill),
+        .data_tlb_invalidE(data_tlb_invalid),
+        .data_tlb_modifyE(data_tlb_modify),
+        .mem_readE(mem_readE), .mem_writeE(mem_writeE),
 		//debug interface
 		.debug_wb_pc(debug_wb_pc),
         .debug_wb_rf_wen(debug_wb_rf_wen),
@@ -206,14 +206,13 @@ module mycpu_top(
     assign cpu_data_wr = cpu_data_en & |data_sram_wen;
     tlb tlb0(
         .clk(clk), .rst(rst),
-        .stallM(stallM), .flushM(flushM),
-        .stallF(stallF2),
+
         //datapath
-        .inst_vaddr(virtual_instr_addrF),
-        .data_vaddr(aluoutE),
+        .inst_vaddr(virtual_instr_addr),
+        .data_vaddr(virtual_data_addr),
 
         .inst_en(cpu_inst_en),
-        .mem_read_enM(mem_read_enM), .mem_write_enM(mem_write_enM),
+        .mem_readE(mem_readE), .mem_writeE(mem_writeE),
         //cache
         
         // .inst_paddr(pcF_paddr),
@@ -254,7 +253,9 @@ module mycpu_top(
         .no_cache(no_dcache), .d_stall(d_stall), .i_stall(i_stall),
         .data_sram_wen(data_sram_wen), .dcache_ctl(dcache_ctl),
         .cpu_data_wr(cpu_data_wr),     .cpu_data_wdata(cpu_data_wdata), 
-        .cpu_data_size(cpu_data_size),  .cpu_data_addr(cpu_data_addr),
+        .cpu_data_size(cpu_data_size),  .cpu_data_addr(virtual_data_addr),
+        .data_pfn(data_pfn),
+
         .cpu_data_en(cpu_data_en),      .cpu_data_rdata(cpu_data_rdata),
         //D CACHE
         .d_araddr          (d_araddr ), .d_arlen           (d_arlen  ),
@@ -280,7 +281,8 @@ module mycpu_top(
         .no_cache(no_icache), .i_stall(i_stall), .icache_Ctl(icache_Ctl),
         
         .cpu_inst_en(cpu_inst_en),
-        .cpu_inst_addr(cpu_inst_addr),
+        .cpu_inst_addr(virtual_instr_addr),
+        .inst_pfn(inst_pfn),
         
         .cpu_inst_rdata(cpu_inst_rdata),
         //I CACHE OUTPUT

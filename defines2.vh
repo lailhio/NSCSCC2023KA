@@ -505,6 +505,11 @@
    
 `define ERET 5'b10000
 
+`define TLBR   6'b000001
+`define TLBWI  6'b000010
+`define TLBWR  6'b000110
+`define TLBP   6'b001000
+
 `define R_TYPE 6'b000000
 `define REGIMM_INST 6'b000001
 // `define SPECIAL3_INST 6'b010000
@@ -790,7 +795,7 @@
 `define TLB_LINE_NUM 8
 `define TAG_WIDTH 20
 `define OFFSET_WIDTH 12
-`define LOG2_TLB_LINE_NUM 5
+`define LOG2_TLB_LINE_NUM 3
 //index
 `define INDEX_BITS `LOG2_TLB_LINE_NUM-1:0
 //random

@@ -22,7 +22,6 @@ module datapath(
     output wire        alu_stallE, icache_Ctl, 
     output wire        dcache_ctl,
       // TLB
-    output wire flushM,stallF2,
     output wire TLBP,
     output wire TLBR,
     output wire TLBWI,
@@ -42,7 +41,7 @@ module datapath(
 
         //异常
     input wire inst_tlb_refillF, inst_tlb_invalidF,
-    input wire data_tlb_refillM, data_tlb_invalidM, data_tlb_modifyM,
+    input wire data_tlb_refillE, data_tlb_invalidE, data_tlb_modifyE,
     output wire mem_readE, mem_writeE,
 	//debug interface
     output wire[31:0] debug_wb_pc,
@@ -65,7 +64,13 @@ module datapath(
 	wire [31:0] PcPlus4F2, PcPlus8F2;    //pc
      wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
-	//----------decode stage---------
+	wire inst_tlb_refillF2;
+    wire inst_tlb_invalidF2;
+
+    //----------decode stage---------
+    wire inst_tlb_refillD;
+    wire inst_tlb_invalidD;
+
 	wire[5:0] aluopD;
 	wire[7:0] alucontrolD;
 	wire [31:0] instrD;  //指令
@@ -95,7 +100,13 @@ module datapath(
     wire        is_in_delayslot_iD;//指令是否在延迟槽
     wire [1:0]  forward_1D;
     wire [1:0]  forward_2D;
+	wire [3:0] tlb_typeD;
+
 	//-------execute stage----------
+	wire [3:0] tlb_typeE;
+
+    wire inst_tlb_refillE;
+    wire inst_tlb_invalidE;
 	wire [31:0] pcE, PcPlus4E, PcPlus8E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
@@ -113,7 +124,7 @@ module datapath(
     // wire        alu_stallE;  //alu暂停
     wire        actual_takeE;  //分支预测 实际结果
     wire [2 :0] branch_judge_controlE; //分支判断控制
-	wire        memtoregE, mem_readE, mem_writeE;
+	wire        memtoregE;
     wire [1:0]  hilo_selectE;  //高位1表示是mhl指令，0表示是乘除法
                               //低位1表示是用hi，0表示用lo
 	wire        hilotoregE;//hilo到寄存器
@@ -135,7 +146,7 @@ module datapath(
     wire [4:0] 	writeregM; //写寄存器号
     wire [31:0] instrM;  //指令
     // wire        mem_readM; //读内存
-    wire        mem_writeE; //写内存
+    // wire        mem_writeE; //写内存
     wire        regwriteM;  //寄存器写
     wire        memtoregM;  //写回寄存器选择信号
     wire        pre_right;  // 预测正确
@@ -212,6 +223,9 @@ module datapath(
     flopstrc #(32) flopPcplus8F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus8F),.out(PcPlus8F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
+    flopstrc #(1) flopTlbReF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_tlb_refillF & inst_enF),.out(inst_tlb_refillF2));
+    flopstrc #(1) flopTlbInvF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_tlb_invalidF & inst_enF),.out(inst_tlb_invalidF2));
+   
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
     assign is_in_delayslot_iF2 = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
@@ -224,6 +238,8 @@ module datapath(
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instr_validF2),.out(instrD));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
         .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
+    flopstrc #(1) flopTlbReD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_tlb_refillF2),.out(inst_tlb_refillD));
+    flopstrc #(1) flopTlbInvD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_tlb_invalidF2),.out(inst_tlb_invalidD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
     wire DivMulEnD, DivMulEnE;
@@ -231,7 +247,7 @@ module datapath(
 	maindec md(instrD,
 		//output
         sign_exD , regdstD, is_immD , regwriteD , writeregD, mem_readD , mem_writeD , memtoregD,
-		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD,
+		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD, tlb_typeD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
 
     //扩展立即数
@@ -289,8 +305,10 @@ module datapath(
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
-
+    flopstrc #(4) flopTlbTypeE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(tlb_typeD),.out(tlb_typeE));
     
+    flopstrc #(1) flopTlbReE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(inst_tlb_refillD),.out(inst_tlb_refillE));
+    flopstrc #(1) flopTlbInvE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(inst_tlb_invalidD),.out(inst_tlb_invalidE));
     //-----------------------ExFlop---------------------
 	//ALU
     alu aluitem(
@@ -342,7 +360,7 @@ module datapath(
         .stallM(stallM), .we_i(cp0_writeE),
         .waddr_i(instrE[15:11]), .raddr_i(instrE[15:11]),
         .sel_addr(instrE[2:0]), .data_i(src_b1E), .int_i(ext_int),
-        .tlb_typeM(tlb_typeE),
+        .tlb_typeE(tlb_typeE),
         .entry_lo0_in(EntryLo0_to_cp0),
         .entry_lo1_in(EntryLo1_to_cp0),
         .page_mask_in(PageMask_to_cp0),
@@ -354,13 +372,13 @@ module datapath(
         .entry_lo1_W(EntryLo1_from_cp0),
         .index_W(Index_from_cp0),
 //tlb exception
-        .mem_read_enM(mem_readE),
-        .mem_write_enM(mem_writeE),
-        .inst_tlb_refill(inst_tlb_refillM),
-        .inst_tlb_invalid(inst_tlb_invalidM),
-        .data_tlb_refill(data_tlb_refillM),
-        .data_tlb_invalid(data_tlb_invalidM),
-        .data_tlb_modify(data_tlb_modifyM),
+        .mem_readE(mem_readE),
+        .mem_writeE(mem_writeE),
+        .inst_tlb_refill(inst_tlb_refillE),
+        .inst_tlb_invalid(inst_tlb_invalidE),
+        .data_tlb_refill(data_tlb_refillE),
+        .data_tlb_invalid(data_tlb_invalidE),
+        .data_tlb_modify(data_tlb_modifyE),
 
         .current_inst_addr_i(pcE),
         .is_in_delayslot_i(is_in_delayslot_iE),
