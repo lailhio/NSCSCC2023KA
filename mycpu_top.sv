@@ -359,8 +359,8 @@ module mycpu_top(
 
     //ascii
     //use for debug
-    instdec instdec(
-        .instr(cpu_inst_rdata)
-    );
+    // instdec instdec(
+    //     .instr(cpu_inst_rdata)
+    // );
 
 endmodule

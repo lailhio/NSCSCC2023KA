@@ -186,6 +186,7 @@ module datapath(
     wire flushF, flushF2, flushD, flushE, flushM, flushW;
 //------------------------------------------Data------------------------------------------
 	//--------------------debug---------------------
+    wire is_mfcW, interuptW;
     assign debug_wb_pc          = pcW;
     assign debug_wb_rf_wen      = {4{regwriteW & ~stallW }};
     assign debug_wb_rf_wnum     = writeregW;
@@ -417,7 +418,6 @@ module datapath(
 	//------------------Memory2_Flop--------------------------
     mux2 #(32) mux2_memtoreg(aluoutM, result_rdataM, memtoregM, resultM);
 	//-------------------------------------Write_Back-------------------------------------------------
-    wire is_mfcW, interuptW;
     wire [31:0] instrW; // for debug
 	flopstrc #(8) flopWriregW(.clk(clk),.rst(rst),.stall(stallW),.flush(flushW),
             .in({writeregM,regwriteM,is_mfcM, interuptM}),

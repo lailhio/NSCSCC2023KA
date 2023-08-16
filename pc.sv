@@ -16,22 +16,10 @@ module pc_reg(
     input wire [31:0] PcPlus4F,                 //下一条指令的地址
     output reg [31:0] pc
     );
-    reg [31:0] next_pc;
-    always @(*) begin
-        if(pc_trapE) //发生异常
-            next_pc = pc_exceptionE;
-        else if(~pre_right & ~actual_takeE)  //预测跳  实际不挑
-            next_pc = PcPlus8E;
-        else if(~pre_right & actual_takeE)   //预测不跳  实际跳
-            next_pc = pc_branchE;
-        else if(jumpD) //jump不冲突
-            next_pc = pc_jumpD;
-        else if(pred_takeD) 
-            //采用D阶段预测结果进行跳转
-            next_pc = pc_branchD;
-        else
-            next_pc = PcPlus4F;
-    end
+    wire [31:0] next_pc;
+    assign next_pc = pc_trapE?pc_exceptionE:
+                    pre_right?(jumpD?pc_jumpD:pred_takeD?pc_branchD:PcPlus4F):
+                    actual_takeE?pc_branchE:PcPlus8E;
 
     always @(posedge clk) begin
         if(rst) begin
