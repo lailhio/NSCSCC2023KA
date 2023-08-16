@@ -400,6 +400,9 @@ module datapath(
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
+	flopstrc #(32) flopCountM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_countE),.out(cp0_countM));
+	flopstrc #(32) floprandomM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_randomE),.out(cp0_randomM));
+	flopstrc #(32) flopcauseM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_causeE),.out(cp0_causeM));
     flopstrc #(5) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({regwriteE,branchE,mem_writeE,memtoregE, interuptE}),
         .out({regwriteM,branchM,mem_writeM,memtoregM, interuptM}));

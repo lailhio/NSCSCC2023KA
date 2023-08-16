@@ -181,9 +181,6 @@ module d_cache#(
     logic [3:0] wena_data_bank_way [NR_WAYS-1:0]; // 4 bytes
     logic [31:0] wdata_buffer[NR_WORDS -1 :0];
     
-    // hit and write
-    wire [1:0] wena_tag_hitway;
-    assign  wena_tag_hitway = wena_tag_ram_way; // 4 bytes
     wire [3:0] wena_data_hitway [NR_WAYS-1:0];
     assign  wena_data_hitway = hit & store ?
             {{data_sram_wen_M2 & {4{c_way[1]}}}, {data_sram_wen_M2 & {4{~c_way[1]}}}} : wena_data_bank_way; // 4 bytes
@@ -553,7 +550,7 @@ module d_cache#(
             .enb    (cache_en1),
             .addra  (index_M3),
             .dina   (tag_M3),
-            .wea    (wena_tag_hitway[i]),
+            .wea    (wena_tag_ram_way[i]),
             .addrb  (index),
             .doutb  (c_tag_M2[i])
             );
