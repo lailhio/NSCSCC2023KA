@@ -25,7 +25,7 @@ module hazard(
     input wire  Blank_SL,
     output wire stallF, stallF2, stallD, stallE, stallM, stallM2, stallW,
     output wire flushF, flushF2, flushD, flushE, flushM, flushM2, flushW,
-    output wire longest_stall, stallDblank, icache_Ctl,
+    output wire longest_stall, stallDblank, icache_Ctl, flush_pc_debugM2,
 
     output wire [2:0] forward_1D, forward_2D //000-> NONE, 001-> WRITE, 010-> M2, 011 -> M , 100 -> E
 );
@@ -45,6 +45,7 @@ module hazard(
                         ((rtD != 0)) & regwriteW & ((rtD == writeregW)) ? 3'b001 :
                         3'b000;
     assign id_cache_stall=d_cache_stall|i_cache_stall;
+    assign flush_pc_debugM2 = ~stallM2 & Blank_SL;
 
     wire branch_ok =  pred_takeD ;
     

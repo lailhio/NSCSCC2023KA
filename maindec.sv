@@ -13,11 +13,10 @@ module maindec(
 		output reg memtoregD,         	//result选择 0->aluout, 1->read_data
 		output wire hilotoregD,			// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 		output reg riD,
-		output wire breakD, syscallD, eretD,
-		output wire cp0_writeD,
-		output wire cp0_to_regD,
-			
-	output wire [3:0] tlb_typeD,
+		output reg breakD, syscallD, eretD,
+		output reg cp0_writeD,
+		output reg cp0_to_regD,
+		output wire [3:0] tlb_typeD,
 		
 		output wire mfhiD,
 		output wire mfloD,
@@ -31,6 +30,8 @@ module maindec(
 	//Instruct Divide
 	wire [5:0] opD,functD;
 	wire [4:0] rsD,rtD,rdD,shamtD;
+	reg TLBWR, TLBWI, TLBP, TLBR;
+	
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
 	assign rsD = instrD[25:21];
@@ -44,19 +45,10 @@ module maindec(
 														// 00--aluoutM; 01--hilo_out; 10 11--rdataM;
 	assign mfhiD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFHI));
 	assign mfloD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `MFLO));
-	assign cp0_writeD = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MTC0));
-	assign cp0_to_regD = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `MFC0));
-	assign eretD = ~(|(opD ^ `COP0_INST)) & ~(|(rsD ^ `ERET));
 	
-	assign breakD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `BREAK));
-	assign syscallD = ~(|(opD ^ `R_TYPE)) & ~(|(functD ^ `SYSCALL));
-	wire TLBWR, TLBWI, TLBP, TLBR;
 
-	assign TLBWI 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBWI	);
-	assign TLBP 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBP	);
-	assign TLBR 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBR	);
-	assign TLBWR 	= !(opD ^ `COP0_INST) & instrD[25] & !(functD ^ `TLBWR	);
 	assign tlb_typeD = {TLBWR, TLBWI, TLBR, TLBP};
+	
 	always @(*) begin
 		case(opD)
 			`R_TYPE:begin
@@ -370,12 +362,19 @@ module maindec(
 						is_mfcD=1'b0;
 						aluopD=`USELESS_OP;
 						writeregD = rdD;
-						riD  =  |(instrD[25:0] ^ `ERET) & |(functD ^ `TLBR) & |(functD ^ `TLBP) & |(functD ^ `TLBWI) & |(functD ^ `TLBWR);
-
+						riD  =  |(instrD[25:0] ^ `RS_CO) & |(functD ^ `TLBR) & |(functD ^ `TLBP) & |(functD ^ `TLBWI) & |(functD ^ `TLBWR);
 						{regwriteD, regdstD, is_immD}  =  4'b0000;
 						{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 					end
 				endcase
+			end
+			`CACHE: begin
+				is_mfcD=1'b0;
+				aluopD=`USELESS_OP;
+				writeregD = rdD;
+				riD  =  1'b0;
+				{regwriteD, regdstD, is_immD}  =  4'b0000;
+				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
 
 			`SPECIAL2_INST: begin
@@ -555,4 +554,140 @@ module maindec(
 					end
 		endcase
 	end
+	
+	always @(*) begin
+			// special
+			case(opD)
+				`COP0_INST:begin
+					case (rsD)
+						`MFC0: begin
+							breakD = 1'b0;
+							syscallD = 1'b0;
+							eretD = 1'b0;
+							cp0_to_regD =1'b1;
+							cp0_writeD = 1'b0;
+							TLBWR = 1'b0;
+							TLBWI = 1'b0;
+							TLBR = 1'b0;
+							TLBP = 1'b0;
+						end
+						`MTC0: begin
+							breakD = 1'b0;
+							syscallD = 1'b0;
+							eretD = 1'b0;
+							cp0_to_regD =1'b0;
+							cp0_writeD = 1'b1;
+							TLBWR = 1'b0;
+							TLBWI = 1'b0;
+							TLBR = 1'b0;
+							TLBP = 1'b0;
+						end
+						`RS_CO: begin
+							case(functD)
+								`FUN_TLBR: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b0;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b0;
+									TLBWI = 1'b0;
+									TLBR = 1'b1;
+									TLBP = 1'b0;
+								end
+								`FUN_TLBWI: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b0;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b0;
+									TLBWI = 1'b1;
+									TLBR = 1'b0;
+									TLBP = 1'b0;
+								end
+								`FUN_TLBWR: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b0;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b1;
+									TLBWI = 1'b0;
+									TLBR = 1'b0;
+									TLBP = 1'b0;
+								end
+								`FUN_TLBP: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b0;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b0;
+									TLBWI = 1'b0;
+									TLBR = 1'b0;
+									TLBP = 1'b1;
+								end
+								`FUN_ERET: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b1;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b0;
+									TLBWI = 1'b0;
+									TLBR = 1'b0;
+									TLBP = 1'b0;
+								end
+								`FUN_WAIT: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b0;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b0;
+									TLBWI = 1'b0;
+									TLBR = 1'b0;
+									TLBP = 1'b0;
+									// wait as nop
+								end
+								default: begin
+									breakD = 1'b0;
+									syscallD = 1'b0;
+									eretD = 1'b0;
+									cp0_to_regD =1'b0;
+									cp0_writeD = 1'b0;
+									TLBWR = 1'b0;
+									TLBWI = 1'b0;
+									TLBR = 1'b0;
+									TLBP = 1'b0;
+								end
+							endcase
+						end
+						default: begin
+							breakD = 1'b0;
+							syscallD = 1'b0;
+							eretD = 1'b0;
+							cp0_to_regD =1'b0;
+							cp0_writeD = 1'b0;
+							TLBWR = 1'b0;
+							TLBWI = 1'b0;
+							TLBR = 1'b0;
+							TLBP = 1'b0;
+						end
+					endcase
+				end
+				default: begin
+					breakD = 1'b0;
+					syscallD = 1'b0;
+					eretD = 1'b0;
+					cp0_to_regD =1'b0;
+					cp0_writeD = 1'b0;
+					TLBWR = 1'b0;
+					TLBWI = 1'b0;
+					TLBR = 1'b0;
+					TLBP = 1'b0;
+				end
+			endcase
+		end
 endmodule

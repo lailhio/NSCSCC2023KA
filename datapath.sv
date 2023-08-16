@@ -168,7 +168,7 @@ module datapath(
     wire        cp0_writeM;
     //------writeback stage----------
 	wire [4:0] writeregM2;//写寄存器号
-	wire regwriteM2,memtoregM2;
+	wire regwriteM2,memtoregM2, flush_pc_debugM2;
 	wire [31:0] resultori_M2;
 	wire [31:0] resultM2;
     wire [31:0] aluoutM2;
@@ -451,7 +451,7 @@ module datapath(
 	flopstrc #(32) flopCountM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_countM),.out(cp0_countM2));
 	flopstrc #(32) flopCauseM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(cp0_causeM),.out(cp0_causeM2));
 	flopstrc #(32) flopResM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(resultM),.out(resultori_M2));
-	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(1'b0),.in(pcM),.out(pcM2));  //Not Flush Pc
+	flopstrc #(32) flopPcM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flush_pc_debugM2),.in(pcM),.out(pcM2));  //Not Flush Pc
 	flopstrc #(32) flopInstrM2(.clk(clk),.rst(rst),.stall(stallM2),.flush(flushM2),.in(instrM),.out(instrM2));
     flopstrc #(32) flopRtvalueM2(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1M),.out(src_b1M2));
 	//------------------Memory2_Flop--------------------------
@@ -499,7 +499,7 @@ module datapath(
         .mem_readE(mem_readE),
         .mem_readM(mem_readM),
         
-        .Blank_SL(Blank_SL),
+        .Blank_SL(Blank_SL), .flush_pc_debugM2(flush_pc_debugM2),
         .stallF(stallF), .stallF2(stallF2), .stallD(stallD), .stallE(stallE), .stallM(stallM), .stallM2(stallM2), .stallW(stallW),
         .flushF(flushF), .flushF2(flushF2), .flushD(flushD), .flushE(flushE), .flushM(flushM), .flushM2(flushM2), .flushW(flushW),
         .longest_stall(longest_stall), .stallDblank(stallDblank), .icache_Ctl(icache_Ctl), 

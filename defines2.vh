@@ -499,11 +499,20 @@
 `define SB  6'b101000
 `define SH  6'b101001
 `define SW  6'b101011
+`define CACHE   6'b101111
+`define PREF    6'b110011
 
 `define SYSCALL 6'b001100
 `define BREAK 6'b001101
-   
-`define ERET 5'b10000
+`define RS_CO   5'b10000
+
+// COP0 CO FUNCT
+`define FUN_TLBR        6'b000001
+`define FUN_TLBWI       6'b000010
+`define FUN_TLBWR       6'b000110
+`define FUN_TLBP        6'b001000
+`define FUN_ERET        6'b011000
+`define FUN_WAIT        6'b100000
 
 `define TLBR   6'b000001
 `define TLBWI  6'b000010

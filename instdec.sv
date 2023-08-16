@@ -131,8 +131,8 @@ module instdec(
 			end
             default: ascii = "N-R";
         endcase
-        if(instr==`ERET)
-            ascii = "ERET";
+        if(instr==`RS_CO)
+            ascii = "RS_CO";
         if(!instr)
             ascii = "NOP";
     end
