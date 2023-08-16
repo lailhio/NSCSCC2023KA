@@ -65,7 +65,13 @@ module datapath(
 	wire [31:0] PcPlus4F2, PcPlus8F2;    //pc
      wire [31:0] PcF2;    //pc
     wire is_in_delayslot_iF2; // 此时的D阶段（即上一条指令）是否为跳转指令
+    wire inst_tlb_refillF2;
+    wire inst_tlb_invalidF2;
+    
 	//----------decode stage---------
+    wire inst_tlb_refillD;
+    wire inst_tlb_invalidD;
+
 	wire[5:0] aluopD;
 	wire[7:0] alucontrolD;
 	wire [31:0] instrD;  //指令
@@ -96,6 +102,9 @@ module datapath(
     wire [2:0]  forward_1D;
     wire [2:0]  forward_2D;
 	//-------execute stage----------
+    wire inst_tlb_refillE;
+    wire inst_tlb_invalidE;
+
 	wire [31:0] pcE, PcPlus4E, PcPlus8E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
     wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
@@ -130,6 +139,9 @@ module datapath(
     wire        trapE; //自陷
 	
 	//----------mem stage--------
+    wire inst_tlb_refillM;
+    wire inst_tlb_invalidM;
+    
 	wire [31:0] pcM;  // pc
     wire [31:0] aluoutM; //alu输出
     wire [4:0] 	writeregM; //写寄存器号
@@ -228,6 +240,8 @@ module datapath(
     flopstrc #(32) flopPcplus8F2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PcPlus8F),.out(PcPlus8F2));
     flopstrc #(32) flopPcF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(PC_IF1),.out(PcF2));
     flopstrc #(1) flopInstEnF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_enF),.out(inst_enF2));
+    flopstrc #(1) flopTlbReF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_tlb_refillF & inst_enF),.out(inst_tlb_refillF2));
+    flopstrc #(1) flopTlbInvF2(.clk(clk),.rst(rst),.stall(stallF2),.flush(flushF2),.in(inst_tlb_invalidF & inst_enF),.out(inst_tlb_invalidF2));
     assign instr_validF2 = {32{inst_enF2}}&instrF2;  //丢掉无效指令
     assign is_in_delayslot_iF2 = branchD | jumpD; //通过前一条指令，判断是否是延迟槽
     //-----------------------InstFetch2Flop------------------------------
@@ -240,6 +254,8 @@ module datapath(
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instr_validF2),.out(instrD));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
         .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
+    flopstrc #(1) flopTlbReD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_tlb_refillF2),.out(inst_tlb_refillD));
+    flopstrc #(1) flopTlbInvD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_tlb_invalidF2),.out(inst_tlb_invalidD));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
     wire DivMulEnD, DivMulEnE;
@@ -310,6 +326,8 @@ module datapath(
     flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
         .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
+    flopstrc #(1) flopTlbReE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(inst_tlb_refillD),.out(inst_tlb_refillE));
+    flopstrc #(1) flopTlbInvE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(inst_tlb_invalidD),.out(inst_tlb_invalidE));
     //-----------------------ExFlop---------------------
 	//ALU
     alu aluitem(
@@ -350,6 +368,8 @@ module datapath(
         .out({riM,syscallM,eretM,cp0_writeM,cp0_to_regM,is_mfcM}));
     flopstrc #(7) flopWriteregM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({writeregE,overflowE,trapE}),.out({writeregM,overflowM,trapM}));
+    flopstrc #(1) flopTlbReE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(inst_tlb_refillE),.out(inst_tlb_refillM));
+    flopstrc #(1) flopTlbInvE(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(inst_tlb_invalidE),.out(inst_tlb_invalidM));
     //----------------------MemoryFlop------------------------
     assign mem_enM = (mem_readM  |  mem_writeM) & ~flush_exceptionM;; //意外刷新时需要
     // Assign Logical
