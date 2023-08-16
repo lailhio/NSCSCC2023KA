@@ -131,9 +131,12 @@ module alu(
                 hilo_selectE = 2'b10;
                 hilo_writeE = 1'b1;
             end
-            `MFHI_CONTROL, `MFLO_CONTROL:begin
+            `MFHI_CONTROL:begin
+                aluoutE = hilo_outE[63:32];
+            end
+            `MFLO_CONTROL:begin
                 // aluoutE = {32'b0, hilo_outE};
-                aluoutE = ({32{mfhiE}} & hilo_outE[63:32]) | ({32{mfloE}} & hilo_outE[31:0]);
+                aluoutE = hilo_outE[31:0];
             end
             `CLO_CONTROL:   aluoutE = ~src_aE[31] ? 32'd0 : ~src_aE[30] ? 32'd1 :
                                     ~src_aE[29] ? 32'd2 : ~src_aE[28] ? 32'd3 :
