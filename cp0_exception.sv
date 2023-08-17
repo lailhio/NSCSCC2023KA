@@ -49,7 +49,6 @@ module cp0_exception(
     wire [`RegBus] bad_addr_i;
 
     reg timer_int_o;
-   reg interval_flag;   //间隔一个时钟递增时钟计数器
 
     reg[`RegBus] compare_o;
 	reg[`RegBus] prid_o;
@@ -219,11 +218,6 @@ module cp0_exception(
          badvaddr <= bad_addr_i;
    end
 
-//自增
-   //count
-   always @(posedge clk) begin
-      interval_flag <= rst ? 1'b0 : ~interval_flag;
-   end
 
    wire count_wen;
    assign count_wen = ~stallM & we_i & (waddr_i == `CP0_COUNT);
@@ -236,7 +230,7 @@ module cp0_exception(
       end
       else begin
          //计时器加1
-         count <= interval_flag ? count + 1 : count;
+         count <=  count + 1 ;
       end
    end
 
