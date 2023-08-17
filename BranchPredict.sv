@@ -1,3 +1,6 @@
+`include "defines2.vh"
+`timescale 1ns / 1ps
+
 module BranchPredict(
     input wire clk, rst,
     
@@ -7,13 +10,12 @@ module BranchPredict(
     input wire [31:0] instrD,
     input wire [31:0] immD,
 
-    input wire [31:0] pcF,
-    input wire [31:0] pcM,
-    input wire branchM,
-    input wire actual_takeM,
+    input wire [31:0] PcF2,
+    input wire [31:0] pcE,
+    input wire branchE,
+    input wire actual_takeE,
 
     output wire branchD,
-    output wire branchL_D,
     output wire pred_takeD
 );
     wire pred_takeF;
@@ -24,12 +26,10 @@ module BranchPredict(
 	assign rs = instrD[25:21];
 	assign rt = instrD[20:16];
 	assign funct = instrD[5:0];
-    assign branchD = ( !(op_code ^ 6'b000001) & (!(instrD[19:17] ^ 3'b000) | !(instrD[19:17] ^ 3'b001)) ) //6'b000001 = EXE_REGIMM
-                    | !(op_code[5:2] ^ 4'b0001); //4'b0001 -> beq, bgtz, blez, bne
+    assign branchD = ( ((op_code == `REGIMM_INST)) & ((instrD[19:17] == 3'b000) | ((instrD[19:17] == 3'b001))) ) //6'b000001 = EXE_REGIMM
+                    | ((op_code[5:2] == 4'b0001)); //4'b0001 -> beq, bgtz, blez, bne
                                                     // 3'b000 -> BLTZ BLTZAL BGEZAL BGEZ
                                                     // 3'b001 -> BGEZALL BGEZL BLTZALL BLTZL
-    assign branchL_D = ( !(op_code ^ 6'b000001) & !(instrD[19:17] ^ 3'b001) ) |
-                         !(op_code[5:2] ^ 4'b0101); //beql, bgtzl, blezl, bnel
 
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
@@ -42,7 +42,7 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] BHT_index;
     wire [(PHT_DEPTH-1):0] BHR_value;
 
-    assign BHT_index = pcF[11:2];     
+    assign BHT_index = PcF2[11:2];     
     assign BHR_value = BHT[BHT_index];  
     assign PHT_index = BHR_value;
 
@@ -53,18 +53,16 @@ module BranchPredict(
     wire [(BHT_DEPTH-1):0] update_BHT_index;
     wire [(PHT_DEPTH-1):0] update_BHR_value;
 
-    assign update_BHT_index = pcM[11:2];     
+    assign update_BHT_index = pcE[11:2];     
     assign update_BHR_value = BHT[update_BHT_index];  
     assign update_PHT_index = update_BHR_value;
 
     always@(posedge clk) begin
         if(rst) begin
-            for(j = 0; j < (1<<BHT_DEPTH); j=j+1) begin
-                BHT[j] <= 0;
-            end
+            BHT <= '{default:'0};
         end
-        else if(branchM) begin
-            BHT[update_BHT_index] <= {BHT[update_BHT_index] << 1, actual_takeM};
+        else if(branchE) begin
+            BHT[update_BHT_index] <= {BHT[update_BHT_index] << 1, actual_takeE};
         end
     end
 // ---------------------------------------BHT初始化以及更新---------------------------------------
@@ -72,16 +70,14 @@ module BranchPredict(
 // ---------------------------------------PHT初始化以及更新---------------------------------------
     always @(posedge clk) begin
         if(rst) begin
-            for(i = 0; i < (1<<PHT_DEPTH); i=i+1) begin
-                PHT[i] <= Weakly_taken;
-            end
+            PHT = '{default:'0};
         end
         else begin
             case(PHT[update_PHT_index])
-                Strongly_not_taken  :   PHT[update_PHT_index] <= actual_takeM & branchM ? Weakly_not_taken : Strongly_not_taken;
-                Weakly_not_taken    :   PHT[update_PHT_index] <= actual_takeM & branchM ? Weakly_taken : Strongly_not_taken;
-                Weakly_taken        :   PHT[update_PHT_index] <= actual_takeM & branchM ? Strongly_taken : Weakly_not_taken;
-                Strongly_taken      :   PHT[update_PHT_index] <= actual_takeM & branchM ? Strongly_taken : Weakly_taken;
+                Strongly_not_taken  :   PHT[update_PHT_index] <= actual_takeE & branchE ? Weakly_not_taken : Strongly_not_taken;
+                Weakly_not_taken    :   PHT[update_PHT_index] <= actual_takeE & branchE ? Weakly_taken : Strongly_not_taken;
+                Weakly_taken        :   PHT[update_PHT_index] <= actual_takeE & branchE ? Strongly_taken : Weakly_not_taken;
+                Strongly_taken      :   PHT[update_PHT_index] <= actual_takeE & branchE ? Strongly_taken : Weakly_taken;
             endcase 
         end
     end

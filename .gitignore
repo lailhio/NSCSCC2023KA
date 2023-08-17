@@ -1,0 +1,7 @@
+/obj
+*.s
+*.txt
+temp
+temp.*
+*.temp
+.idea
