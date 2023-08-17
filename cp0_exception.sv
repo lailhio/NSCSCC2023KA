@@ -10,7 +10,6 @@
 `define BD_BIT 31             //延迟槽
 `define TI_BIT 30             //计时器中断指示
 `define IP1_IP0_BITS 9:8      //软件中断位
-`define IP7_IP2_BITS 15:10      //软件中断位
 `define EXC_CODE_BITS 6:2     //异常编码
 
 module cp0_exception(
@@ -231,10 +230,14 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
       end
       else if(cause_wen) begin
          cause_o[`IP1_IP0_BITS] <= data_i[`IP1_IP0_BITS];  //软件中断
+         cause_o[23] <= data_i[23]; 
+      end
+      else if(compare_wen)begin
+         cause_o[15] <= 0;
       end
       else begin
          //外部中断
-         cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i : 0;
+         cause_o[`IP7_IP0_BITS]  <= {cause_o[15] | (count == compare_o),int_i[4:0],cause_o[9:8]};
       end
    end
 

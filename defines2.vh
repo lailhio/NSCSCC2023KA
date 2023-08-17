@@ -922,7 +922,7 @@
 `define CE_BITS 29:28         //CpU异常时，协处理器编号 //don't use
 `define IV_BIT 23             //don't use
 `define IP1_IP0_BITS 9:8      //软件中断位
-`define IP7_IP2_BITS 15:10    //软件中断位
+`define IP7_IP0_BITS 15:8    //软件中断位
 `define EXC_CODE_BITS 6:2     //异常编码
 `define CAUSE_INIT 32'h0;
 
