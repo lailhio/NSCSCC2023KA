@@ -16,7 +16,7 @@
 module cp0_exception(
     input wire clk,
 	input wire rst,
-	input wire stallM,
+	input wire stallM, stallD,
 	input wire we_i,
 	input[4:0] waddr_i,
 	input[4:0] raddr_i,
@@ -62,7 +62,7 @@ module cp0_exception(
 
     output flush_exception,  //是否有异常?
     output [31:0] pc_exception,  //pc异常处理地址
-    output pc_trap, interupt //是否trap
+    output pc_trap, interuptE //是否trap
 );
 
     reg[`RegBus] status_o;
@@ -99,15 +99,13 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 	assign count_o = count[32:1];
 	assign random_o = random_reg;
        //             //IE             //EXL            
-	assign interupt =   status_o[0] && ~status_o[1] && (
+	assign interuptE =   status_o[0] & ~status_o[1] & ~status_o[2]  & (current_inst_addr_i != 0) & (
 						//IM                 //IP
-					( |(status_o[9:8] & cause_o[9:8]) ) ||        //soft interupt
-					( |(status_o[15:10] & cause_o[15:10]) )||     //硬件中断
-					(|(status_o[30] & cause_o[30]))            //计时器中断?
+					( |(status_o[9:8] & cause_o[9:8]) ) ||        //soft interuptE
+					( |(status_o[15:10] & cause_o[15:10]) )     //硬件中断
 	);
 
-	assign excepttype_i =   ~(|current_inst_addr_i)  		? 32'h00000000:
-							 (interupt)                   	? 32'h00000001 :    //中断
+	assign excepttype_i =  (interuptE)                   	? 32'h00000001 :    //中断
 						inst_tlb_refill | inst_tlb_invalid ? 32'h00000002 :
 		mem_readE & (data_tlb_refill | data_tlb_invalid) ? 32'h00000002 :
 		mem_writeE & (data_tlb_refill | data_tlb_invalid)? 32'h00000003 :
@@ -121,7 +119,7 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 								(trap)                  ? 32'h0000000d :     //自陷异常
 								(eretE)                 ? 32'h0000000e :   //eret指令
 														32'h00000000 ;   //无异常?
-	//interupt pc address
+	//interuptE pc address
 	   wire BEV;
    assign BEV = status_o[22];
 
@@ -156,7 +154,7 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 		else begin
 			count <= count + 1;
 			random_reg <= (random_reg == wired_reg) ? (`TLB_LINE_NUM - 1) : (random_reg - 1);
-			cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i: 0;
+			cause_o[`IP7_IP2_BITS] <=  int_i;
 			if(compare_o != `ZeroWord && count_o == compare_o) begin
 				/* code */
 				timer_int_o <= `InterruptAssert;
@@ -442,5 +440,5 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 				data_o = `ZeroWord;
 			end
 		endcase
-end
+	end	
 endmodule

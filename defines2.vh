@@ -798,7 +798,30 @@
 `define CP0_REG_TAGLO       5'd28
 `define CP0_REG_TAGHI       5'd29
 `define CP0_REG_ERREPC      5'd30
+//CP0
+`define CP0_INDEX       5'd0
+`define CP0_RANDOM      5'd1
+`define CP0_ENTRY_LO0   5'd2
+`define CP0_ENTRY_LO1   5'd3
+`define CP0_CONTEXT     5'd4
+`define CP0_PAGE_MASK   5'd5
+`define CP0_WIRED       5'd6
 
+`define CP0_BADVADDR    5'd8    //read-only
+`define CP0_COUNT       5'd9    //
+`define CP0_ENTRY_HI    5'd10
+`define CP0_COMPARE     5'd11   //no use
+`define CP0_STATUS      5'd12   //
+`define CP0_CAUSE       5'd13   //
+`define CP0_EPC         5'd14   //
+`define CP0_PRID        5'd15   //sel=0
+
+`define CP0_EBASE       5'd15   //sel=1
+`define CP0_CONFIG      5'd16   //sel=0
+`define CP0_CONFIG1     5'd16   //sel=1
+
+`define CP0_TAG_LO     5'd28   //sel=0
+`define CP0_TAG_HI     5'd29   //sel=0
 // tlb 
 //TLB Config
 `define TLB_LINE_NUM 8

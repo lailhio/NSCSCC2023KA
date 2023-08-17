@@ -96,7 +96,7 @@ module datapath(
 	wire 		cp0_to_regD;
 	wire		is_mfcD;
 	wire        mfhiD;
-	wire        mfloD;
+	wire        mfloD, interuptE;
     wire        is_in_delayslot_iD;//指令是否在延迟槽
     wire [1:0]  forward_1D;
     wire [1:0]  forward_2D;
@@ -160,9 +160,8 @@ module datapath(
 
     wire [31:0] src_b1M;
     //异常处理信号 exception
-    wire        interuptE;  //指令不存在
     wire        addrErrorLwE, addrErrorSwE; //访存指令异常
-    wire        pcErrorE;  //pc异常
+    wire        pcErrorE, interuptE;  //pc异常
 
 	// cp0	
     wire        flush_exceptionE;  // 发生异常时需要刷新流水线
@@ -170,11 +169,12 @@ module datapath(
     wire        pc_trapE; // 发生异常时pc特殊处理
     wire        cp0_to_regM;
     //------writeback stage----------
+    wire        interuptM;
 	wire [31:0] resultori_M;
 	wire [31:0] resultM;
     wire [31:0] cp0_countM, cp0_causeM, cp0_randomM;
 	//------writeback stage----------
-    wire interuptM, mem_writeM;  //指令不存在
+    wire interuptW, mem_writeM;  //指令不存在
 	wire [4:0] writeregW;//写寄存器号
 	wire regwriteW;
 	wire [31:0] resultW;
@@ -238,7 +238,7 @@ module datapath(
     flopstrc #(32) flopPcD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(PcF2),.out(PcD));
     flopstrc #(32) flopInstD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(instr_validF2),.out(instrD));
     flopstrc #(1) flopIsdelayD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),
-        .in(is_in_delayslot_iF2),.out(is_in_delayslot_iD));
+        .in({is_in_delayslot_iF2}),.out({is_in_delayslot_iD}));
     flopstrc #(1) flopTlbReD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_tlb_refillF2),.out(inst_tlb_refillD));
     flopstrc #(1) flopTlbInvD(.clk(clk),.rst(rst),.stall(stallD),.flush(flushD),.in(inst_tlb_invalidF2),.out(inst_tlb_invalidD));
     //-----------------------DecodeFlop----------------------------------
@@ -360,9 +360,9 @@ module datapath(
 
     cp0_exception cp0_exception(
         .clk(clk), .rst(rst),
-        .stallM(stallM), .we_i(cp0_writeE),
+        .stallM(stallM), .we_i(cp0_writeE), .stallD(stallD),
         .waddr_i(instrE[15:11]), .raddr_i(instrE[15:11]),
-        .sel_addr(instrE[2:0]), .data_i(src_b1E), .int_i(ext_int[4:0]),
+        .sel_addr(instrE[2:0]), .data_i(src_b1E), .int_i(ext_int),
         .tlb_typeE(tlb_typeE),
         .entry_lo0_in(EntryLo0_to_cp0),
         .entry_lo1_in(EntryLo1_to_cp0),
@@ -395,20 +395,20 @@ module datapath(
         .random_o(cp0_randomE),
         .flush_exception(flush_exceptionE),
         .pc_exception(pc_exceptionE),
-        .pc_trap(pc_trapE), .interupt(interuptE)
+        .pc_trap(pc_trapE), .interuptE(interuptE)
     );
 
 	//-------------------------------------Memory----------------------------------------
-	flopstrc #(32) flopPcM(.clk(clk),.rst(rst),.stall(stallM & ~flush_exceptionE),.flush(flushM & ~flush_exceptionE),.in(pcE),.out(pcM));
+	flopstrc #(33) flopPcM(.clk(clk),.rst(rst),.stall(stallM & ~flush_exceptionE),.flush(flushM & ~flush_exceptionE),.in({pcE, interuptE}),.out({pcM, interuptM}));
 	flopstrc #(32) flopAluM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(aluoutE),.out(aluoutM));
 	flopstrc #(32) flopRtvalueM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(src_b1E),.out(src_b1M));
 	flopstrc #(32) flopInstrM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(instrE),.out(instrM));
 	flopstrc #(32) flopCountM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_countE),.out(cp0_countM));
 	flopstrc #(32) floprandomM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_randomE),.out(cp0_randomM));
-	flopstrc #(32) flopcauseM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_causeE),.out(cp0_causeM));
-    flopstrc #(5) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,branchE,mem_writeE,memtoregE, interuptE}),
-        .out({regwriteM,branchM,mem_writeM,memtoregM, interuptM}));
+	flopstrc #(32) flopcauseM(.clk(clk),.rst(rst),.stall(stallM & ~flush_exceptionE),.flush(flushM & ~flush_exceptionE),.in(cp0_causeE),.out(cp0_causeM));
+    flopstrc #(4) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
+        .in({regwriteE,branchE,mem_writeE,memtoregE}),
+        .out({regwriteM,branchM,mem_writeM,memtoregM}));
     flopstrc #(2) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({cp0_to_regE,is_mfcE}),
         .out({cp0_to_regM,is_mfcM}));
