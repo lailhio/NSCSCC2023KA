@@ -17,6 +17,7 @@ module maindec(
 		output reg cp0_writeD,
 		output reg cp0_to_regD,
 		output wire [3:0] tlb_typeD,
+		output reg [1:0] movtype,
 		
 		output wire mfhiD,
 		output wire mfloD,
@@ -68,6 +69,20 @@ module maindec(
 			default: DivMulEnD = 1'b0;
 		endcase
 	end
+
+	always @(*) begin
+		case(opD)
+			`R_TYPE:begin
+				case (functD)
+					`MOVN: movtype =`C_MOVN;
+					`MOVZ: movtype =`C_MOVZ;
+					default: movtype =`C_MOVNOP;
+				endcase
+			end
+			default: movtype =`C_MOVNOP;
+		endcase
+	end
+
 	always @(*) begin
 		case(opD)
 			`R_TYPE:begin

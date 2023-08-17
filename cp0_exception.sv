@@ -25,7 +25,7 @@ module cp0_exception(
 
 	input wire[5:0] int_i,
 
-	input wire[`RegBus] current_inst_addr_i,
+	input wire[`RegBus] PcCur,
 	input wire is_in_delayslot_i,
 
     input ri, break_exception, syscall, overflow, addrErrorSw, addrErrorLw, pcError, eretE,
@@ -68,20 +68,25 @@ module cp0_exception(
     reg[`RegBus] status_o;
     reg[`RegBus] epc_o;
     reg[`RegBus] ebase_reg;
-    wire [`RegBus] excepttype_i;
+    wire [4:0] excepttype_i;
     wire [`RegBus] bad_addr_i;
 
     reg timer_int_o;
+   reg interval_flag;   //间隔一个时钟递增时钟计数器
 
     reg[`RegBus] compare_o;
 	reg[`RegBus] prid_o;
 	reg[`RegBus] badvaddr;
 	reg[`RegBus] config_o;
+	reg[`RegBus] config1_o;
 	logic [31:0]    prid = 32'h00018003;
 	logic [31:0] random_reg;
 	logic [31:0] wired_reg;
 	reg [32:0] count;
-	   reg [31:0] index_reg;
+	reg[`RegBus] tag_hi_reg;
+	reg[`RegBus] tag_lo_reg;
+
+	reg [31:0] index_reg;
 reg [31:0] entry_hi_reg;
    reg [31:0] entry_lo0_reg;
    reg [31:0] entry_lo1_reg;
@@ -99,26 +104,25 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 	assign count_o = count[32:1];
 	assign random_o = random_reg;
        //             //IE             //EXL            
-	assign interuptE =   status_o[0] & ~status_o[1] & ~status_o[2]  & (current_inst_addr_i != 0) & (
+	assign interuptE =   status_o[0] & ~status_o[1] & ~status_o[2]  & (PcCur != 0) & (
 						//IM                 //IP
 					( |(status_o[9:8] & cause_o[9:8]) ) ||        //soft interuptE
 					( |(status_o[15:10] & cause_o[15:10]) )     //硬件中断
 	);
 
-	assign excepttype_i =  (interuptE)                   	? 32'h00000001 :    //中断
-						inst_tlb_refill | inst_tlb_invalid ? 32'h00000002 :
-		mem_readE & (data_tlb_refill | data_tlb_invalid) ? 32'h00000002 :
-		mem_writeE & (data_tlb_refill | data_tlb_invalid)? 32'h00000003 :
-                           				data_tlb_modify ? 32'h00000006 :
-								(addrErrorLw | pcError) ? 32'h00000004 :   //地址错误例外（lw地址 pc错误
-								(ri)                    ? 32'h0000000a :     //保留指令例外（指令不存在
-								(syscall)               ? 32'h00000008 :    //系统调用例外（syscall指令
-								(break_exception)       ? 32'h00000009 :     //断点例外（break指令
-								(addrErrorSw)           ? 32'h00000005 :   //地址错误例外（sw地址异常
-								(overflow)              ? 32'h0000000c :     //算数溢出例外
-								(trap)                  ? 32'h0000000d :     //自陷异常
-								(eretE)                 ? 32'h0000000e :   //eret指令
-														32'h00000000 ;   //无异常?
+	assign excepttype_i =  (interuptE)				? `EXC_CODE_INT   :
+                           (tlb_mod)               ? `EXC_CODE_MOD   :
+                           (tlb_tlbl)              ? `EXC_CODE_TLBL  :
+                           (tlb_tlbs)              ? `EXC_CODE_TLBS  :
+                           (addrErrorLw | pcError) ? `EXC_CODE_ADEL  :
+                           (addrErrorSw)           ? `EXC_CODE_ADES  :
+                           (syscall)               ? `EXC_CODE_SYS   :
+                           (break_exception)		? `EXC_CODE_BP    :
+                           (ri)                    ? `EXC_CODE_RI    :
+                           (overflow)              ? `EXC_CODE_OV    :
+                           (trap)                  ? `EXC_CODE_TR    :
+                           (eretE)                 ? `EXC_CODE_ERET  :
+                                                     `EXC_CODE_NOEXC;
 	//interuptE pc address
 	   wire BEV;
    assign BEV = status_o[22];
@@ -132,209 +136,166 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
    assign offset = tlb_refill ? 32'b0 : 32'h180;
 
    assign pc_exception = eretE ? epc_o : base + offset;
-	assign pc_trap =        (excepttype_i != 32'h00000000); //表示发生异常，需要处理pc
-	assign flush_exception =   (excepttype_i != 32'h00000000); //无异常时，为0
-	assign bad_addr_i =    (pcError | inst_tlb_invalid | inst_tlb_refill) ? current_inst_addr_i : aluoutE;  //出错时的pc
+	assign pc_trap =        (excepttype_i != `EXC_CODE_NOEXC); //表示发生异常，需要处理pc
+	assign flush_exception =   (excepttype_i != `EXC_CODE_NOEXC); //无异常时，为0
+	assign bad_addr_i =    (pcError | inst_tlb_invalid | inst_tlb_refill) ? PcCur : aluoutE;  //出错时的pc
 
 
-    always @(posedge clk) begin
-		if(rst == `RstEnable) begin
-			count <= 0;
-			compare_o <= `ZeroWord;
-			status_o <= 32'b00000000010000000000000000000000;
-			cause_o <= `ZeroWord;
-			epc_o <= `ZeroWord;
-			config_o <= 32'b00000000000000001000000000000000;
-			prid_o <= 32'h00018003;
-			timer_int_o <= `InterruptNotAssert;
-			random_reg <= `TLB_LINE_NUM - 1;
-			wired_reg <= 0;
-        	ebase_reg <= 32'h80000000;
-		end 
-		else begin
-			count <= count + 1;
-			random_reg <= (random_reg == wired_reg) ? (`TLB_LINE_NUM - 1) : (random_reg - 1);
-			cause_o[`IP7_IP2_BITS] <=  int_i;
-			if(compare_o != `ZeroWord && count_o == compare_o) begin
-				/* code */
-				timer_int_o <= `InterruptAssert;
-			end
-			if(~stallM & we_i) begin
-				/* code */
-				case (waddr_i)
-					`CP0_REG_COUNT:begin 
-						count[32:1] <= data_i;
-					end
-					`CP0_REG_COMPARE:begin 
-						compare_o <= data_i;
-					end
-					`CP0_REG_STATUS:begin 
-						status_o <= data_i;
-					end
-					`CP0_REG_CAUSE:begin 
-						cause_o[9:8] <= data_i[9:8];
-						cause_o[23] <= data_i[23];
-						cause_o[22] <= data_i[22];
-					end
-					`CP0_REG_WIRED: begin
-						wired_reg <= {{(32-$clog2(`TLB_LINE_NUM)){1'b0}},data_i[$clog2(`TLB_LINE_NUM)-1:0]};
-						random_reg <= `TLB_LINE_NUM-1;
-					end
-					`CP0_REG_PRID: begin
-						if (sel_addr == 1) begin
-							ebase_reg[29:0] <= data_i[29:0];
-						end
-					end
-					`CP0_REG_EPC:begin 
-						epc_o <= data_i;
-					end
-					default : /* default */;
-				endcase
-			end
-			case (excepttype_i)
-				32'h00000001:begin // 中断（其实写入的cause)
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b00000;
-				end
-				32'h00000002:begin // TLBL
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b00010;
-					badvaddr <= bad_addr_i;
-				end
-				32'h00000003:begin // TLBS
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b00011;
-					badvaddr <= bad_addr_i;
-				end
-				32'h00000004:begin // 取指非对齐或Load非对齐
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b00100;
-					badvaddr <= bad_addr_i;
-				end
-				32'h00000005:begin // Store非对齐
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b00101;
-					badvaddr <= bad_addr_i;
-				end
-				// 32'h00000005:begin // tlbmodify
-				// 	if(is_in_delayslot_i == `InDelaySlot) begin
-				// 		/* code */
-				// 		epc_o <= current_inst_addr_i - 4;
-				// 		cause_o[31] <= 1'b1;
-				// 	end else begin 
-				// 		epc_o <= current_inst_addr_i;
-				// 		cause_o[31] <= 1'b0;
-				// 	end
-				// 	status_o[1] <= 1'b1;
-				// 	cause_o[6:2] <= 5'b00110;
-				// end
-				32'h00000008:begin // Syscall异常
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b01000;
-				end
-				32'h00000009:begin // BREAK异常
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b01001;
-				end
-				32'h0000000a:begin // 保留指令（译码失败）
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b01010;
-				end
-				32'h0000000c:begin // ALU溢出异常
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b01100;
-				end
-				32'h0000000d:begin // 自陷指令（不在57条中）
-					if(is_in_delayslot_i == `InDelaySlot) begin
-						/* code */
-						epc_o <= current_inst_addr_i - 4;
-						cause_o[31] <= 1'b1;
-					end else begin 
-						epc_o <= current_inst_addr_i;
-						cause_o[31] <= 1'b0;
-					end
-					status_o[1] <= 1'b1;
-					cause_o[6:2] <= 5'b01101;
-				end
-				32'h0000000e:begin // eret异常（准确说不叫异常，但通过这个在跳转到epc的同时清零status的EXL?
-					status_o[1] <= 1'b0;
-				end
-				default : /* default */;
-			endcase
-		end
-	end
+    wire [31:0] Pc_Minus4;
+   assign Pc_Minus4 = PcCur - 4;
+
+   // mtc0 (只与mtc0有关，与异常，tlb指令无关)
+   always @(posedge clk) begin
+      if(rst) begin
+         config_o     <= `CONFIG_INIT;
+         config1_o    <= `CONFIG1_INIT;
+         prid_o       <= `PRID_INIT;
+         ebase_reg      <= 32'h8000_0000; //初始化最高位为1
+
+         wired_reg      <= 32'b0;
+
+         tag_hi_reg     <= 32'b0;
+         tag_lo_reg     <= 32'b0;
+      end
+      else if(~stallM & we_i) begin
+         case (waddr_i)
+            `CP0_COMPARE: begin 
+               compare_o <= data_i;
+            end
+            `CP0_EBASE: begin
+               ebase_reg[`EXCEPTION_BASE_BITS] <= data_i[`EXCEPTION_BASE_BITS];
+            end
+            `CP0_CONFIG: begin   //不会写config1
+               config_o[`K23_BITS] <= data_i[`K23_BITS];
+               config_o[`KU_BITS ] <= data_i[`KU_BITS ];
+               config_o[`K0_BITS ] <= data_i[`K0_BITS ];
+            end
+            `CP0_WIRED: begin
+               wired_reg[`WIRED_BITS] <= data_i[`WIRED_BITS];
+            end
+            `CP0_TAG_HI: begin
+               tag_hi_reg <= data_i;
+            end
+            `CP0_TAG_LO: begin
+               tag_lo_reg <= data_i;
+            end
+            default: begin
+               /**/
+            end
+         endcase
+      end
+   end
+
+   //timer int
+   wire compare_wen;
+   assign compare_wen = ~stallM & we_i & (waddr_i == `CP0_COMPARE);
+   always @(posedge clk) begin
+      if(rst | compare_wen) begin
+         timer_int_o <= 1'b0;
+      end
+      else begin
+         //计时器中断
+         timer_int_o <= (compare_o != 32'b0) && (count == compare_o) ? 1'b1 : 1'b0;
+      end
+   end
+
+//与异常有关
+   //status
+   wire status_wen;
+   assign status_wen = ~stallM & we_i & (waddr_i == `CP0_STATUS);
+
+   always @(posedge clk) begin
+      if(rst) begin
+         status_o    <= `STATUS_INIT;  //BEV置为1
+      end
+      else if(flush_exception) begin
+         status_o[`EXL_BIT] <= &excepttype_i ? //eret
+                                 1'b0 : 1'b1;   
+      end
+      else if(status_wen) begin
+         status_o <= data_i;
+      end
+   end
+
+   //cause
+   wire cause_wen;
+   assign cause_wen = ~stallM & we_i & (waddr_i == `CP0_CAUSE);
+
+   always @(posedge clk) begin
+      if(rst) begin
+         cause_o     <= `CAUSE_INIT;
+      end
+      else if(flush_exception) begin
+         cause_o[`BD_BIT] <= is_in_delayslot_i;
+         cause_o[`EXC_CODE_BITS] <= excepttype_i;
+      end
+      else if(cause_wen) begin
+         cause_o[`IP1_IP0_BITS] <= data_i[`IP1_IP0_BITS];  //软件中断
+      end
+      else begin
+         //外部中断
+         cause_o[`IP7_IP2_BITS] <= ~stallM ? int_i : 0;
+      end
+   end
+
+   //epc
+   wire epc_wen;
+   assign epc_wen = ~stallM & we_i & (waddr_i == `CP0_EPC);
+
+   always @(posedge clk) begin
+      if(flush_exception) begin
+         epc_o <= is_in_delayslot_i ? Pc_Minus4 : PcCur;
+      end
+      else if(epc_wen) begin
+         epc_o <= data_i;
+      end
+   end
+
+   //bad_addr_i
+   wire badvaddr_wen;
+   assign badvaddr_wen = (excepttype_i==`EXC_CODE_ADEL) || (excepttype_i==`EXC_CODE_ADES) ||
+                         (excepttype_i==`EXC_CODE_TLBL) || (excepttype_i==`EXC_CODE_TLBS) ? 1'b1 : 1'b0;
+   always @(posedge clk) begin
+      if(badvaddr_wen)
+         badvaddr <= bad_addr_i;
+   end
+
+//自增
+   //count
+   always @(posedge clk) begin
+      interval_flag <= rst ? 1'b0 : ~interval_flag;
+   end
+
+   wire count_wen;
+   assign count_wen = ~stallM & we_i & (waddr_i == `CP0_COUNT);
+   always @(posedge clk) begin
+      if(rst) begin
+         count     <= 32'b0;
+      end
+      else if(count_wen) begin
+         count <= data_i;
+      end
+      else begin
+         //计时器加1
+         count <= interval_flag ? count + 1 : count;
+      end
+   end
+
+//TLB
+   //random: 在[wired_reg, tlb_line_num-1]之间循环
+   wire wired_wen;
+   assign wired_wen = ~stallM & we_i & (waddr_i == `CP0_WIRED);
+   always @(posedge clk) begin
+      if(rst) begin
+         random_reg     <= `TLB_LINE_NUM-1;
+      end
+      else if(random_reg==wired_reg | wired_wen) begin
+         random_reg <= `TLB_LINE_NUM-1;
+      end
+      else begin
+         random_reg <= random_reg-1;
+      end
+   end
 
    //index, entry_hi/lo, page_mask
    wire mtc0_index, mtc0_entry_lo0, mtc0_entry_lo1, mtc0_entry_hi, mtc0_page_mask;
@@ -423,7 +384,12 @@ wire tlb_mod, tlb_tlbl, tlb_tlbs;
 				data_o = epc_o;
 			end
 			`CP0_REG_CONFIG:begin 
-				data_o = config_o;
+				case (sel_addr)
+					0:  data_o	=	config_o;
+					1:	data_o 	= 	config1_o;
+					default:
+						data_o = 0;
+				endcase 
 			end
 			`CP0_REG_BADVADDR:begin 
 				data_o = badvaddr;

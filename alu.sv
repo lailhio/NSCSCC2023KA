@@ -2,7 +2,7 @@
 `timescale 1ns / 1ps
 
 module alu(
-    input wire clk, rst,stallE,flushE,
+    input wire clk, rst,stallM,flushE,
     input wire [31:0] src_aE, src_bE, cp0_outE,
     input wire [7:0] alucontrolE, 
     input wire [4:0] sa, msbd,
@@ -71,7 +71,7 @@ module alu(
                 if(ready_mul) begin 
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = aluout_mul;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     
@@ -85,7 +85,7 @@ module alu(
                 if(ready_mul) begin 
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = aluout_mul;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     
@@ -98,7 +98,7 @@ module alu(
                 if(ready_div) begin 
                     div_startE = 1'b0;
                     // hilo_in_muldiv = aluout_div;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     div_sign = 1'b1;
@@ -111,7 +111,7 @@ module alu(
                 if(ready_div) begin 
                     div_startE = 1'b0;
                     // hilo_in_muldiv = aluout_div;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     div_sign = 1'b0;
@@ -123,13 +123,13 @@ module alu(
                 aluoutE = 32'b0;
                 // hilo_in_muldiv = {src_aE, 32'b0};
                 hilo_selectE = 2'b11;
-                hilo_writeE = 1'b1;
+                hilo_writeE = ~stallM;
             end
             `MTLO_CONTROL: begin
                 aluoutE = 32'b0;
                 // hilo_in_muldiv = {32'b0, src_aE};
                 hilo_selectE = 2'b10;
-                hilo_writeE = 1'b1;
+                hilo_writeE = ~stallM;
             end
             `MFHI_CONTROL:begin
                 aluoutE = hilo_outE[63:32];
@@ -221,7 +221,7 @@ module alu(
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = hilo_outE + aluout_mul;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     mul_startE = 1'b1;
@@ -234,7 +234,7 @@ module alu(
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = hilo_outE + aluout_mul;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     
@@ -248,7 +248,7 @@ module alu(
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = hilo_outE - aluout_mul;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     
@@ -262,7 +262,7 @@ module alu(
                 if(ready_mul) begin
                     mul_startE = 1'b0;
                     // hilo_in_muldiv = hilo_outE - aluout_mul;
-                    hilo_writeE = 1'b1;
+                    hilo_writeE = ~stallM;
                 end
                 else begin
                     
@@ -365,6 +365,6 @@ module alu(
 	);
 
 // hilo
-    hilo hilo(clk,rst, hilo_selectE , hilo_writeE & ~flush_exceptionE , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
+    hilo hilo(clk,rst, hilo_selectE , hilo_writeE , mfhiE ,mfloE , hilo_in_muldiv , hilo_outE );
 
 endmodule

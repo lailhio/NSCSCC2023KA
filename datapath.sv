@@ -82,7 +82,7 @@ module datapath(
 
     wire [2 :0] branch_judge_controlD; //分支判断控制
 	wire 		sign_exD;          //立即数是否为符号扩展
-	wire [1:0] 	regdstD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> $ra
+	wire [1:0] 	regdstD, movtypeD;    	//写寄存器选择  00-> rd, 01-> rt, 10-> $ra
 	wire 		is_immD;       //alu srcb选择 0->rd2D, 1->immD
     wire [4 :0] writeregD; //写寄存器号
 	wire 		regwriteD;//写寄存器堆使
@@ -109,7 +109,7 @@ module datapath(
     wire inst_tlb_invalidE;
 	wire [31:0] pcE, PcPlus4E, PcPlus8E; //pc pc+4 寄存器号 写内存 立即数
     wire        pred_takeE;  //分支预测
-    wire [1 :0] regdstE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
+    wire [1 :0] regdstE, movtypeE;  //写回选择信号, 00-> rd, 01-> rt, 10-> $ra
     wire [7 :0] alucontrolE;  //alu控制信号
 
     wire [31:0] src_a1E, src_b1E; //alu输入（操作数
@@ -248,7 +248,7 @@ module datapath(
 	maindec md(instrD,
 		//output
         sign_exD , regdstD, is_immD , regwriteD , writeregD, mem_readD , mem_writeD , memtoregD,
-		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD, tlb_typeD,
+		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD, tlb_typeD,  movtypeD,
         mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
 
     //扩展立即数
@@ -303,9 +303,9 @@ module datapath(
     flopstrc #(11) flopSign2E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
         .in({memtoregD,mem_writeD,mem_readD,syscallD,eretD,cp0_to_regD,is_mfcD,mfloD,mfhiD,cp0_writeD, DivMulEnD}),
         .out({memtoregE,mem_writeE,mem_readE,syscallE,eretE,cp0_to_regE,is_mfcE,mfloE,mfhiE,cp0_writeE, DivMulEnE}));
-    flopstrc #(18) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
-        .in({alucontrolD,branch_judge_controlD,writeregD,regdstD}),
-        .out({alucontrolE,branch_judge_controlE,writeregE,regdstE}));
+    flopstrc #(20) flopSign3E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+        .in({alucontrolD,branch_judge_controlD,writeregD,regdstD, movtypeD}),
+        .out({alucontrolE,branch_judge_controlE,writeregE,regdstE, movtypeE}));
     flopstrc #(4) flopTlbTypeE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(tlb_typeD),.out(tlb_typeE));
     
     flopstrc #(1) flopTlbReE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(inst_tlb_refillD),.out(inst_tlb_refillE));
@@ -314,7 +314,7 @@ module datapath(
 	//ALU
     alu aluitem(
         //input
-        .clk(clk),.rst(rst),.stallE(stallE),.flushE(flushE),
+        .clk(clk),.rst(rst),.stallM(stallM),.flushE(flushE),
         .src_aE(src_aE), .src_bE(src_bE), .cp0_outE(cp0_outE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
         .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionE(flush_exceptionE), .DivMulEnE(DivMulEnE), 
@@ -330,6 +330,9 @@ module datapath(
         .rt_valueE(src_b1E),
         .actual_takeE(actual_takeE)
     );
+    wire acutual_regwriteE  =movtypeE==`C_MOVN ? (|src_b1E):    // !=0
+                            movtypeE==`C_MOVZ ? (!(|src_b1E)): // ==0
+                            regwriteE; 
     //分支预测结果
     assign pre_right = ~flush_pred_failedE; 
     assign flush_pred_failedE = pred_takeE ^ actual_takeE;
@@ -383,7 +386,7 @@ module datapath(
         .data_tlb_invalid(data_tlb_invalidE),
         .data_tlb_modify(data_tlb_modifyE),
 
-        .current_inst_addr_i(pcE),
+        .PcCur(pcE),
         .is_in_delayslot_i(is_in_delayslot_iE),
         .ri(riE), .break_exception(breakE), .syscall(syscallE), .overflow(overflowE), .trap(trapE), 
         .addrErrorSw(addrErrorSwE), .addrErrorLw(addrErrorLwE), .pcError(pcErrorE), .eretE(eretE),
@@ -407,7 +410,7 @@ module datapath(
 	flopstrc #(32) floprandomM(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),.in(cp0_randomE),.out(cp0_randomM));
 	flopstrc #(32) flopcauseM(.clk(clk),.rst(rst),.stall(stallM & ~flush_exceptionE),.flush(flushM & ~flush_exceptionE),.in(cp0_causeE),.out(cp0_causeM));
     flopstrc #(4) flopSign1M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
-        .in({regwriteE,branchE,mem_writeE,memtoregE}),
+        .in({acutual_regwriteE,branchE,mem_writeE,memtoregE}),
         .out({regwriteM,branchM,mem_writeM,memtoregM}));
     flopstrc #(2) flopSign2M(.clk(clk),.rst(rst),.stall(stallM),.flush(flushM),
         .in({cp0_to_regE,is_mfcE}),
@@ -449,7 +452,7 @@ module datapath(
         .rtD(instrD[20:16]),
         .is_mfcE(is_mfcE),
         .hilotoregE(hilotoregE),
-        .regwriteE(regwriteE),
+        .regwriteE(acutual_regwriteE),
         .regwriteM(regwriteM),
         // .regwriteM2(regwriteM2),
         .regwriteW(regwriteW),
