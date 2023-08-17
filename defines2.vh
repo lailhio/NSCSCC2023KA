@@ -456,6 +456,7 @@
 `define SRLV 		6'b000110
 `define SRA 		6'b000011
 `define SRAV 		6'b000111
+`define SYNC 		6'b001111
 
 `define MFHI  		6'b010000
 `define MTHI  		6'b010001  

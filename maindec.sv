@@ -145,6 +145,13 @@ module maindec(
 						{regwriteD, regdstD, is_immD} =  4'b1100;
 						{memtoregD, mem_readD, mem_writeD} =  3'b0;
 					end
+					`SYNC:begin
+						aluopD=`USELESS_OP;
+						riD  =  1'b0;
+						writeregD = 5'd0;
+						{regwriteD, regdstD, is_immD} =  4'b0000;
+						{memtoregD, mem_readD, mem_writeD} =  3'b0;
+					end
 					default: begin
 						aluopD=`USELESS_OP;
 						riD  =  1'b1;
