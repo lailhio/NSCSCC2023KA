@@ -57,6 +57,7 @@ module aludec(
 					default:    	alucontrol = 8'b00000000;
 				endcase
 			//I type
+			`RLWINM_OP: alucontrol = `RLWINM_CONTROL;
 			`ADDI_OP: 	alucontrol = `ADD_CONTROL;
 			`ADDIU_OP: alucontrol = `ADDU_CONTROL;
 			`SLTI_OP: 	alucontrol = `SLT_CONTROL;

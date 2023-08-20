@@ -607,7 +607,7 @@
 
 `define MEM_OP      6'b000100
 
-
+`define RLWINM_OP   6'b111110
 `define R_TYPE_OP   6'b001000
 `define MFC0_OP     6'b001001
 `define MTC0_OP     6'b001010
@@ -643,6 +643,8 @@
 `define TLTIU_OP    6'b011111
 `define TNEI_OP     6'b100000
 
+
+`define RLWINM      6'b011101
 // // ALU CONTROL 5bit
 // `define AND_CONTROL 5'b00111
 // `define OR_CONTROL  5'b00001
@@ -712,6 +714,7 @@
 `define MFC0_CONTROL 	8'b00011010
 `define MTC0_CONTROL    8'b00011011
 
+`define RLWINM_CONTROL  8'b11111111
 `define CLO_CONTROL     8'b00011100
 `define CLZ_CONTROL     8'b00011101
 

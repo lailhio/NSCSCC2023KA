@@ -5,7 +5,7 @@ module alu(
     input wire clk, rst,stallM,flushE,
     input wire [31:0] src_aE, src_bE, cp0_outE,
     input wire [7:0] alucontrolE, 
-    input wire [4:0] sa, msbd,
+    input wire [4:0] sa, msbd, imm5aE, imm5bE, imm5cE,
     input wire mfhiE, mfloE, flush_exceptionE, DivMulEnE,
     
     output wire alustallE,
@@ -17,6 +17,7 @@ module alu(
     wire [63:0] aluout_mul;
     reg [63:0] hilo_in_muldiv;
     wire [63:0] hilo_outE;
+    wire  [31:0] mask_RLWINM;
     reg mul_sign;
     reg div_sign; 
 	wire ready_div;
@@ -27,6 +28,16 @@ module alu(
     reg hilo_writeE;
    
     assign alustallE = DivMulEnE & ~ready_div & ~ready_mul;
+
+    genvar i;
+    generate
+        for (i = 0; i < 32; i = i + 1)
+        begin : find
+            assign mask_RLWINM[i] = (((imm5cE>=i) & (i>imm5bE)) | ((i>imm5bE) & (imm5bE>imm5cE)) | ((i<=imm5cE) & (imm5bE>imm5cE))); 
+        end
+    endgenerate
+
+
 
     always @(*) begin
         mul_sign =1'b0;
@@ -190,6 +201,10 @@ module alu(
             // `WSBH_CONTROL:  begin
             //     aluoutE = {src_bE[23:16], src_bE[31:24], src_bE[7:0], src_bE[15:8]};
             // end
+            `RLWINM_CONTROL:begin
+                aluoutE = ((src_aE << imm5aE) | (src_aE >> (32- imm5aE))) & mask_RLWINM;
+                
+            end
             `MOVN_CONTROL:  begin
                 if(|src_bE) begin
                     aluoutE = src_aE;

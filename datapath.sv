@@ -211,13 +211,17 @@ module datapath(
         .in({is_in_delayslot_iF2}),.out({is_in_delayslot_iD}));
     //-----------------------DecodeFlop----------------------------------
     wire[5:0] functD;
-    wire DivMulEnD, DivMulEnE;
+    wire DivMulEnD, DivMulEnE, isRLWINMD;
+    wire [4:0] imm5aD, imm5bD, imm5cD, imm5aE, imm5bE, imm5cE;
 	aludec ad(functD,aluopD,alucontrolD);
 	maindec md(instrD,
 		//output
         sign_exD , regdstD, is_immD , regwriteD , writeregD, mem_readD , mem_writeD , memtoregD,
 		hilotoregD , riD, breakD , syscallD , eretD , cp0_writeD , cp0_to_regD, movtypeD,
-        mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD);
+        mfhiD , mfloD , is_mfcD,  aluopD, functD , branch_judge_controlD , DivMulEnD, isRLWINMD);
+    assign imm5aD = instrD[14:10];
+    assign imm5bD = instrD[9:5];
+    assign imm5cD = instrD[4:0];
 
     //扩展立即数
     signext signex(sign_exD,instrD[15:0],immD);
@@ -257,6 +261,8 @@ module datapath(
     );
 	//----------------------------------Execute------------------------------------
     flopstrc #(32) flopPcE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(PcD),.out(pcE));
+    flopstrc #(15) flopImmabcE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),
+                    .in({imm5aD, imm5bD, imm5cD}),.out({imm5aE, imm5bE, imm5cE}));
     flopstrc #(32) flopInstE(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(instrD),.out(instrE));
     flopstrc #(32) flopSrca1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_a1D),.out(src_a1E));
     flopstrc #(32) flopSrcb1E(.clk(clk),.rst(rst),.stall(stallE),.flush(flushE),.in(src_b1D),.out(src_b1E));
@@ -280,7 +286,7 @@ module datapath(
     alu aluitem(
         //input
         .clk(clk),.rst(rst),.stallM(stallM),.flushE(flushE),
-        .src_aE(src_aE), .src_bE(src_bE), .cp0_outE(cp0_outE),
+        .src_aE(src_aE), .src_bE(src_bE), .cp0_outE(cp0_outE), .imm5aE(imm5aE), .imm5bE(imm5bE), .imm5cE(imm5cE),
         .alucontrolE(alucontrolE),.sa(instrE[10:6]),.msbd(instrE[15:11]),
         .mfhiE(mfhiE), .mfloE(mfloE), .flush_exceptionE(flush_exceptionE), .DivMulEnE(DivMulEnE), 
         //output

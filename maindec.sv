@@ -24,12 +24,14 @@ module maindec(
 		output reg [5:0] aluopD,
 		output reg [5:0] funct_to_aluD,
 		output reg [2:0] branch_judge_controlD,
-		output reg DivMulEnD
+		output reg DivMulEnD,
+		output reg isRLWINMD
     );
 
 	//Instruct Divide
 	wire [5:0] opD,functD;
 	wire [4:0] rsD,rtD,rdD,shamtD;
+	
 	
 	assign opD = instrD[31:26];
 	assign functD = instrD[5:0];
@@ -81,6 +83,7 @@ module maindec(
 	end
 
 	always @(*) begin
+		isRLWINMD =1'b0;
 		case(opD)
 			`R_TYPE:begin
 				is_mfcD=1'b0;
@@ -313,7 +316,15 @@ module maindec(
 					end
 				endcase
 			end
-			
+			`RLWINM:begin
+				riD= ~instrD[15];
+				is_mfcD=1'b0;
+				aluopD=`RLWINM_OP;
+				isRLWINMD =1'b1;
+				writeregD = rtD;
+				{regwriteD, regdstD, is_immD}  =  4'b1000;
+				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
+			end
 	// 访存指令，都是立即数指令
 			`LW, `LB, `LBU, `LH, `LHU, `LWL, `LWR, `LL: begin
 				riD=1'b0;
@@ -358,7 +369,6 @@ module maindec(
 				{regwriteD, regdstD, is_immD}  =  4'b1100;
 				{memtoregD, mem_readD, mem_writeD}  =  3'b0;
 			end
-
 			`COP0_INST:begin
 				case(rsD)
 					`MTC0: begin
